@@ -1,0 +1,134 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif !important;
+}
+
+.on-top-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+}
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 5vh;
+}
+a {
+  text-decoration: none;
+  color: #000;
+}
+.header-text {
+  display: flex;
+  gap: 0.5em;
+  align-items: center;
+  padding: 0.5em 1em;
+  font-weight: bold;
+  background: none;
+  text-align: center;
+}
+.main-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 2em 2em;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 10px;
+  box-shadow: none;
+}
+/* center form */
+.user-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+input {
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  margin-top: 1vh;
+  width: 300px;
+  /* no outline */
+  outline: none;
+  box-shadow: none;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: #000000;
+  border: 0px solid;
+}
+
+/* nur logo center  */
+.nur-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  max-width: 200px;
+  margin-bottom: 1em;
+}
+
+/* create list without the dots  */
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+button {
+  padding: 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  color: #000000;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  width: 300px;
+  margin-top: 1vh;
+}
+
+button:hover,
+a:hover {
+  border: none;
+  transition: background-color 0.5s;
+
+  background-color: rgba(255, 255, 255, 0);
+}
+.home-link {
+  margin-bottom: 1em;
+}
+.auth-link {
+  background: transparent;
+  color: #000;
+  border: none;
+}
+.auth-link:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+
+/* hide leaflet-control-attribution leaflet-control */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+.plus-marker-icon {
+  color: #ffffff;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 20px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0);
+}
