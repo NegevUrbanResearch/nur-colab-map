@@ -2,6 +2,10 @@
 
 A web application for mapping and visualizing data using Supabase and React.
 
+## To Do: 
+- [ ] Add github action backup for Supabase database https://supabase.com/docs/guides/deployment/ci/backups 
+
+
 ## Features
 
 - 🗺️ Interactive mapping with Leaflet
