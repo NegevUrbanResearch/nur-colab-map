@@ -36,26 +36,62 @@ A web application for mapping and visualizing data using Supabase and React.
 
 ## Getting Started
 
+### Prerequisites
+
+- **Node.js** (v18 or higher recommended)
+- **npm** or **yarn**
+- **Supabase account** (for cloud setup) or **Supabase CLI** (for local development)
+
 ### 1. Install dependencies
 
 ```bash
 npm install
 ```
 
-### 2. Configure environment variables
+### 2. Set up Supabase
 
-Copy `.env.example` to `.env` and fill in your Supabase credentials:
+You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for local development).
 
-```
-VITE_SUPABASE_URL=your-supabase-url
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-```
+#### Option A: Using Supabase Cloud
 
-### 3. Set up Supabase database
+1. Create a project at [supabase.com](https://supabase.com)
+2. Get your project URL and anon key from **Settings** → **API**
+3. Copy `.env.example` to `.env` and fill in your credentials
+4. Apply the database schema by running the SQL from `supabase/migrations/20251001185609_remote_schema.sql` in your Supabase SQL Editor (Dashboard → SQL Editor)
 
-Create the above tables and policies in your Supabase database using the SQL editor.
+#### Option B: Using Supabase Local
 
-### 4. Run the development server
+1. Install the Supabase CLI:
+   ```bash
+   npm install -g supabase
+   ```
+2. Start local Supabase:
+   ```bash
+   supabase start
+   ```
+3. Copy `.env.example` to `.env` and use the local credentials shown in the terminal output
+4. Apply migrations:
+   ```bash
+   supabase db push
+   ```
+
+### 3. Create test user
+
+For development, create a test user:
+
+1. Go to Supabase Dashboard → **Authentication** → **Users**
+2. Click **"Add user"** or **"Create new user"**
+3. Enter:
+   - **Email**: `test`
+   - **Password**: `password`
+   - Check **"Auto Confirm User"** (to skip email confirmation)
+4. Click **"Create user"**
+
+**Optional**: Disable email confirmation for easier development:
+- Go to **Authentication** → **Settings**
+- Under **"Email Auth"**, toggle **"Enable email confirmations"** to OFF
+
+### 5. Run the development server
 
 ```bash
 npm run dev
