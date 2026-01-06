@@ -265,6 +265,23 @@ VALUES (
 );
 ```
 
+In  `project_meta`, you can store GeoJSON data representing the project's geographic boundaries or other metadata, which is used to initialize map views or define project extents.
+If editing the `project_meta` manually, ensure it is valid GeoJSON.
+
+##### Example GeoJSON for `project_meta`
+```
+<!-- Nahal Oz -->
+{
+    "type": "Polygon",
+      "coordinates": [
+         [
+            [34.497604, 31.472094]
+         ]
+      ]
+}
+```
+
+
 ##### Add Project Members
 ```sql
 -- First, get the project ID and user ID
@@ -368,11 +385,3 @@ supabase db diff     # Generate migration from schema changes
 
 ---
 
-
-
-Manual update of location of supabase db table: 
-
-{
-    "type": "Point",
-    "coordinates": [-122.4194, 37.7749]
-}## Manual Update of Location of Supabase DB Table
