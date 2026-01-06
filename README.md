@@ -57,7 +57,8 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
 1. Create a project at [supabase.com](https://supabase.com)
 2. Get your project URL and anon key from **Settings** → **API**
 3. Copy `.env.example` to `.env` and fill in your credentials
-4. Apply the database schema by running the SQL from `supabase/migrations/20251001185609_remote_schema.sql` in your Supabase SQL Editor (Dashboard → SQL Editor)
+4. Apply the database schema: Go to **SQL Editor** and run the contents of `supabase/migrations/20251001000000_initial_schema.sql`
+5. (Optional) Seed test data: Run the contents of `supabase/seed.sql` in SQL Editor to create a test user and project
 
 #### Option B: Using Supabase Local
 
@@ -70,28 +71,24 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
    supabase start
    ```
 3. Copy `.env.example` to `.env` and use the local credentials shown in the terminal output
-4. Apply migrations:
+4. Reset database (applies migrations + seed data):
    ```bash
-   supabase db push
+   supabase db reset
    ```
+   This creates a test user and project automatically.
 
-### 3. Create test user
+### 3. Test user credentials
 
-For development, create a test user:
+The seed file (`supabase/seed.sql`) creates a test user you can use immediately (both local and cloud):
 
-1. Go to Supabase Dashboard → **Authentication** → **Users**
-2. Click **"Add user"** or **"Create new user"**
-3. Enter:
-   - **Email**: `test`
-   - **Password**: `password`
-   - Check **"Auto Confirm User"** (to skip email confirmation)
-4. Click **"Create user"**
+| Field    | Value            |
+|----------|------------------|
+| Email    | `test@gmail.com` |
+| Password | `password`       |
 
-**Optional**: Disable email confirmation for easier development:
-- Go to **Authentication** → **Settings**
-- Under **"Email Auth"**, toggle **"Enable email confirmations"** to OFF
+This user is automatically added as the owner of a "Test Project".
 
-### 5. Run the development server
+### 4. Run the development server
 
 ```bash
 npm run dev
