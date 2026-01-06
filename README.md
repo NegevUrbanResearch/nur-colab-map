@@ -57,8 +57,18 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
 1. Create a project at [supabase.com](https://supabase.com)
 2. Get your project URL and anon key from **Settings** → **API**
 3. Copy `.env.example` to `.env` and fill in your credentials
+
+**If connecting to an existing database**, you're done - the schema and data are already there.
+
+**If setting up a new database**, continue with:
+
 4. Apply the database schema: Go to **SQL Editor** and run the contents of `supabase/migrations/20251001000000_initial_schema.sql`
-5. (Optional) Seed test data: Run the contents of `supabase/seed.sql` in SQL Editor to create a test user and project
+5. (Optional) Seed test data:
+   - Go to **Authentication** → **Users** → **Add User**
+   - Create a user with email `test@gmail.com` and password `password`
+   - Copy the new user's UUID from the Dashboard
+   - Open `supabase/seed.cloud.sql`, replace `YOUR-USER-UUID-HERE` with the UUID
+   - Run the modified SQL in **SQL Editor** 
 
 #### Option B: Using Supabase Local
 

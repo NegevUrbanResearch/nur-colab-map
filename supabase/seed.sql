@@ -1,9 +1,11 @@
--- Seed file for local development
--- Run with: supabase db reset (this runs migrations + seed)
+-- Local development seed file
+-- Usage: supabase db reset (runs migrations + seed automatically)
+--
+-- Test user credentials:
+--   Email: test@gmail.com
+--   Password: password
 
 -- Create test user in auth.users
--- Email: test@gmail.com
--- Password: password
 INSERT INTO auth.users (
   id,
   instance_id,
@@ -15,7 +17,9 @@ INSERT INTO auth.users (
   raw_app_meta_data,
   raw_user_meta_data,
   aud,
-  role
+  role,
+  confirmation_token,
+  recovery_token
 )
 VALUES (
   '00000000-0000-0000-0000-000000000001',
@@ -28,7 +32,31 @@ VALUES (
   '{"provider": "email", "providers": ["email"]}',
   '{}',
   'authenticated',
-  'authenticated'
+  'authenticated',
+  '',
+  ''
+);
+
+-- Create identity for email provider (required for login to work)
+INSERT INTO auth.identities (
+  id,
+  user_id,
+  provider_id,
+  provider,
+  identity_data,
+  last_sign_in_at,
+  created_at,
+  updated_at
+)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  '00000000-0000-0000-0000-000000000001',
+  'test@gmail.com',
+  'email',
+  '{"sub": "00000000-0000-0000-0000-000000000001", "email": "test@gmail.com", "email_verified": true, "provider": "email"}',
+  now(),
+  now(),
+  now()
 );
 
 -- Create a test project
