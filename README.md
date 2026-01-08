@@ -2,9 +2,9 @@
 
 A web application for mapping and visualizing data using Supabase and React.
 
-## To Do: 
-- [ ] Add github action backup for Supabase database https://supabase.com/docs/guides/deployment/ci/backups 
+## To Do:
 
+- [ ] Add github action backup for Supabase database https://supabase.com/docs/guides/deployment/ci/backups
 
 ## Features
 
@@ -68,7 +68,7 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
    - Create a user with email `test@gmail.com` and password `password`
    - Copy the new user's UUID from the Dashboard
    - Open `supabase/seed.cloud.sql`, replace `YOUR-USER-UUID-HERE` with the UUID
-   - Run the modified SQL in **SQL Editor** 
+   - Run the modified SQL in **SQL Editor**
 
 #### Option B: Using Supabase Local
 
@@ -92,7 +92,7 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
 The seed file (`supabase/seed.sql`) creates a test user you can use immediately (both local and cloud):
 
 | Field    | Value            |
-|----------|------------------|
+| -------- | ---------------- |
 | Email    | `test@gmail.com` |
 | Password | `password`       |
 
@@ -105,3 +105,19 @@ npm run dev
 ```
 
 The app will be available at [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
+
+## Dev Tips
+
+### Code Formatting
+
+This project uses **Prettier** for code formatting and **ESLint** for code quality checks.
+
+### Git Blame Configuration
+
+The `.git-blame-ignore-revs` file is configured to ignore formatting-only commits in git blame. To enable it, run:
+
+```bash
+git config blame.ignoreRevsFile .git-blame-ignore-revs
+```
+
+When you make a commit that only reformats code (e.g., running `npm run format`), add the commit SHA to `.git-blame-ignore-revs` to keep blame history clean.
