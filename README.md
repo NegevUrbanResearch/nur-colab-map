@@ -2,8 +2,9 @@
 
 A web application for mapping and visualizing data using Supabase and React.
 
-## To Do: 
-- [ ] Add github action backup for Supabase database https://supabase.com/docs/guides/deployment/ci/backups 
+## To Do:
+
+- [ ] Add github action backup for Supabase database https://supabase.com/docs/guides/deployment/ci/backups
 
 ## Features
 
@@ -20,6 +21,7 @@ A web application for mapping and visualizing data using Supabase and React.
 - [Backend Mode: Local vs Online](#backend-mode-local-vs-online)
 - [Database Management](#database-management)
 - [Development Commands](#development-commands)
+- [Dev Tips](#dev-tips)
 
 ## Schema Overview
 
@@ -68,7 +70,7 @@ A web application for mapping and visualizing data using Supabase and React.
    ```bash
    npm run dev
    ```
-   
+
    The app will be available at `http://localhost:5173`
 
 ---
@@ -77,11 +79,31 @@ A web application for mapping and visualizing data using Supabase and React.
 
 The application can run with either a **local Supabase instance** (for development) or an **online Supabase project** (for production/staging).
 
-### 🏠 Local Mode (Recommended for Development)
+### Option A: Online Mode (Supabase Cloud)
 
-Local mode runs Supabase services in Docker containers on your machine, giving you full control over your development database.
+Best for: Production, staging, or if you don't want to run Docker locally.
 
-#### Setup Local Mode
+1. Create a project at [supabase.com](https://supabase.com)
+2. Get your project URL and anon key from **Settings** → **API**
+3. Copy `.env.example` to `.env` and fill in your credentials
+
+**If connecting to an existing database**, you're done - the schema and data are already there.
+
+**If setting up a new database**, continue with:
+
+4. Apply the database schema: Go to **SQL Editor** and run the contents of `supabase/migrations/20251001000000_initial_schema.sql`
+5. (Optional) Seed test data:
+   - Go to **Authentication** → **Users** → **Add User**
+   - Create a user with email `test@gmail.com` and password `password`
+   - Copy the new user's UUID from the Dashboard
+   - Open `supabase/seed.cloud.sql`, replace `YOUR-USER-UUID-HERE` with the UUID
+   - Run the modified SQL in **SQL Editor**
+
+### Option B: Local Mode (Supabase Local)
+
+Best for: Development, testing, or when you want full control over your database.
+
+Local mode runs Supabase services in Docker containers on your machine.
 
 1. **Install Supabase CLI** (if not already installed)
    ```bash
@@ -89,299 +111,77 @@ Local mode runs Supabase services in Docker containers on your machine, giving y
    ```
 
 2. **Start Docker Desktop**
-   
+
    Make sure Docker is running on your machine.
 
 3. **Start local Supabase services**
    ```bash
    supabase start
    ```
-   
-   This will:
-   - Download and start all Supabase services in Docker
-   - Output local credentials (API URL, anon key, etc.)
-   - Start PostgreSQL with PostGIS extension
-   - Start Studio UI at `http://127.0.0.1:54323`
 
-4. **Configure environment variables**
-   
-   Create a `.env` file in the project root:
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Update `.env` with the credentials from `supabase start` output:
-   ```env
-   VITE_SUPABASE_URL=http://127.0.0.1:54321
-   VITE_SUPABASE_ANON_KEY=your-local-anon-key-from-output
-   ```
+4. **Copy environment variables**
 
-5. **Apply database migrations**
+   Copy `.env.example` to `.env` and use the local credentials shown in the terminal output.
+
+5. **Reset database** (applies migrations + seed data)
    ```bash
    supabase db reset
    ```
-   
-   This creates all tables, indexes, and policies defined in `supabase/migrations/`.
 
-6. **Access local Supabase Studio**
-   
-   Open `http://127.0.0.1:54323` in your browser to:
-   - View and edit tables
-   - Run SQL queries
-   - Manage users
-   - Monitor logs
-
-#### Stop Local Services
-
-```bash
-supabase stop
-```
-
-### ☁️ Online Mode (Production/Staging)
-
-Online mode connects to a hosted Supabase project for production or staging environments.
-
-#### Setup Online Mode
-
-1. **Create a Supabase project**
-   
-   Go to [supabase.com](https://supabase.com) and create a new project.
-
-2. **Get your credentials**
-   
-   In your Supabase project dashboard:
-   - Go to **Settings** → **API**
-   - Copy the **Project URL** and **anon public** key
-
-3. **Configure environment variables**
-   
-   Update your `.env` file:
-   ```env
-   VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-actual-anon-key
-   ```
-
-4. **Push migrations to online database** (first time only)
-   ```bash
-   supabase link --project-ref your-project-ref
-   supabase db push
-   ```
-
-### 🔄 Switching Between Modes
-
-Simply update your `.env` file with the appropriate credentials:
-
-**Switch to Local:**
-```env
-VITE_SUPABASE_URL=http://127.0.0.1:54321
-VITE_SUPABASE_ANON_KEY=<key-from-supabase-start-output>
-```
-
-**Switch to Online:**
-```env
-VITE_SUPABASE_URL=https://your-project-ref.supabase.co
-VITE_SUPABASE_ANON_KEY=<key-from-supabase-dashboard>
-```
-
-Restart your dev server after changing the `.env` file.
-
----
+   This creates a test user and project automatically.
 
 ## Database Management
 
-### Accessing the Database
+### Test User Credentials
 
-#### Local Mode
-- **Studio UI**: `http://127.0.0.1:54323`
-- **Direct PostgreSQL**: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
-- **Use psql**:
-  ```bash
-  supabase db psql
-  ```
+The seed file creates a test user you can use immediately (both local and cloud):
 
-#### Online Mode
-- **Studio UI**: Your Supabase project dashboard → Table Editor
-- **Direct connection**: Use the connection string from Settings → Database
+| Field    | Value            |
+| -------- | ---------------- |
+| Email    | `test@gmail.com` |
+| Password | `password`       |
 
-### Manual Data Entry
+This user is automatically added as the owner of a "Test Project".
 
-#### Method 1: Supabase Studio (Recommended)
+### Applying Migrations
 
-**Local**: Navigate to `http://127.0.0.1:54323`  
-**Online**: Navigate to your Supabase project dashboard
-
-##### Add a User
-1. Go to **Authentication** → **Users**
-2. Click **Add user**
-3. Enter email and password
-4. Copy the generated User UUID (needed for project membership)
-
-##### Add a Project
-1. Go to **Table Editor** → **projects**
-2. Click **Insert** → **Insert row**
-3. Fill in:
-   - `name`: Project name (required)
-   - `description`: Project description (optional)
-   - `project_meta`: GeoJSON geometry for project boundaries (optional)
-   - `id` and `created_at` auto-generate, leave blank
-
-##### Add Project Members
-1. Go to **Table Editor** → **project_members**
-2. Click **Insert** → **Insert row**
-3. Fill in:
-   - `project_id`: UUID of the project (from projects table)
-   - `user_id`: UUID of the user (from auth.users)
-   - `role`: Either `'owner'` or `'editor'` (default: `'editor'`)
-
-##### Add Geographic Features
-1. Go to **Table Editor** → **geo_features**
-2. Click **Insert** → **Insert row**
-3. Fill in:
-   - `project_id`: UUID of the project
-   - `name`: Feature name (e.g., "Building A", "Park Boundary")
-   - `geom`: GeoJSON geometry
-   
-   Example GeoJSON for `geom`:
-   ```json
-   {"type":"Point","coordinates":[-122.4194,37.7749]}
-   ```
-
-#### Method 2: SQL Commands
-
-##### Add a User (via SQL)
-```sql
--- Users are managed by Supabase Auth, create via Studio or Auth API
--- To get existing users:
-SELECT id, email FROM auth.users;
-```
-
-##### Add a Project
-```sql
-INSERT INTO projects (name, description, project_meta)
-VALUES (
-  'Downtown Revitalization',
-  'Urban planning project for downtown area',
-  ST_GeomFromGeoJSON('{"type":"Polygon","coordinates":[[[-122.42,37.77],[-122.41,37.77],[-122.41,37.78],[-122.42,37.78],[-122.42,37.77]]]}')
-);
-```
-
-In  `project_meta`, you can store GeoJSON data representing the project's geographic boundaries or other metadata, which is used to initialize map views or define project extents.
-If editing the `project_meta` manually, ensure it is valid GeoJSON.
-
-##### Example GeoJSON for `project_meta`
-```
-<!-- Nahal Oz -->
-{
-    "type": "Polygon",
-      "coordinates": [
-         [
-            [34.497604, 31.472094]
-         ]
-      ]
-}
-```
-
-
-##### Add Project Members
-```sql
--- First, get the project ID and user ID
--- SELECT id FROM projects WHERE name = 'Downtown Revitalization';
--- SELECT id FROM auth.users WHERE email = 'user@example.com';
-
-INSERT INTO project_members (project_id, user_id, role)
-VALUES (
-  'project-uuid-here',
-  'user-uuid-here',
-  'editor'  -- or 'owner'
-);
-```
-
-##### Add Geographic Features
-```sql
-INSERT INTO geo_features (project_id, name, geom)
-VALUES (
-  'project-uuid-here',
-  'City Hall',
-  ST_GeomFromGeoJSON('{"type":"Point","coordinates":[-122.4194,37.7749]}')
-);
-
--- For a polygon:
-INSERT INTO geo_features (project_id, name, geom)
-VALUES (
-  'project-uuid-here',
-  'Park Boundary',
-  ST_GeomFromGeoJSON('{"type":"Polygon","coordinates":[[[-122.42,37.77],[-122.41,37.77],[-122.41,37.78],[-122.42,37.78],[-122.42,37.77]]]}')
-);
-```
-
-### Common Database Queries
-
-#### View all projects with member counts
-```sql
-SELECT 
-  p.id,
-  p.name,
-  p.description,
-  COUNT(pm.user_id) as member_count
-FROM projects p
-LEFT JOIN project_members pm ON p.id = pm.project_id
-GROUP BY p.id, p.name, p.description;
-```
-
-#### View all features in a project
-```sql
-SELECT 
-  gf.id,
-  gf.name,
-  gf.created_at,
-  ST_AsGeoJSON(gf.geom) as geometry
-FROM geo_features gf
-WHERE gf.project_id = 'project-uuid-here';
-```
-
-#### View user's project access
-```sql
-SELECT 
-  p.name as project_name,
-  pm.role,
-  u.email
-FROM project_members pm
-JOIN projects p ON pm.project_id = p.id
-JOIN auth.users u ON pm.user_id = u.id
-WHERE u.email = 'user@example.com';
-```
-
-### Resetting Local Database
-
-To start fresh with a clean database:
-
-```bash
-supabase db reset
-```
-
-This drops all data and re-applies migrations.
-
----
+- **Local mode**: Run `supabase db reset` to apply all migrations
+- **Online mode**: Run migrations manually in the Supabase SQL Editor
 
 ## Development Commands
 
-### Build & Run
 ```bash
-npm run dev          # Start development server (Vite)
-npm run build        # Build for production (TypeScript + Vite)
-npm run preview      # Preview production build locally
-npm run lint         # Run ESLint (max 0 warnings)
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Check code formatting
+npm run format:check
 ```
 
-### Supabase (Local Mode)
+## Dev Tips
+
+### Code Formatting
+
+This project uses **Prettier** for code formatting and **ESLint** for code quality checks.
+
+### Git Blame Configuration
+
+The `.git-blame-ignore-revs` file is configured to ignore formatting-only commits in git blame. To enable it, run:
+
 ```bash
-supabase start       # Start local Supabase stack
-supabase stop        # Stop local Supabase stack
-supabase status      # View running services and credentials
-supabase db reset    # Reset database and apply migrations
-supabase db psql     # Open PostgreSQL shell
-supabase db diff     # Generate migration from schema changes
+git config blame.ignoreRevsFile .git-blame-ignore-revs
 ```
 
----
-
+When you make a commit that only reformats code (e.g., running `npm run format`), add the commit SHA to `.git-blame-ignore-revs` to keep blame history clean.
