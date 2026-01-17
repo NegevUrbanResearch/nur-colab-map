@@ -14,6 +14,15 @@ A web application for mapping and visualizing data using Supabase and React.
 - 🔐 Authentication with Supabase Auth
 - 📊 GeoJSON data storage and visualization
 
+## Table of Contents
+
+- [Schema Overview](#schema-overview)
+- [Quick Start](#quick-start)
+- [Backend Mode: Local vs Online](#backend-mode-local-vs-online)
+- [Database Management](#database-management)
+- [Development Commands](#development-commands)
+- [Dev Tips](#dev-tips)
+
 ## Schema Overview
 
 ![Supabase Schema](src/assests/supabase-schema.png)
@@ -34,25 +43,45 @@ A web application for mapping and visualizing data using Supabase and React.
 - **Project Members** have roles (currently defaulting to 'editor')
 - All geographic data is stored as GeoJSON in the `geom` field
 
-## Getting Started
+## Quick Start
 
 ### Prerequisites
 
-- **Node.js** (v18 or higher recommended)
-- **npm** or **yarn**
-- **Supabase account** (for cloud setup) or **Supabase CLI** (for local development)
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Docker](https://www.docker.com/products/docker-desktop/) (for local mode)
+- [Supabase CLI](https://supabase.com/docs/guides/cli) (for local mode)
 
-### 1. Install dependencies
+### Installation
 
-```bash
-npm install
-```
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd nur-colab-map
+   ```
 
-### 2. Set up Supabase
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for local development).
+3. **Choose your backend mode** (see [Backend Mode](#backend-mode-local-vs-online) below)
 
-#### Option A: Using Supabase Cloud
+4. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+   The app will be available at `http://localhost:5173`
+
+---
+
+## Backend Mode: Local vs Online
+
+The application can run with either a **local Supabase instance** (for development) or an **online Supabase project** (for production/staging).
+
+### Option A: Online Mode (Supabase Cloud)
+
+Best for: Production, staging, or if you don't want to run Docker locally.
 
 1. Create a project at [supabase.com](https://supabase.com)
 2. Get your project URL and anon key from **Settings** → **API**
@@ -70,26 +99,42 @@ You can use either **Supabase Cloud** (recommended) or **Supabase Local** (for l
    - Open `supabase/seed.cloud.sql`, replace `YOUR-USER-UUID-HERE` with the UUID
    - Run the modified SQL in **SQL Editor**
 
-#### Option B: Using Supabase Local
+### Option B: Local Mode (Supabase Local)
 
-1. Install the Supabase CLI:
+Best for: Development, testing, or when you want full control over your database.
+
+Local mode runs Supabase services in Docker containers on your machine.
+
+1. **Install Supabase CLI** (if not already installed)
    ```bash
    npm install -g supabase
    ```
-2. Start local Supabase:
+
+2. **Start Docker Desktop**
+
+   Make sure Docker is running on your machine.
+
+3. **Start local Supabase services**
    ```bash
    supabase start
    ```
-3. Copy `.env.example` to `.env` and use the local credentials shown in the terminal output
-4. Reset database (applies migrations + seed data):
+
+4. **Copy environment variables**
+
+   Copy `.env.example` to `.env` and use the local credentials shown in the terminal output.
+
+5. **Reset database** (applies migrations + seed data)
    ```bash
    supabase db reset
    ```
+
    This creates a test user and project automatically.
 
-### 3. Test user credentials
+## Database Management
 
-The seed file (`supabase/seed.sql`) creates a test user you can use immediately (both local and cloud):
+### Test User Credentials
+
+The seed file creates a test user you can use immediately (both local and cloud):
 
 | Field    | Value            |
 | -------- | ---------------- |
@@ -98,13 +143,32 @@ The seed file (`supabase/seed.sql`) creates a test user you can use immediately 
 
 This user is automatically added as the owner of a "Test Project".
 
-### 4. Run the development server
+### Applying Migrations
+
+- **Local mode**: Run `supabase db reset` to apply all migrations
+- **Online mode**: Run migrations manually in the Supabase SQL Editor
+
+## Development Commands
 
 ```bash
+# Start development server
 npm run dev
-```
 
-The app will be available at [http://localhost:5173](http://localhost:5173) (or the port shown in your terminal).
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+
+# Format code
+npm run format
+
+# Check code formatting
+npm run format:check
+```
 
 ## Dev Tips
 
