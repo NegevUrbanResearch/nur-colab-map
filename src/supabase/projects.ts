@@ -37,3 +37,14 @@ export async function loadProjects() {
   if (error) throw error;
   return data as Project[];
 }
+
+export async function loadProjectById(projectId: string): Promise<Project> {
+  const { data, error } = await supabase
+    .from("projects")
+    .select("id, name, description, created_at, project_meta")
+    .eq("id", projectId)
+    .single();
+
+  if (error) throw error;
+  return data as Project;
+}

@@ -1,7 +1,7 @@
 create extension if not exists "postgis" with schema "extensions";
 
 
-create table "public"."geo_features" (
+create table if not exists "public"."geo_features" (
     "id" uuid not null default extensions.uuid_generate_v4(),
     "project_id" uuid,
     "name" text,
@@ -12,7 +12,7 @@ create table "public"."geo_features" (
 
 alter table "public"."geo_features" enable row level security;
 
-create table "public"."project_members" (
+create table if not exists "public"."project_members" (
     "project_id" uuid not null,
     "user_id" uuid not null,
     "role" text default 'editor'::text
@@ -21,7 +21,7 @@ create table "public"."project_members" (
 
 alter table "public"."project_members" enable row level security;
 
-create table "public"."projects" (
+create table if not exists "public"."projects" (
     "id" uuid not null default extensions.uuid_generate_v4(),
     "name" text not null,
     "description" text,
@@ -32,94 +32,137 @@ create table "public"."projects" (
 
 alter table "public"."projects" enable row level security;
 
-CREATE UNIQUE INDEX geo_features_pkey ON public.geo_features USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS geo_features_pkey ON public.geo_features USING btree (id);
 
-CREATE UNIQUE INDEX project_members_pkey ON public.project_members USING btree (project_id, user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS project_members_pkey ON public.project_members USING btree (project_id, user_id);
 
-CREATE UNIQUE INDEX projects_pkey ON public.projects USING btree (id);
+CREATE UNIQUE INDEX IF NOT EXISTS projects_pkey ON public.projects USING btree (id);
 
-alter table "public"."geo_features" add constraint "geo_features_pkey" PRIMARY KEY using index "geo_features_pkey";
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'geo_features_pkey') THEN
+        ALTER TABLE "public"."geo_features" ADD CONSTRAINT "geo_features_pkey" PRIMARY KEY USING INDEX "geo_features_pkey";
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'project_members_pkey') THEN
+        ALTER TABLE "public"."project_members" ADD CONSTRAINT "project_members_pkey" PRIMARY KEY USING INDEX "project_members_pkey";
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'projects_pkey') THEN
+        ALTER TABLE "public"."projects" ADD CONSTRAINT "projects_pkey" PRIMARY KEY USING INDEX "projects_pkey";
+    END IF;
+END $$;
 
-alter table "public"."project_members" add constraint "project_members_pkey" PRIMARY KEY using index "project_members_pkey";
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'geo_features_project_id_fkey') THEN
+        ALTER TABLE "public"."geo_features" ADD CONSTRAINT "geo_features_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'project_members_project_id_fkey') THEN
+        ALTER TABLE "public"."project_members" ADD CONSTRAINT "project_members_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'project_members_user_id_fkey') THEN
+        ALTER TABLE "public"."project_members" ADD CONSTRAINT "project_members_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
-alter table "public"."projects" add constraint "projects_pkey" PRIMARY KEY using index "projects_pkey";
-
-alter table "public"."geo_features" add constraint "geo_features_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE not valid;
-
-alter table "public"."geo_features" validate constraint "geo_features_project_id_fkey";
-
-alter table "public"."project_members" add constraint "project_members_project_id_fkey" FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE not valid;
-
-alter table "public"."project_members" validate constraint "project_members_project_id_fkey";
-
-alter table "public"."project_members" add constraint "project_members_user_id_fkey" FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE not valid;
-
-alter table "public"."project_members" validate constraint "project_members_user_id_fkey";
-
-create policy "Editors can delete geometries"
-on "public"."geo_features"
-as permissive
-for delete
-to public
-using ((EXISTS ( SELECT 1
-   FROM project_members pm
-  WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = 'editor'::text)))));
-
-
-create policy "Editors can insert geometries"
-on "public"."geo_features"
-as permissive
-for insert
-to public
-with check ((EXISTS ( SELECT 1
-   FROM project_members pm
-  WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = ANY (ARRAY['owner'::text, 'editor'::text]))))));
-
-
-create policy "Editors can update geometries"
-on "public"."geo_features"
-as permissive
-for update
-to public
-using ((EXISTS ( SELECT 1
-   FROM project_members pm
-  WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = ANY (ARRAY['owner'::text, 'editor'::text]))))));
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'geo_features' AND policyname = 'Editors can delete geometries') THEN
+        CREATE POLICY "Editors can delete geometries"
+        ON "public"."geo_features"
+        AS PERMISSIVE
+        FOR DELETE
+        TO public
+        USING ((EXISTS ( SELECT 1
+           FROM project_members pm
+          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = 'editor'::text)))));
+    END IF;
+END $$;
 
 
-create policy "Members can view geometries in their projects"
-on "public"."geo_features"
-as permissive
-for select
-to public
-using ((EXISTS ( SELECT 1
-   FROM project_members pm
-  WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid())))));
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'geo_features' AND policyname = 'Editors can insert geometries') THEN
+        CREATE POLICY "Editors can insert geometries"
+        ON "public"."geo_features"
+        AS PERMISSIVE
+        FOR INSERT
+        TO public
+        WITH CHECK ((EXISTS ( SELECT 1
+           FROM project_members pm
+          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = ANY (ARRAY['owner'::text, 'editor'::text]))))));
+    END IF;
+END $$;
 
 
-create policy "Members can see their own memberships"
-on "public"."project_members"
-as permissive
-for select
-to public
-using ((auth.uid() = user_id));
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'geo_features' AND policyname = 'Editors can update geometries') THEN
+        CREATE POLICY "Editors can update geometries"
+        ON "public"."geo_features"
+        AS PERMISSIVE
+        FOR UPDATE
+        TO public
+        USING ((EXISTS ( SELECT 1
+           FROM project_members pm
+          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = ANY (ARRAY['owner'::text, 'editor'::text]))))));
+    END IF;
+END $$;
 
 
-create policy "Users can join projects (insert)"
-on "public"."project_members"
-as permissive
-for insert
-to public
-with check ((auth.uid() = user_id));
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'geo_features' AND policyname = 'Members can view geometries in their projects') THEN
+        CREATE POLICY "Members can view geometries in their projects"
+        ON "public"."geo_features"
+        AS PERMISSIVE
+        FOR SELECT
+        TO public
+        USING ((EXISTS ( SELECT 1
+           FROM project_members pm
+          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid())))));
+    END IF;
+END $$;
 
 
-create policy "Members can view their projects"
-on "public"."projects"
-as permissive
-for select
-to public
-using ((EXISTS ( SELECT 1
-   FROM project_members pm
-  WHERE ((pm.project_id = projects.id) AND (pm.user_id = auth.uid())))));
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'project_members' AND policyname = 'Members can see their own memberships') THEN
+        CREATE POLICY "Members can see their own memberships"
+        ON "public"."project_members"
+        AS PERMISSIVE
+        FOR SELECT
+        TO public
+        USING ((auth.uid() = user_id));
+    END IF;
+END $$;
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'project_members' AND policyname = 'Users can join projects (insert)') THEN
+        CREATE POLICY "Users can join projects (insert)"
+        ON "public"."project_members"
+        AS PERMISSIVE
+        FOR INSERT
+        TO public
+        WITH CHECK ((auth.uid() = user_id));
+    END IF;
+END $$;
+
+
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'projects' AND policyname = 'Members can view their projects') THEN
+        CREATE POLICY "Members can view their projects"
+        ON "public"."projects"
+        AS PERMISSIVE
+        FOR SELECT
+        TO public
+        USING ((EXISTS ( SELECT 1
+           FROM project_members pm
+          WHERE ((pm.project_id = projects.id) AND (pm.user_id = auth.uid())))));
+    END IF;
+END $$;
 
 
 
