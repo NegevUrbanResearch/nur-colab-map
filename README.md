@@ -33,14 +33,15 @@ A web application for mapping and visualizing data using Supabase and React.
 | --------------------- | -------------------------- | ------------------------------------------------------------------------------------ | ---------------------------------------------- |
 | **`projects`**        | Main project workspace     | `id` (UUID), `name`, `description`, `project_meta` (boundaries/config), `created_at` | Referenced by project_members and geo_features |
 | **`project_members`** | User access control        | `project_id` (UUID), `user_id` (UUID), `role` (default: 'editor')                    | Links projects ↔ users                         |
-| **`geo_features`**    | Map drawings/shapes        | `id` (UUID), `project_id`, `name`, `geom` (GeoJSON), `created_at`                    | Belongs to a project                           |
+| **`geo_features`**    | Map drawings/shapes        | `id` (UUID), `project_id`, `name`, `description`, `submission_id`, `geom` (GeoJSON), `created_at` | Belongs to a project                           |
 | **`spatial_ref_sys`** | PostGIS coordinate systems | `srid`, `auth_name`, `srtext`, `proj4text`                                           | System table for map projections               |
 
 ### Key Relationships
 
 - **Users** can be members of multiple **Projects** (many-to-many via project_members)
 - Each **Project** can have many **Geographic Features** (one-to-many)
-- **Project Members** have roles (currently defaulting to 'editor')
+- **Project Members** have roles: `owner` or `editor` (default: 'editor')
+  - Both roles can create, update, delete, and view geometries
 - All geographic data is stored as GeoJSON in the `geom` field
 
 ## Quick Start
@@ -91,13 +92,19 @@ Best for: Production, staging, or if you don't want to run Docker locally.
 
 **If setting up a new database**, continue with:
 
-4. Apply the database schema: Go to **SQL Editor** and run the contents of `supabase/migrations/20251001000000_initial_schema.sql`
-5. (Optional) Seed test data:
+4. **Reset the database schema**:
+   - Go to **SQL Editor** in your Supabase dashboard
+   - Copy and run the contents of `supabase/nuclear_reset.sql`
+   - This will drop all existing tables and recreate the schema from migrations
+
+5. **Seed test data** (optional):
    - Go to **Authentication** → **Users** → **Add User**
    - Create a user with email `test@gmail.com` and password `password`
-   - Copy the new user's UUID from the Dashboard
-   - Open `supabase/seed.cloud.sql`, replace `YOUR-USER-UUID-HERE` with the UUID
-   - Run the modified SQL in **SQL Editor**
+   - Go to **SQL Editor** and run the contents of `supabase/seed_data.sql`
+   - The script automatically finds the test user and creates:
+     - **Otef Test** project
+     - **Pink Line** project
+     - Adds the test user as an editor to both projects
 
 ### Option B: Local Mode (Supabase Local)
 
@@ -141,7 +148,17 @@ The seed file creates a test user you can use immediately (both local and cloud)
 | Email    | `test@gmail.com` |
 | Password | `password`       |
 
-This user is automatically added as the owner of a "Test Project".
+**Local mode**: This user is automatically added as owner of a "Test Project" when you run `supabase db reset`.
+
+**Cloud mode**: After creating the user via Dashboard, run `supabase/seed_data.sql` to add the user as an editor to "Otef Test" and "Pink Line" projects.
+
+### Database Reset (Cloud)
+
+If you need to completely reset your cloud database:
+
+1. Go to **SQL Editor** in your Supabase dashboard
+2. Run `supabase/nuclear_reset.sql` to drop everything and recreate the schema
+3. Run `supabase/seed_data.sql` to add test data (after creating the test user)
 
 ### Applying Migrations
 

@@ -74,7 +74,7 @@ BEGIN
         TO public
         USING ((EXISTS ( SELECT 1
            FROM project_members pm
-          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = 'editor'::text)))));
+          WHERE ((pm.project_id = geo_features.project_id) AND (pm.user_id = auth.uid()) AND (pm.role = ANY (ARRAY['owner'::text, 'editor'::text]))))));
     END IF;
 END $$;
 

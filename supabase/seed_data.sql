@@ -1,10 +1,11 @@
--- Cloud Supabase seed file
--- Usage: Run this in SQL Editor after creating a user via Dashboard
+-- Seed Data: Test User, Projects, and Memberships
+-- Run this AFTER resetting the database schema
 --
--- BEFORE RUNNING THIS:
---   1. Go to Authentication → Users → Add User
---   2. Create user with email: test@gmail.com, password: password
---   3. The script will automatically find the user by email
+-- Test user credentials:
+--   Email: test@gmail.com
+--   Password: password
+--
+-- Note: The script automatically finds the test user by email
 
 DO $$
 DECLARE
