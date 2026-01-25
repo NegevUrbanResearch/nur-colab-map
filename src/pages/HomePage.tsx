@@ -1,17 +1,24 @@
 import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 import SignInPage from "./auth/SignInPage";
-import ProjectsPage from "./ProjectsPage";
 import bg from "../assests/mh-bg.jpeg";
 import nurLogo from "../assests/nur-logo.png";
 
 const HomePage = () => {
   const { session } = useSession();
+  const navigate = useNavigate();
 
-  // print current user email on initial load
   useEffect(() => {
     console.log("Current User:", session || "None");
-  }, [session]);
+    if (session) {
+      navigate("/projects-page");
+    }
+  }, [session, navigate]);
+
+  if (session) {
+    return null;
+  }
 
   return (
     <div
@@ -28,7 +35,7 @@ const HomePage = () => {
       <main>
         <section className="main-container">
           <img src={nurLogo} alt="Nur Logo" className="nur-logo" />
-          {!session ? <SignInPage /> : <ProjectsPage />}
+          <SignInPage />
         </section>
       </main>
     </div>

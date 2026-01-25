@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { loadProjects } from "../supabase/projects";
 import { Project } from "../supabase/projects";
 import supabase from "../supabase";
+import bg from "../assests/mh-bg.jpeg";
+import nurLogo from "../assests/nur-logo.png";
 
 const ProjectsPage = () => {
   const { session } = useSession();
@@ -32,37 +34,51 @@ const ProjectsPage = () => {
   }, [session]);
 
   return (
-    <main>
-      {loading && <p>Loading projects...</p>}
-      {error && <p>Error loading projects: {error}</p>}
-      {!loading && !error && (
-        <ul>
-          {projects.map((project) => (
-            <li key={project.id}>
-              <button
-                onClick={() => {
-                  navigate(`/map-page?projectId=${project.id}`, {
-                    // Pass the project data to the next page
-                    state: { project: project },
-                  });
-                }}
-              >
-                {project.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+    <div
+      style={{
+        backgroundImage: `url(${bg})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        height: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+      <main>
+        <section className="main-container">
+          <img src={nurLogo} alt="Nur Logo" className="nur-logo" />
+          {loading && <p>Loading projects...</p>}
+          {error && <p>Error loading projects: {error}</p>}
+          {!loading && !error && (
+            <ul>
+              {projects.map((project) => (
+                <li key={project.id}>
+                  <button
+                    onClick={() => {
+                      navigate(`/map-page?projectId=${project.id}`, {
+                        state: { project: project },
+                      });
+                    }}
+                  >
+                    {project.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
 
-      <button
-        onClick={async () => {
-          await supabase.auth.signOut();
-          navigate("/");
-        }}
-      >
-        Sign Out
-      </button>
-    </main>
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              navigate("/");
+            }}
+          >
+            Sign Out
+          </button>
+        </section>
+      </main>
+    </div>
   );
 };
 
