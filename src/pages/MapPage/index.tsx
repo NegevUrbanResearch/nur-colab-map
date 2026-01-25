@@ -1,12 +1,20 @@
 import L from "leaflet";
-import { useLocation } from "react-router-dom";
 import { useMap } from "./hooks/useMap";
+import { useProject } from "../../context/ProjectContext";
+import PinkLineMapPage from "./PinkLineMapPage";
 
 const MapPage = () => {
-  const location = useLocation();
-  const project = location.state?.project;
-  const projectMeta = project?.project_meta;
+  const { project, isLoading } = useProject();
 
+  if (isLoading) {
+    return <div>Loading project...</div>;
+  }
+
+  if (project?.name === "Pink Line") {
+    return <PinkLineMapPage />;
+  }
+
+  const projectMeta = project?.project_meta;
   let mapInitCenter: L.LatLngExpression = [31.42, 34.49];
 
   if (projectMeta) {
