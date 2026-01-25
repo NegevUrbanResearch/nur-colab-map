@@ -22,8 +22,24 @@ export const useMap = ({ center }: UseMapProps) => {
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
 
   useEffect(() => {
-    if (!mapRef.current) {
-      mapRef.current = L.map("map").setView(center, 16);
+    // Clean up existing map first
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+      drawnItemsRef.current = null;
+    }
+
+    const mapContainer = document.getElementById("map");
+    if (!mapContainer) return;
+
+    // Clear any remaining Leaflet state from the container
+    if ((mapContainer as any)._leaflet_id) {
+      delete (mapContainer as any)._leaflet_id;
+    }
+    mapContainer.innerHTML = "";
+
+    // Initialize the new map
+    mapRef.current = L.map("map").setView(center, 16);
 
       L.tileLayer(
         "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg",
@@ -143,7 +159,8 @@ export const useMap = ({ center }: UseMapProps) => {
       });
 
       loadGeometries().then((features: Feature[]) => {
-        drawnItemsRef.current?.clearLayers();
+        if (!mapRef.current || !drawnItemsRef.current) return;
+        drawnItemsRef.current.clearLayers();
         features.forEach((feature: Feature) => {
           const options = {
             color: (feature as any).color || "white",
@@ -163,7 +180,6 @@ export const useMap = ({ center }: UseMapProps) => {
           } else if (feature.geom.type === "Point") {
             const [lng, lat] = (feature.geom as any).coordinates;
             layer = L.marker([lat, lng]);
-            // use the css class for the marker
             (layer as L.Marker).setIcon(
               L.divIcon({
                 className: "plus-marker-icon",
@@ -181,12 +197,12 @@ export const useMap = ({ center }: UseMapProps) => {
           }
         });
       });
-    }
 
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        drawnItemsRef.current = null;
       }
     };
   }, [center]);

@@ -24,8 +24,31 @@ const PinkLineMapPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!mapRef.current && project) {
-      mapRef.current = L.map("map").setView([31.42, 34.49], 13);
+    if (!project) return;
+
+    // Clean up existing map first
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+    }
+    markersRef.current.forEach((marker) => marker.remove());
+    markersRef.current.clear();
+    if (routeLineRef.current) {
+      routeLineRef.current.remove();
+      routeLineRef.current = null;
+    }
+
+    const mapContainer = document.getElementById("map");
+    if (!mapContainer) return;
+
+    // Clear any remaining Leaflet state from the container
+    if ((mapContainer as any)._leaflet_id) {
+      delete (mapContainer as any)._leaflet_id;
+    }
+    mapContainer.innerHTML = "";
+
+    // Initialize the new map
+    mapRef.current = L.map("map").setView([31.42, 34.49], 13);
 
       L.tileLayer(
         "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg",
@@ -88,12 +111,17 @@ const PinkLineMapPage = () => {
       };
 
       loadExistingNodes();
-    }
 
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+      }
+      markersRef.current.forEach((marker) => marker.remove());
+      markersRef.current.clear();
+      if (routeLineRef.current) {
+        routeLineRef.current.remove();
+        routeLineRef.current = null;
       }
     };
   }, [project]);
@@ -206,7 +234,7 @@ const PinkLineMapPage = () => {
 
   return (
     <>
-      <div id="map" style={{ height: "100vh", width: "100%" }}></div>
+      <div key={project?.id || "no-project"} id="map" style={{ height: "100vh", width: "100%" }}></div>
       <div
         style={{
           position: "absolute",

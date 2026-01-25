@@ -10,30 +10,49 @@ function euclideanDistance(node1: Node, node2: Node): number {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function nearestNeighborTSP(nodes: Node[]): Node[] {
-  if (nodes.length <= 1) return nodes;
+function insertionHeuristic(nodes: Node[]): Node[] {
+  if (nodes.length <= 2) return nodes;
 
   const unvisited = [...nodes];
   const route: Node[] = [];
-  let current = unvisited.shift()!;
-  route.push(current);
+
+  const first = unvisited.shift()!;
+  const second = unvisited.shift()!;
+  route.push(first, second);
 
   while (unvisited.length > 0) {
-    let nearest = unvisited[0];
-    let nearestDistance = euclideanDistance(current, nearest);
+    const newNode = unvisited.shift()!;
+    let bestInsertionIndex = route.length;
+    let minAddedDistance = Infinity;
 
-    for (let i = 1; i < unvisited.length; i++) {
-      const distance = euclideanDistance(current, unvisited[i]);
-      if (distance < nearestDistance) {
-        nearest = unvisited[i];
-        nearestDistance = distance;
+    for (let i = 0; i < route.length - 1; i++) {
+      const current = route[i];
+      const next = route[i + 1];
+
+      const originalDistance = euclideanDistance(current, next);
+      const newDistance =
+        euclideanDistance(current, newNode) + euclideanDistance(newNode, next);
+      const addedDistance = newDistance - originalDistance;
+
+      if (addedDistance < minAddedDistance) {
+        minAddedDistance = addedDistance;
+        bestInsertionIndex = i + 1;
       }
     }
 
-    route.push(nearest);
-    const index = unvisited.indexOf(nearest);
-    unvisited.splice(index, 1);
-    current = nearest;
+    const insertAtStartDistance = euclideanDistance(newNode, route[0]);
+    if (insertAtStartDistance < minAddedDistance) {
+      minAddedDistance = insertAtStartDistance;
+      bestInsertionIndex = 0;
+    }
+
+    const insertAtEndDistance = euclideanDistance(route[route.length - 1], newNode);
+    if (insertAtEndDistance < minAddedDistance) {
+      minAddedDistance = insertAtEndDistance;
+      bestInsertionIndex = route.length;
+    }
+
+    route.splice(bestInsertionIndex, 0, newNode);
   }
 
   return route;
@@ -41,5 +60,5 @@ function nearestNeighborTSP(nodes: Node[]): Node[] {
 
 export function optimizeRoute(nodes: Node[]): Node[] {
   if (nodes.length <= 2) return nodes;
-  return nearestNeighborTSP(nodes);
+  return insertionHeuristic(nodes);
 }

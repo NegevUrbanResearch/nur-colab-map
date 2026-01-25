@@ -43,7 +43,7 @@ const MapPage = () => {
 
   return (
     <>
-      <div id="map" style={{ height: "100vh", width: "100%" }}></div>
+      <div key={project?.id || "no-project"} id="map" style={{ height: "100vh", width: "100%" }}></div>
     </>
   );
 };
