@@ -28,6 +28,7 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
   const mapRef = useRef<L.Map | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const drawControlRef = useRef<L.Control.Draw | null>(null);
+  const pendingLayersRef = useRef<Set<L.Layer>>(new Set());
   const [featureCount, setFeatureCount] = useState(0);
 
   useEffect(() => {
@@ -96,26 +97,43 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
         }
       };
 
-      mapRef.current.on(L.Draw.Event.CREATED, async (event) => {
+      mapRef.current.on(L.Draw.Event.CREATED, (event) => {
         const createdEvent = event as DrawEvents.Created;
         const layer = createdEvent.layer;
         
         if (onShapeCreated && "toGeoJSON" in layer) {
+          pendingLayersRef.current.add(layer);
+          if (drawnItemsRef.current) {
+            if (!drawnItemsRef.current.hasLayer(layer)) {
+              drawnItemsRef.current.addLayer(layer);
+            }
+            updateFeatureCount();
+          }
+          
           onShapeCreated(layer, async (shapeName: string | null, description: string | null) => {
             if (shapeName || description) {
+              if (drawnItemsRef.current && !drawnItemsRef.current.hasLayer(layer)) {
+                drawnItemsRef.current.addLayer(layer);
+              }
               const geojson = (layer as L.Polygon).toGeoJSON().geometry;
               const newFeature = await createGeometry(shapeName, description, geojson);
               if (newFeature) {
                 layer.featureId = newFeature.id;
                 const displayName = newFeature.name || "Unnamed";
                 layer.bindTooltip(displayName);
-                drawnItemsRef.current?.addLayer(layer);
+              }
+              pendingLayersRef.current.delete(layer);
+            } else {
+              if (drawnItemsRef.current) {
+                drawnItemsRef.current.removeLayer(layer);
                 updateFeatureCount();
               }
-            } else {
-              mapRef.current?.removeLayer(layer);
+              pendingLayersRef.current.delete(layer);
             }
           });
+        } else {
+          drawnItemsRef.current?.addLayer(layer);
+          updateFeatureCount();
         }
       });
 
@@ -146,7 +164,13 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
 
       loadGeometries().then((features: Feature[]) => {
         if (!mapRef.current || !drawnItemsRef.current) return;
+        const pendingLayers = Array.from(pendingLayersRef.current);
         drawnItemsRef.current.clearLayers();
+        pendingLayers.forEach(layer => {
+          if (drawnItemsRef.current) {
+            drawnItemsRef.current.addLayer(layer);
+          }
+        });
         features.forEach((feature: Feature) => {
           const options = {
             color: (feature as any).color || "white",
