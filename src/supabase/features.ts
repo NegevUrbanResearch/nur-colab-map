@@ -3,7 +3,8 @@ import { GeoJSON } from "geojson";
 
 export interface Feature {
   id: number;
-  name: string;
+  name: string | null;
+  description: string | null;
   geom: GeoJSON;
   project_id: string;
 }
@@ -23,19 +24,19 @@ export async function loadGeometries(): Promise<Feature[]> {
 
   const { data, error } = await supabase
     .from("geo_features")
-    .select("id, name, geom, project_id")
+    .select("id, name, description, geom, project_id")
     .eq("project_id", projectId); // Only load for this project
 
   if (error) throw error;
   return data as Feature[];
 }
 
-export async function createGeometry(name: string, geom: GeoJSON) {
+export async function createGeometry(name: string | null, description: string | null, geom: GeoJSON) {
   const projectId = getProjectId();
 
   const { data, error } = await supabase
     .from("geo_features")
-    .insert([{ name, geom, project_id: projectId }])
+    .insert([{ name, description, geom, project_id: projectId }])
     .select();
 
   if (error) throw error;

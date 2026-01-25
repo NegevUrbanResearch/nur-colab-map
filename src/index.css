@@ -83,7 +83,7 @@ ul {
   margin: 0;
 }
 
-button {
+button:not(.base-map-control-btn):not(.shape-name-input-btn) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -151,4 +151,324 @@ a:hover {
   font-size: 14px;
   border: 2px solid white;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.base-map-controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-shadow: none;
+  border: none;
+}
+
+.base-map-control-btn {
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  font-size: 20px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  min-width: 48px !important;
+  max-width: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+}
+
+.base-map-control-btn * {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+.base-map-control-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.base-map-control-btn:active {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.base-map-control-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.base-map-control-btn:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.base-map-controls-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 4px 0;
+}
+
+.leaflet-draw-toolbar {
+  position: absolute !important;
+  left: -9999px !important;
+  top: -9999px !important;
+  visibility: hidden !important;
+}
+
+.leaflet-draw-actions {
+  background: rgba(20, 20, 20, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 1001 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 3px !important;
+  align-items: center !important;
+}
+
+.leaflet-draw-actions a {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 0 !important;
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  transition: background-color 0.15s ease !important;
+  margin: 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  min-width: 80px !important;
+  height: 48px !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.leaflet-draw-actions a:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.leaflet-draw-edit-remove {
+  background: rgba(20, 20, 20, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 8px !important;
+  padding: 6px !important;
+  position: fixed !important;
+  top: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 1001 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 3px !important;
+  align-items: center !important;
+}
+
+.leaflet-draw-edit-remove a {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  border-radius: 0 !important;
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  transition: background-color 0.15s ease !important;
+  margin: 0 !important;
+  text-align: center !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  min-width: 80px !important;
+  height: 48px !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  cursor: pointer !important;
+}
+
+.leaflet-draw-edit-remove a:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.shape-name-input-container {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1002;
+}
+
+.shape-name-input-form {
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 8px;
+  padding: 6px;
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.shape-name-input-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.shape-name-input-field {
+  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 14px 18px;
+  outline: none;
+  min-width: 400px;
+  height: 48px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  line-height: 1;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+  border-radius: 0;
+}
+
+.shape-name-input-field:focus {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+  box-shadow: none;
+}
+
+.shape-name-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+.shape-description-input-field {
+  background: rgba(255, 255, 255, 0.05);
+  background-color: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 14px 18px;
+  outline: none;
+  min-width: 400px;
+  min-height: 80px;
+  max-height: 200px;
+  resize: vertical;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  line-height: 1.5;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
+  border-radius: 0;
+  overflow-y: auto;
+}
+
+.shape-description-input-field:focus {
+  background-color: rgba(255, 255, 255, 0.08);
+  outline: none;
+  box-shadow: none;
+}
+
+.shape-description-input-field::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 400;
+}
+
+.shape-name-input-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: stretch;
+  padding-top: 14px;
+}
+
+.shape-name-input-btn {
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 24px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-radius: 0;
+  min-width: 80px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  outline: none;
+  box-shadow: none;
+}
+
+.shape-name-input-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 1);
+}
+
+.shape-name-input-btn:focus {
+  outline: none;
+  box-shadow: none;
 }
