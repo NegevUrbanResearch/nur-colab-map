@@ -20,7 +20,9 @@ function getProjectId(): string {
 export async function createPinkLineNode(
   projectId: string,
   lat: number,
-  lng: number
+  lng: number,
+  name: string | null = null,
+  description: string | null = null
 ): Promise<PinkLineNode | null> {
   const pointGeoJSON: GeoJSON = {
     type: "Point",
@@ -31,7 +33,8 @@ export async function createPinkLineNode(
     .from("geo_features")
     .insert([
       {
-        name: "Pink Line Node",
+        name: name ?? "Pink Line Node",
+        description,
         geom: pointGeoJSON,
         project_id: projectId,
         submission_id: null,

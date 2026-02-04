@@ -5,7 +5,11 @@ import "leaflet/dist/leaflet.css";
 import { useProject } from "../../context/ProjectContext";
 import { createPinkLineNode, loadPinkLineNodes, submitPinkLineRoute, deletePinkLineNode } from "../../supabase/pinkLine";
 import { optimizeRoute } from "../../utils/routeOptimizer";
+import { parseDefaultLinePaths, buildIntegratedRoute } from "../../utils/pinkLineRoute";
 import supabase from "../../supabase";
+import PinkLineNodeForm from "./PinkLineNodeForm";
+
+const DEFAULT_PINK_LINE_URL = "/line-layer/pink-line-wgs84.geojson";
 
 interface PinkLineNode {
   id: string;
@@ -20,11 +24,20 @@ const PinkLineMapPage = () => {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLineRef = useRef<L.Polyline | null>(null);
+  const defaultLineLayerRef = useRef<L.GeoJSON | null>(null);
+  const defaultLinePathsRef = useRef<[number, number][][]>([]);
+  const integratedLayersRef = useRef<L.Layer[]>([]);
   const [nodes, setNodes] = useState<PinkLineNode[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingNode, setPendingNode] = useState<{ lat: number; lng: number } | null>(null);
+  const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
 
   useEffect(() => {
     if (!project) return;
+
+    setDefaultLineLoaded(false);
+    defaultLinePathsRef.current = [];
+    defaultLineLayerRef.current = null;
 
     // Clean up existing map first
     if (mapRef.current) {
@@ -96,12 +109,21 @@ const PinkLineMapPage = () => {
 
       new customControls({ position: "topleft" }).addTo(mapRef.current);
 
-      mapRef.current.on("click", async (e: L.LeafletMouseEvent) => {
+      fetch(DEFAULT_PINK_LINE_URL)
+        .then((res) => res.json())
+        .then((geojson: GeoJSON.FeatureCollection) => {
+          if (!mapRef.current) return;
+          defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
+          defaultLineLayerRef.current = L.geoJSON(geojson, {
+            style: { color: "#FF69B4", weight: 5, opacity: 0.9 },
+          });
+          setDefaultLineLoaded(true);
+        })
+        .catch((err) => console.error("Failed to load default pink line:", err));
+
+      mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
-        const newNode = await createPinkLineNode(project.id, lat, lng);
-        if (newNode) {
-          setNodes((prev) => [...prev, newNode]);
-        }
+        setPendingNode({ lat, lng });
       });
 
       const loadExistingNodes = async () => {
@@ -113,6 +135,10 @@ const PinkLineMapPage = () => {
       loadExistingNodes();
 
     return () => {
+      integratedLayersRef.current.forEach((layer) => mapRef.current?.removeLayer(layer));
+      integratedLayersRef.current = [];
+      defaultLineLayerRef.current?.clearLayers();
+      defaultLineLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -134,9 +160,46 @@ const PinkLineMapPage = () => {
     });
     markersRef.current.clear();
 
+    integratedLayersRef.current.forEach((layer) => mapRef.current?.removeLayer(layer));
+    integratedLayersRef.current = [];
     if (routeLineRef.current) {
       mapRef.current.removeLayer(routeLineRef.current);
       routeLineRef.current = null;
+    }
+
+    const basePaths = defaultLinePathsRef.current;
+    const hasBase = basePaths.length > 0;
+
+    if (nodes.length > 0) {
+      if (hasBase) {
+        defaultLineLayerRef.current && mapRef.current?.removeLayer(defaultLineLayerRef.current);
+        const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
+        const { solid, dashed } = buildIntegratedRoute(basePaths, userPoints);
+        const map = mapRef.current!;
+        const solidStyle = { color: "#FF69B4", weight: 5, opacity: 0.9 };
+        const dashedStyle = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
+        solid.forEach((pts) => {
+          const layer = L.polyline(pts as L.LatLngExpression[], solidStyle).addTo(map);
+          integratedLayersRef.current.push(layer);
+        });
+        dashed.forEach((pts) => {
+          const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
+          integratedLayersRef.current.push(layer);
+        });
+      } else if (nodes.length > 1) {
+        const optimizedRoute = optimizeRoute(nodes);
+        const routeCoords = optimizedRoute.map((node) => [node.lat, node.lng] as L.LatLngExpression);
+        routeLineRef.current = L.polyline(routeCoords, {
+          color: "#FF69B4",
+          weight: 6,
+          opacity: 0.8,
+          dashArray: "10, 10",
+        }).addTo(mapRef.current!);
+      }
+    } else {
+      if (defaultLineLayerRef.current && hasBase) {
+        mapRef.current?.addLayer(defaultLineLayerRef.current);
+      }
     }
 
     if (nodes.length === 0) return;
@@ -161,18 +224,7 @@ const PinkLineMapPage = () => {
 
       markersRef.current.set(node.id, marker);
     });
-
-    if (nodes.length > 1) {
-      const routeCoords = optimizedRoute.map((node) => [node.lat, node.lng] as L.LatLngExpression);
-
-      routeLineRef.current = L.polyline(routeCoords, {
-        color: "#FF69B4",
-        weight: 6,
-        opacity: 0.8,
-        dashArray: "10, 10",
-      }).addTo(mapRef.current!);
-    }
-  }, [nodes]);
+  }, [nodes, defaultLineLoaded]);
 
   const handleRemoveNode = async (nodeId: string) => {
     try {
@@ -209,6 +261,15 @@ const PinkLineMapPage = () => {
     }
   };
 
+  const handleNodeFormSubmit = async (name: string, description: string) => {
+    if (!pendingNode || !project) return;
+    const newNode = await createPinkLineNode(project.id, pendingNode.lat, pendingNode.lng, name || null, description || null);
+    if (newNode) {
+      setNodes((prev) => [...prev, newNode]);
+    }
+    setPendingNode(null);
+  };
+
   const handleClear = async () => {
     if (!project) return;
 
@@ -235,6 +296,12 @@ const PinkLineMapPage = () => {
   return (
     <>
       <div key={project?.id || "no-project"} id="map" style={{ height: "100vh", width: "100%" }}></div>
+      {pendingNode && (
+        <PinkLineNodeForm
+          onSubmit={handleNodeFormSubmit}
+          onCancel={() => setPendingNode(null)}
+        />
+      )}
       <div
         style={{
           position: "absolute",
@@ -252,7 +319,7 @@ const PinkLineMapPage = () => {
         }}
       >
         <div style={{ fontSize: "16px", fontWeight: "500" }}>
-          Click on the map to add points • {nodes.length} point{nodes.length !== 1 ? "s" : ""} added
+          לחץ על המפה כדי להוסיף נקודות • {nodes.length} נקודות
         </div>
         {nodes.length > 0 && (
           <>
@@ -269,7 +336,7 @@ const PinkLineMapPage = () => {
                 fontWeight: "500",
               }}
             >
-              {isSubmitting ? "Submitting..." : "Submit Route"}
+              {isSubmitting ? "שולח..." : "שלח מסלול"}
             </button>
             <button
               onClick={handleClear}
@@ -283,7 +350,7 @@ const PinkLineMapPage = () => {
                 fontWeight: "500",
               }}
             >
-              Clear
+              נקה הכל
             </button>
           </>
         )}

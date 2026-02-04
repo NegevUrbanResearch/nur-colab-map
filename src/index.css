@@ -364,6 +364,15 @@ a:hover {
   gap: 3px;
 }
 
+.shape-name-input-label {
+  display: block;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 4px;
+  direction: rtl;
+}
+
 .shape-name-input-field {
   background: rgba(255, 255, 255, 0.05);
   background-color: rgba(255, 255, 255, 0.05);
