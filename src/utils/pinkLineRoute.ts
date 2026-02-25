@@ -75,13 +75,13 @@ function bestIntervalForPoint(
   point: LatLng
 ): { start: number; end: number } | null {
   const n = path.length;
-  if (n === 0) return null;
+  if (n < 2) return null;
   let bestCost = Number.POSITIVE_INFINITY;
   let bestStart = 0;
   let bestEnd = 0;
 
-  for (let i = 0; i < n; i++) {
-    for (let j = i; j < n; j++) {
+  for (let i = 0; i < n - 1; i++) {
+    for (let j = i + 1; j < n; j++) {
       const removed = segmentLength(prefix, i, j);
       const added = dist(path[i], point) + dist(point, path[j]);
       const addedDist = added - removed;
@@ -168,7 +168,7 @@ export function buildIntegratedRoute(
   const pointIntervals: { point: LatLng; start: number; end: number }[] = [];
   for (const p of userPoints) {
     const interval = bestIntervalForPoint(basePath, prefix, p);
-    if (!interval) continue;
+    if (!interval || interval.end <= interval.start) continue;
     pointIntervals.push({ point: p, start: interval.start, end: interval.end });
   }
   const byStart = [...pointIntervals].sort((a, b) => a.start - b.start);
