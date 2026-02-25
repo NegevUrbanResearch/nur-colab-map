@@ -67,7 +67,7 @@ function segmentLength(prefix: number[], i: number, j: number): number {
   return prefix[j] - prefix[i];
 }
 
-export const CHANGE_PENALTY = 0.8;
+export const CHANGE_PENALTY = 0.75;
 
 function bestIntervalForPoint(
   path: LatLng[],
