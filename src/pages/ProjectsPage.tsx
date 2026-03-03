@@ -1,8 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useSession } from "../context/SessionContext";
 import { useEffect, useState } from "react";
-import { loadProjects } from "../supabase/projects";
-import { Project } from "../supabase/projects";
+import { loadProjects, ensureMemorialSitesProjectForUser, Project } from "../supabase/projects";
 import supabase from "../supabase";
 import bg from "../assests/mh-bg.jpeg";
 import nurLogo from "../assests/nur-logo.png";
@@ -18,6 +17,12 @@ const ProjectsPage = () => {
     const fetchProjects = async () => {
       try {
         setLoading(true);
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          await ensureMemorialSitesProjectForUser(user.id);
+        }
         const data = await loadProjects();
         console.log("Loaded projects:", data);
         setProjects(data || []);
@@ -61,7 +66,10 @@ const ProjectsPage = () => {
                       });
                     }}
                   >
-                    {project.name}
+                    {project.name
+                      .split(/[-_]/)
+                      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+                      .join(" ")}
                   </button>
                 </li>
               ))}

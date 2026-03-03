@@ -8,6 +8,33 @@ export type Project = {
   project_meta: string | null; // JSON string for additional metadata
 };
 
+export async function ensureMemorialSitesProjectForUser(userId: string) {
+  const memorialProjectId = "33333333-3333-3333-3333-333333333333";
+  const { data: existing, error: selectError } = await supabase
+    .from("project_members")
+    .select("project_id")
+    .eq("project_id", memorialProjectId)
+    .eq("user_id", userId);
+
+  if (selectError) {
+    throw selectError;
+  }
+
+  if (existing && existing.length > 0) {
+    return;
+  }
+
+  const { error: insertError } = await supabase.from("project_members").insert({
+    project_id: memorialProjectId,
+    user_id: userId,
+    role: "editor",
+  });
+
+  if (insertError) {
+    throw insertError;
+  }
+}
+
 export async function loadProjects() {
   const {
     data: { user },

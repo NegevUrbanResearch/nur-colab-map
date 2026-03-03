@@ -40,6 +40,16 @@ BEGIN
         now()
     )
     ON CONFLICT (id) DO NOTHING;
+
+    -- Create Memorial Sites project
+    INSERT INTO public.projects (id, name, description, created_at)
+    VALUES (
+        '33333333-3333-3333-3333-333333333333',
+        'Memorial Sites',
+        'אתרי הנצחה',
+        now()
+    )
+    ON CONFLICT (id) DO NOTHING;
     
     -- Add test user as editor to Otef Test project
     INSERT INTO public.project_members (project_id, user_id, role)
@@ -54,6 +64,15 @@ BEGIN
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (
         '22222222-2222-2222-2222-222222222222',
+        test_user_id,
+        'editor'
+    )
+    ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor';
+
+    -- Add test user as editor to Memorial Sites project
+    INSERT INTO public.project_members (project_id, user_id, role)
+    VALUES (
+        '33333333-3333-3333-3333-333333333333',
         test_user_id,
         'editor'
     )

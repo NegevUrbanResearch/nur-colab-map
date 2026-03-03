@@ -3,6 +3,7 @@ import L from "leaflet";
 import { useMap } from "./hooks/useMap";
 import { useProject } from "../../context/ProjectContext";
 import PinkLineMapPage from "./PinkLineMapPage";
+import MemorialSitesMapPage from "./MemorialSitesMapPage";
 import BaseMapControls from "./BaseMapControls";
 import ShapeNameInput from "./ShapeNameInput";
 
@@ -53,9 +54,11 @@ const MapPage = () => {
     }
   };
 
+  const isMemorialSites = project?.id === "33333333-3333-3333-3333-333333333333";
+  const isSpecialProject = project?.name === "Pink Line" || isMemorialSites;
   const { mapRef, drawControlRef, featureCount } = useMap({ 
     center: mapInitCenter,
-    enabled: !isLoading && project?.name !== "Pink Line",
+    enabled: !isLoading && !isSpecialProject,
     onShapeCreated: handleShapeCreated
   });
 
@@ -63,9 +66,8 @@ const MapPage = () => {
     return <div>Loading project...</div>;
   }
 
-  if (project?.name === "Pink Line") {
-    return <PinkLineMapPage />;
-  }
+  if (project?.name === "Pink Line") return <PinkLineMapPage />;
+  if (isMemorialSites) return <MemorialSitesMapPage />;
 
   return (
     <>
