@@ -102,7 +102,7 @@ Best for: Production, staging, or if you don't want to run Docker locally.
    - Create a user with email `test@gmail.com` and password `password`
    - Go to **SQL Editor** and run the contents of `supabase/seed_data.sql`
    - The script automatically finds the test user and creates:
-     - **Otef Test** project
+     - **Testimony** project
      - **Pink Line** project
      - Adds the test user as an editor to both projects
 
@@ -150,7 +150,7 @@ The seed file creates a test user you can use immediately (both local and cloud)
 
 **Local mode**: This user is automatically added as owner of a "Test Project" when you run `supabase db reset`.
 
-**Cloud mode**: After creating the user via Dashboard, run `supabase/seed_data.sql` to add the user as an editor to "Otef Test" and "Pink Line" projects.
+**Cloud mode**: After creating the user via Dashboard, run `supabase/seed_data.sql` to add the user as an editor to "Testimony" and "Pink Line" projects.
 
 ### Database Reset (Cloud)
 

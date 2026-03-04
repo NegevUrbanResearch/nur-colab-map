@@ -21,12 +21,12 @@ BEGIN
         RAISE EXCEPTION 'Test user not found. Please create user with email test@gmail.com via Dashboard first';
     END IF;
     
-    -- Create Otef Test project
+    -- Create Testimony project
     INSERT INTO public.projects (id, name, description, created_at)
     VALUES (
         '11111111-1111-1111-1111-111111111111',
-        'Otef Test',
-        'Otef Test project',
+        'Testimony',
+        'Testimony project',
         now()
     )
     ON CONFLICT (id) DO NOTHING;
@@ -51,7 +51,7 @@ BEGIN
     )
     ON CONFLICT (id) DO NOTHING;
     
-    -- Add test user as editor to Otef Test project
+    -- Add test user as editor to Testimony project
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (
         '11111111-1111-1111-1111-111111111111',
