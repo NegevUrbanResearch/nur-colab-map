@@ -64,54 +64,32 @@ export async function loadLocalMemorials(projectId: string): Promise<MemorialSit
   });
 }
 
-export async function createMemorialSite(
+export interface PendingSite {
+  tempId: string;
+  name: string | null;
+  description: string | null;
+  lat: number;
+  lng: number;
+  feature_type: MemorialFeatureType;
+}
+
+export async function batchCreateMemorialSites(
   projectId: string,
-  lat: number,
-  lng: number,
-  name: string | null,
-  description: string | null,
-  featureType: MemorialFeatureType
-): Promise<MemorialSite> {
-  if (featureType === "central") {
-    const existing = await loadCentralMemorial(projectId);
-    if (existing) await deleteMemorialSite(existing.id);
-  }
+  sites: PendingSite[]
+): Promise<void> {
+  if (sites.length === 0) return;
 
-  const geom: GeoJSON = { type: "Point", coordinates: [lng, lat] };
-  const { data, error } = await supabase
-    .from("geo_features")
-    .insert({
-      project_id: projectId,
-      name: name ?? "",
-      description: description ?? "",
-      geom,
-      feature_type: featureType,
-    })
-    .select("id, name, description, geom, feature_type")
-    .single();
+  const submissionId = crypto.randomUUID();
 
-  if (error) throw error;
-  const [x, y] = (data.geom as GeoJSON.Point).coordinates;
-  return {
-    id: data.id,
-    name: data.name,
-    description: data.description,
-    lat: y,
-    lng: x,
-    feature_type: data.feature_type,
-  };
-}
+  const rows = sites.map((s) => ({
+    project_id: projectId,
+    name: s.name ?? "",
+    description: s.description ?? "",
+    geom: { type: "Point", coordinates: [s.lng, s.lat] } as GeoJSON,
+    feature_type: s.feature_type,
+    submission_id: submissionId,
+  }));
 
-export async function deleteMemorialSite(id: string): Promise<void> {
-  const { error } = await supabase.from("geo_features").delete().eq("id", id);
-  if (error) throw error;
-}
-
-export async function deleteAllMemorialSites(projectId: string): Promise<void> {
-  const { error } = await supabase
-    .from("geo_features")
-    .delete()
-    .eq("project_id", projectId)
-    .in("feature_type", ["central", "local"]);
+  const { error } = await supabase.from("geo_features").insert(rows);
   if (error) throw error;
 }

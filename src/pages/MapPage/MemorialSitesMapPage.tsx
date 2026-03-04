@@ -4,12 +4,8 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProject } from "../../context/ProjectContext";
 import {
-  loadCentralMemorial,
-  loadLocalMemorials,
-  createMemorialSite,
-  deleteMemorialSite,
-  deleteAllMemorialSites,
-  MemorialSite,
+  batchCreateMemorialSites,
+  PendingSite,
   MemorialFeatureType,
 } from "../../supabase/memorialSites";
 import supabase from "../../supabase";
@@ -27,15 +23,19 @@ const MemorialSitesMapPage = () => {
   const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const [central, setCentral] = useState<MemorialSite | null>(null);
-  const [locals, setLocals] = useState<MemorialSite[]>([]);
-  const [pending, setPending] = useState<{
+
+  const [centralSite, setCentralSite] = useState<PendingSite | null>(null);
+  const [localSites, setLocalSites] = useState<PendingSite[]>([]);
+  const [formTarget, setFormTarget] = useState<{
     lat: number;
     lng: number;
     type: MemorialFeatureType;
   } | null>(null);
   const [activeType, setActiveType] = useState<MemorialFeatureType>("local");
   const [showInfo, setShowInfo] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState<{ central: number; local: number } | null>(null);
+
   const activeTypeRef = useRef<MemorialFeatureType>("local");
   const dragTypeRef = useRef<MemorialFeatureType | null>(null);
 
@@ -43,6 +43,7 @@ const MemorialSitesMapPage = () => {
     activeTypeRef.current = activeType;
   }, [activeType]);
 
+  // Initialize map once
   useEffect(() => {
     if (!project) return;
 
@@ -66,19 +67,8 @@ const MemorialSitesMapPage = () => {
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
 
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
-      const type = activeTypeRef.current;
-      setPending({ lat: e.latlng.lat, lng: e.latlng.lng, type });
+      setFormTarget({ lat: e.latlng.lat, lng: e.latlng.lng, type: activeTypeRef.current });
     });
-
-    const load = async () => {
-      const [c, l] = await Promise.all([
-        loadCentralMemorial(project.id),
-        loadLocalMemorials(project.id),
-      ]);
-      setCentral(c);
-      setLocals(l);
-    };
-    load();
 
     return () => {
       if (mapRef.current) {
@@ -90,64 +80,84 @@ const MemorialSitesMapPage = () => {
     };
   }, [project]);
 
-  const addMarker = useCallback((site: MemorialSite, isCentral: boolean) => {
+  // Sync markers with local state
+  const syncMarkers = useCallback(() => {
     if (!mapRef.current) return;
-    const icon = L.icon({
-      iconUrl: isCentral ? regionalMemorialIconUrl : localMemorialIconUrl,
-      iconSize: [40, 40],
-      iconAnchor: [20, 20],
-      popupAnchor: [0, -20],
-    });
-    const marker = L.marker([site.lat, site.lng], { icon }).addTo(mapRef.current);
-    marker.on("click", () => {
-      if (confirm(isCentral ? "למחוק אנדרטה מרכזית?" : "למחוק אנדרטה מקומית?")) {
-        deleteMemorialSite(site.id).then(() => {
-          marker.remove();
-          markersRef.current.delete(site.id);
-          if (isCentral) setCentral(null);
-          else setLocals((prev) => prev.filter((s) => s.id !== site.id));
-        });
-      }
-    });
-    markersRef.current.set(site.id, marker);
-  }, []);
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current.clear();
+
+    const placeSite = (site: PendingSite, isCentral: boolean) => {
+      const icon = L.icon({
+        iconUrl: isCentral ? regionalMemorialIconUrl : localMemorialIconUrl,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20],
+      });
+      const marker = L.marker([site.lat, site.lng], { icon }).addTo(mapRef.current!);
+      marker.on("click", () => {
+        if (confirm(isCentral ? "למחוק אנדרטה מרכזית?" : "למחוק אנדרטה מקומית?")) {
+          if (isCentral) setCentralSite(null);
+          else setLocalSites((prev) => prev.filter((s) => s.tempId !== site.tempId));
+        }
+      });
+      markersRef.current.set(site.tempId, marker);
+    };
+
+    if (centralSite) placeSite(centralSite, true);
+    localSites.forEach((s) => placeSite(s, false));
+  }, [centralSite, localSites]);
 
   useEffect(() => {
-    if (!mapRef.current) return;
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current.clear();
-    if (central) addMarker(central, true);
-    locals.forEach((s) => addMarker(s, false));
-  }, [central, locals, addMarker]);
+    syncMarkers();
+  }, [syncMarkers]);
 
-  const handleFormSubmit = async (name: string, description: string) => {
-    if (!pending || !project) return;
-    if (pending.type === "central" && central) {
-      await deleteMemorialSite(central.id);
-      markersRef.current.get(central.id)?.remove();
-      markersRef.current.delete(central.id);
-    }
-    const site = await createMemorialSite(
-      project.id,
-      pending.lat,
-      pending.lng,
-      name || null,
-      description || null,
-      pending.type
-    );
-    if (pending.type === "central") setCentral(site);
-    else setLocals((prev) => [...prev, site]);
-    setPending(null);
+  // Form completed — add site to local state
+  const handleFormSubmit = (name: string, description: string) => {
+    if (!formTarget) return;
+    const site: PendingSite = {
+      tempId: crypto.randomUUID(),
+      name: name || null,
+      description: description || null,
+      lat: formTarget.lat,
+      lng: formTarget.lng,
+      feature_type: formTarget.type,
+    };
+    if (formTarget.type === "central") setCentralSite(site);
+    else setLocalSites((prev) => [...prev, site]);
+    setFormTarget(null);
   };
 
-  const handleClearAll = async () => {
+  // Clear all — local only
+  const handleClearAll = () => {
+    if ((centralSite || localSites.length > 0) && !confirm("למחוק את כל הסימונים?")) return;
+    setCentralSite(null);
+    setLocalSites([]);
+  };
+
+  // Submit — batch save to Supabase, then reset
+  const handleSubmit = async () => {
     if (!project) return;
-    if (!confirm("למחוק את כל האנדרטות?")) return;
-    await deleteAllMemorialSites(project.id);
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current.clear();
-    setCentral(null);
-    setLocals([]);
+    const all: PendingSite[] = [];
+    if (centralSite) all.push(centralSite);
+    all.push(...localSites);
+    if (all.length === 0) {
+      alert("לא סומנו אתרים. סמנו לפחות אתר אחד לפני הגשה.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await batchCreateMemorialSites(project.id, all);
+      const counts = { central: centralSite ? 1 : 0, local: localSites.length };
+      setCentralSite(null);
+      setLocalSites([]);
+      setSubmitted(counts);
+      setTimeout(() => setSubmitted(null), 2000);
+    } catch (err) {
+      alert("שגיאה בשמירת הנתונים. נסו שוב.");
+      console.error(err);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleDragStart = (type: MemorialFeatureType) => (e: React.DragEvent) => {
@@ -165,8 +175,7 @@ const MemorialSitesMapPage = () => {
     if (!rect) return;
     const point = L.point(e.clientX - rect.left, e.clientY - rect.top);
     const latlng = mapRef.current.containerPointToLatLng(point);
-    const type = dragTypeRef.current;
-    setPending({ lat: latlng.lat, lng: latlng.lng, type });
+    setFormTarget({ lat: latlng.lat, lng: latlng.lng, type: dragTypeRef.current });
     dragTypeRef.current = null;
   };
 
@@ -176,7 +185,7 @@ const MemorialSitesMapPage = () => {
   };
 
   const handleSelectType = (type: MemorialFeatureType) => {
-    if (type === "central" && central) {
+    if (type === "central" && centralSite) {
       if (!confirm("כבר יש אנדרטה מרכזית. להחליף?")) return;
     }
     setActiveType(type);
@@ -192,12 +201,12 @@ const MemorialSitesMapPage = () => {
         onDragOver={handleMapDragOver}
       />
 
-      {pending && (
+      {formTarget && (
         <MemorialSiteForm
-          nameQuestion={pending.type === "central" ? NAME_CENTRAL : NAME_LOCAL}
-          descriptionQuestion={pending.type === "central" ? WHY_CENTRAL : WHY_LOCAL}
+          nameQuestion={formTarget.type === "central" ? NAME_CENTRAL : NAME_LOCAL}
+          descriptionQuestion={formTarget.type === "central" ? WHY_CENTRAL : WHY_LOCAL}
           onSubmit={handleFormSubmit}
-          onCancel={() => setPending(null)}
+          onCancel={() => setFormTarget(null)}
         />
       )}
 
@@ -224,7 +233,6 @@ const MemorialSitesMapPage = () => {
 
       {/* Top toolbar */}
       <div className="memorial-toolbar" dir="rtl">
-        {/* Central section */}
         <button
           type="button"
           className={`memorial-toolbar-section ${activeType === "central" ? "memorial-toolbar-active" : ""}`}
@@ -240,14 +248,13 @@ const MemorialSitesMapPage = () => {
           <div className="memorial-toolbar-item-text">
             <span className="memorial-toolbar-item-label">אנדרטה מרכזית אזורית</span>
             <span className="memorial-toolbar-item-value">
-              {central ? central.name || "—" : "ניתן לבחור אחת בלבד"}
+              {centralSite ? centralSite.name || "—" : "ניתן לבחור אחת בלבד"}
             </span>
           </div>
         </button>
 
         <div className="memorial-toolbar-divider" />
 
-        {/* Local section */}
         <button
           type="button"
           className={`memorial-toolbar-section ${activeType === "local" ? "memorial-toolbar-active" : ""}`}
@@ -261,7 +268,7 @@ const MemorialSitesMapPage = () => {
             <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" />
           </div>
           <div className="memorial-toolbar-item-text">
-            <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({locals.length})</span>
+            <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({localSites.length})</span>
             <span className="memorial-toolbar-item-value">
               גרור למפה או לחץ להוספה
             </span>
@@ -270,7 +277,6 @@ const MemorialSitesMapPage = () => {
 
         <div className="memorial-toolbar-divider" />
 
-        {/* Action buttons */}
         <div className="memorial-toolbar-actions">
           <button
             type="button"
@@ -289,12 +295,24 @@ const MemorialSitesMapPage = () => {
           <button
             type="button"
             className="memorial-toolbar-text-btn memorial-toolbar-text-btn-submit"
-            onClick={() => navigate("/projects-page")}
+            onClick={handleSubmit}
+            disabled={submitting}
           >
-            סיום
+            {submitting ? "..." : "להגיש"}
           </button>
         </div>
       </div>
+
+      {/* Submitted confirmation toast */}
+      {submitted && (
+        <div className="memorial-submitted-toast" dir="rtl">
+          <span className="memorial-submitted-check">&#10003;</span>
+          <span className="memorial-submitted-text">הוגש בהצלחה</span>
+          <span className="memorial-submitted-detail">
+            {submitted.central} מרכזית, {submitted.local} מקומיות
+          </span>
+        </div>
+      )}
 
       {/* Info overlay */}
       {showInfo && (
