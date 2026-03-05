@@ -16,6 +16,7 @@ interface UseMapProps {
   center: L.LatLngExpression;
   enabled?: boolean;
   onShapeCreated?: (layer: L.Layer, callback: (name: string | null, description: string | null) => void) => void;
+  isHebrew?: boolean;
 }
 
 interface UseMapReturn {
@@ -24,7 +25,7 @@ interface UseMapReturn {
   featureCount: number;
 }
 
-export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps): UseMapReturn => {
+export const useMap = ({ center, enabled = true, onShapeCreated, isHebrew }: UseMapProps): UseMapReturn => {
   const mapRef = useRef<L.Map | null>(null);
   const drawnItemsRef = useRef<L.FeatureGroup | null>(null);
   const drawControlRef = useRef<L.Control.Draw | null>(null);
@@ -62,6 +63,32 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
 
       drawnItemsRef.current = new L.FeatureGroup();
       mapRef.current.addLayer(drawnItemsRef.current);
+
+      if (isHebrew) {
+        L.drawLocal.draw.toolbar.actions.title = "בטל ציור";
+        L.drawLocal.draw.toolbar.actions.text = "ביטול";
+        L.drawLocal.draw.toolbar.finish.title = "סיים ציור";
+        L.drawLocal.draw.toolbar.finish.text = "סיום";
+        L.drawLocal.draw.toolbar.undo.title = "מחק נקודה אחרונה";
+        L.drawLocal.draw.toolbar.undo.text = "מחק אחרון";
+        L.drawLocal.draw.handlers.polygon.tooltip.start = "לחצו כדי להתחיל לצייר צורה";
+        L.drawLocal.draw.handlers.polygon.tooltip.cont = "לחצו כדי להמשיך לצייר";
+        L.drawLocal.draw.handlers.polygon.tooltip.end = "לחצו על הנקודה הראשונה כדי לסגור את הצורה";
+        L.drawLocal.draw.handlers.polyline.tooltip.start = "לחצו כדי להתחיל לצייר קו";
+        L.drawLocal.draw.handlers.polyline.tooltip.cont = "לחצו כדי להמשיך לצייר";
+        L.drawLocal.draw.handlers.polyline.tooltip.end = "לחצו על הנקודה האחרונה כדי לסיים";
+        L.drawLocal.draw.handlers.marker.tooltip.start = "לחצו על המפה כדי להוסיף נקודה";
+        L.drawLocal.edit.toolbar.actions.save.title = "שמור שינויים";
+        L.drawLocal.edit.toolbar.actions.save.text = "שמור";
+        L.drawLocal.edit.toolbar.actions.cancel.title = "בטל שינויים";
+        L.drawLocal.edit.toolbar.actions.cancel.text = "ביטול";
+        L.drawLocal.edit.toolbar.actions.clearAll.title = "נקה הכל";
+        L.drawLocal.edit.toolbar.actions.clearAll.text = "נקה הכל";
+        L.drawLocal.edit.toolbar.buttons.edit = "ערוך שכבות";
+        L.drawLocal.edit.toolbar.buttons.editDisabled = "אין שכבות לעריכה";
+        L.drawLocal.edit.toolbar.buttons.remove = "מחק שכבות";
+        L.drawLocal.edit.toolbar.buttons.removeDisabled = "אין שכבות למחיקה";
+      }
 
       const drawControl = new L.Control.Draw({
         position: "topleft",
@@ -119,7 +146,7 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
               const newFeature = await createGeometry(shapeName, description, geojson);
               if (newFeature) {
                 layer.featureId = newFeature.id;
-                const displayName = newFeature.name || "Unnamed";
+                const displayName = newFeature.name || (isHebrew ? "ללא שם" : "Unnamed");
                 layer.bindTooltip(displayName);
               }
               pendingLayersRef.current.delete(layer);
@@ -202,7 +229,7 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
 
           if (layer) {
             layer.featureId = feature.id;
-            const displayName = feature.name || "Unnamed";
+            const displayName = feature.name || (isHebrew ? "ללא שם" : "Unnamed");
             layer.bindTooltip(displayName);
             drawnItemsRef.current?.addLayer(layer);
           }
@@ -218,7 +245,7 @@ export const useMap = ({ center, enabled = true, onShapeCreated }: UseMapProps):
         drawControlRef.current = null;
       }
     };
-  }, [center, enabled]);
+  }, [center, enabled, isHebrew]);
 
   return { mapRef, drawControlRef, featureCount };
 };

@@ -6,6 +6,9 @@ import PinkLineMapPage from "./PinkLineMapPage";
 import MemorialSitesMapPage from "./MemorialSitesMapPage";
 import BaseMapControls from "./BaseMapControls";
 import ShapeNameInput from "./ShapeNameInput";
+import TestimonyForm from "./TestimonyForm";
+
+const TESTIMONY_PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 const MapPage = () => {
   const { project, isLoading } = useProject();
@@ -55,15 +58,17 @@ const MapPage = () => {
   };
 
   const isMemorialSites = project?.id === "33333333-3333-3333-3333-333333333333";
+  const isTestimony = project?.id === TESTIMONY_PROJECT_ID;
   const isSpecialProject = project?.name === "Pink Line" || isMemorialSites;
   const { mapRef, drawControlRef, featureCount } = useMap({ 
     center: mapInitCenter,
     enabled: !isLoading && !isSpecialProject,
-    onShapeCreated: handleShapeCreated
+    onShapeCreated: handleShapeCreated,
+    isHebrew: isTestimony,
   });
 
   if (isLoading) {
-    return <div>Loading project...</div>;
+    return <div>טוען...</div>;
   }
 
   if (project?.name === "Pink Line") return <PinkLineMapPage />;
@@ -72,12 +77,19 @@ const MapPage = () => {
   return (
     <>
       <div key={project?.id || "no-project"} id="map" style={{ height: "100vh", width: "100%" }}></div>
-      <BaseMapControls mapRef={mapRef} drawControlRef={drawControlRef} featureCount={featureCount} />
+      <BaseMapControls mapRef={mapRef} drawControlRef={drawControlRef} featureCount={featureCount} isHebrew={isTestimony} />
       {pendingLayer && (
-        <ShapeNameInput
-          onSubmit={handleShapeNameSubmit}
-          onCancel={handleShapeNameCancel}
-        />
+        project?.id === TESTIMONY_PROJECT_ID ? (
+          <TestimonyForm
+            onSubmit={handleShapeNameSubmit}
+            onCancel={handleShapeNameCancel}
+          />
+        ) : (
+          <ShapeNameInput
+            onSubmit={handleShapeNameSubmit}
+            onCancel={handleShapeNameCancel}
+          />
+        )
       )}
     </>
   );

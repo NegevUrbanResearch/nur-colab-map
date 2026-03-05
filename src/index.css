@@ -786,3 +786,31 @@ a:hover {
   outline: none;
   box-shadow: none;
 }
+
+.testimony-form {
+  background: rgba(20, 20, 20, 0.4);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 360px;
+}
+
+.testimony-field {
+  border-radius: 6px !important;
+}
+
+.testimony-buttons {
+  display: flex;
+  gap: 4px;
+  direction: rtl;
+}
+
+.testimony-buttons .shape-name-input-btn {
+  flex: 1;
+  border-radius: 6px;
+}
+

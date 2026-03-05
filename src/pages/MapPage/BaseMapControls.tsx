@@ -6,9 +6,10 @@ interface BaseMapControlsProps {
   mapRef: React.MutableRefObject<L.Map | null>;
   drawControlRef: React.MutableRefObject<L.Control.Draw | null>;
   featureCount: number;
+  isHebrew?: boolean;
 }
 
-const BaseMapControls = ({ mapRef, drawControlRef, featureCount }: BaseMapControlsProps) => {
+const BaseMapControls = ({ mapRef, drawControlRef, featureCount, isHebrew }: BaseMapControlsProps) => {
   const navigate = useNavigate();
 
   const disableAllModes = () => {
@@ -94,35 +95,35 @@ const BaseMapControls = ({ mapRef, drawControlRef, featureCount }: BaseMapContro
       <button
         className="base-map-control-btn"
         onClick={() => handleDrawTool("polygon")}
-        title="Polygon"
+        title={isHebrew ? "מצולע" : "Polygon"}
       >
         ⬟
       </button>
       <button
         className="base-map-control-btn"
         onClick={() => handleDrawTool("polyline")}
-        title="Line"
+        title={isHebrew ? "קו" : "Line"}
       >
         ╱
       </button>
       <button
         className="base-map-control-btn"
         onClick={() => handleDrawTool("marker")}
-        title="Point"
+        title={isHebrew ? "נקודה" : "Point"}
       >
         +
       </button>
       <button
         className="base-map-control-btn"
         onClick={handleEditMode}
-        title="Edit"
+        title={isHebrew ? "עריכה" : "Edit"}
       >
         ✏
       </button>
       <button
         className="base-map-control-btn"
         onClick={handleDeleteMode}
-        title="Delete"
+        title={isHebrew ? "מחיקה" : "Delete"}
       >
         ×
       </button>
@@ -130,14 +131,14 @@ const BaseMapControls = ({ mapRef, drawControlRef, featureCount }: BaseMapContro
       <button
         className="base-map-control-btn"
         onClick={handleHome}
-        title="Projects"
+        title={isHebrew ? "פרויקטים" : "Projects"}
       >
         ⌂
       </button>
       <button
         className="base-map-control-btn"
         onClick={handleSignOut}
-        title="Sign Out"
+        title={isHebrew ? "התנתק" : "Sign Out"}
       >
         ⏻
       </button>
