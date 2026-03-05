@@ -67,7 +67,7 @@ function segmentLength(prefix: number[], i: number, j: number): number {
   return prefix[j] - prefix[i];
 }
 
-export const CHANGE_PENALTY = 0.75;
+export const CHANGE_PENALTY = 0.7;
 
 function bestIntervalForPoint(
   path: LatLng[],
@@ -199,10 +199,6 @@ export function buildIntegratedRoute(
   }
   if (lastEnd < basePath.length - 1) {
     solid.push(basePath.slice(lastEnd, basePath.length));
-  }
-
-  if (solid.length === 0) {
-    solid.push([...basePath]);
   }
 
   return { solid, dashed };

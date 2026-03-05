@@ -24,28 +24,42 @@ const PinkLineMapPage = () => {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLineRef = useRef<L.Polyline | null>(null);
-  const defaultLineLayerRef = useRef<L.GeoJSON | null>(null);
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
-  const integratedLayersRef = useRef<L.Layer[]>([]);
+  // Single list of all route polylines on the map (solid + dashed)
+  const routeLayersRef = useRef<L.Polyline[]>([]);
   const [nodes, setNodes] = useState<PinkLineNode[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingNode, setPendingNode] = useState<{ lat: number; lng: number } | null>(null);
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
+  const busyRef = useRef(false);
+
+  // Nuke every route polyline from the map. Called before every re-render.
+  const clearAllRouteLayers = (map: L.Map) => {
+    const count = routeLayersRef.current.length;
+    for (const layer of routeLayersRef.current) {
+      try { map.removeLayer(layer); } catch (_) { /* already gone */ }
+    }
+    routeLayersRef.current = [];
+    if (routeLineRef.current) {
+      try { map.removeLayer(routeLineRef.current); } catch (_) { /* already gone */ }
+      routeLineRef.current = null;
+    }
+    console.log(`[PinkLine] Cleared ${count} route layers`);
+  };
 
   useEffect(() => {
     if (!project) return;
 
     setDefaultLineLoaded(false);
     defaultLinePathsRef.current = [];
-    defaultLineLayerRef.current = null;
 
-    // Clean up existing map first
     if (mapRef.current) {
       mapRef.current.remove();
       mapRef.current = null;
     }
     markersRef.current.forEach((marker) => marker.remove());
     markersRef.current.clear();
+    routeLayersRef.current = [];
     if (routeLineRef.current) {
       routeLineRef.current.remove();
       routeLineRef.current = null;
@@ -54,13 +68,11 @@ const PinkLineMapPage = () => {
     const mapContainer = document.getElementById("map");
     if (!mapContainer) return;
 
-    // Clear any remaining Leaflet state from the container
     if ((mapContainer as any)._leaflet_id) {
       delete (mapContainer as any)._leaflet_id;
     }
     mapContainer.innerHTML = "";
 
-    // Initialize the new map
     mapRef.current = L.map("map").setView([31.42, 34.49], 13);
 
       L.tileLayer(
@@ -114,9 +126,7 @@ const PinkLineMapPage = () => {
         .then((geojson: GeoJSON.FeatureCollection) => {
           if (!mapRef.current) return;
           defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
-          defaultLineLayerRef.current = L.geoJSON(geojson, {
-            style: { color: "#FF69B4", weight: 5, opacity: 0.9 },
-          });
+          console.log(`[PinkLine] Base line loaded: ${defaultLinePathsRef.current.length} paths`);
           setDefaultLineLoaded(true);
         })
         .catch((err) => console.error("Failed to load default pink line:", err));
@@ -135,75 +145,87 @@ const PinkLineMapPage = () => {
       loadExistingNodes();
 
     return () => {
-      integratedLayersRef.current.forEach((layer) => mapRef.current?.removeLayer(layer));
-      integratedLayersRef.current = [];
-      defaultLineLayerRef.current?.clearLayers();
-      defaultLineLayerRef.current = null;
       if (mapRef.current) {
+        clearAllRouteLayers(mapRef.current);
+        markersRef.current.forEach((marker) => {
+          try { mapRef.current!.removeLayer(marker); } catch (_) {}
+        });
+        markersRef.current.clear();
         mapRef.current.remove();
         mapRef.current = null;
-      }
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current.clear();
-      if (routeLineRef.current) {
-        routeLineRef.current.remove();
-        routeLineRef.current = null;
       }
     };
   }, [project]);
 
+  // Single rendering effect: clears ALL visuals, then redraws from scratch.
+  // Every pink polyline on the map comes from routeLayersRef — nothing else.
   useEffect(() => {
     if (!mapRef.current) return;
+    const map = mapRef.current;
 
+    // Step 1: Remove every marker
     markersRef.current.forEach((marker) => {
-      mapRef.current?.removeLayer(marker);
+      try { map.removeLayer(marker); } catch (_) {}
     });
     markersRef.current.clear();
 
-    integratedLayersRef.current.forEach((layer) => mapRef.current?.removeLayer(layer));
-    integratedLayersRef.current = [];
-    if (routeLineRef.current) {
-      mapRef.current.removeLayer(routeLineRef.current);
-      routeLineRef.current = null;
-    }
+    // Step 2: Remove every route polyline
+    clearAllRouteLayers(map);
 
     const basePaths = defaultLinePathsRef.current;
     const hasBase = basePaths.length > 0;
 
-    if (nodes.length > 0) {
-      if (hasBase) {
-        defaultLineLayerRef.current && mapRef.current?.removeLayer(defaultLineLayerRef.current);
-        const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
-        const { solid, dashed } = buildIntegratedRoute(basePaths, userPoints);
-        const map = mapRef.current!;
-        const solidStyle = { color: "#FF69B4", weight: 5, opacity: 0.9 };
-        const dashedStyle = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
-        solid.forEach((pts) => {
-          const layer = L.polyline(pts as L.LatLngExpression[], solidStyle).addTo(map);
-          integratedLayersRef.current.push(layer);
-        });
-        dashed.forEach((pts) => {
-          const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
-          integratedLayersRef.current.push(layer);
-        });
-      } else if (nodes.length > 1) {
-        const optimizedRoute = optimizeRoute(nodes);
-        const routeCoords = optimizedRoute.map((node) => [node.lat, node.lng] as L.LatLngExpression);
-        routeLineRef.current = L.polyline(routeCoords, {
-          color: "#FF69B4",
-          weight: 6,
-          opacity: 0.8,
-          dashArray: "10, 10",
-        }).addTo(mapRef.current!);
+    // Step 3: Rebuild route via buildIntegratedRoute (handles both 0 and >0 nodes)
+    if (hasBase) {
+      const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
+      const { solid, dashed } = buildIntegratedRoute(basePaths, userPoints);
+      console.log(`[PinkLine] Rendering ${solid.length} solid + ${dashed.length} dashed segments for ${nodes.length} nodes`);
+
+      const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
+      const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
+
+      for (const pts of solid) {
+        const layer = L.polyline(pts as L.LatLngExpression[], solidStyle).addTo(map);
+        routeLayersRef.current.push(layer);
       }
-    } else {
-      if (defaultLineLayerRef.current && hasBase) {
-        mapRef.current?.addLayer(defaultLineLayerRef.current);
+      for (const pts of dashed) {
+        const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
+        routeLayersRef.current.push(layer);
       }
+    } else if (nodes.length > 1) {
+      const optimizedRoute = optimizeRoute(nodes);
+      const routeCoords = optimizedRoute.map((node) => [node.lat, node.lng] as L.LatLngExpression);
+      routeLineRef.current = L.polyline(routeCoords, {
+        color: "#FF69B4",
+        weight: 6,
+        opacity: 0.8,
+        dashArray: "10, 10",
+      }).addTo(map);
+    }
+
+    // Step 4: Double-check — count pink layers actually on the map
+    let pinkLayerCount = 0;
+    map.eachLayer((layer) => {
+      if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
+        pinkLayerCount++;
+      }
+    });
+    const expectedCount = routeLayersRef.current.length + (routeLineRef.current ? 1 : 0);
+    if (pinkLayerCount !== expectedCount) {
+      console.warn(`[PinkLine] LAYER MISMATCH: ${pinkLayerCount} polylines on map, expected ${expectedCount}. Forcing cleanup.`);
+      map.eachLayer((layer) => {
+        if (layer instanceof L.Polyline && !(layer instanceof L.Polygon) &&
+            !routeLayersRef.current.includes(layer as L.Polyline) &&
+            layer !== routeLineRef.current) {
+          map.removeLayer(layer);
+          console.warn(`[PinkLine] Removed orphan polyline layer`);
+        }
+      });
     }
 
     if (nodes.length === 0) return;
 
+    // Step 5: Add markers
     const optimizedRoute = nodes.length > 1 ? optimizeRoute(nodes) : nodes;
     const nodeOrderMap = new Map(optimizedRoute.map((node, index) => [node.id, index + 1]));
 
@@ -216,7 +238,7 @@ const PinkLineMapPage = () => {
           iconSize: [30, 30],
           iconAnchor: [15, 15],
         }),
-      }).addTo(mapRef.current!);
+      }).addTo(map);
 
       marker.on("click", () => {
         handleRemoveNode(node.id);
@@ -227,17 +249,16 @@ const PinkLineMapPage = () => {
   }, [nodes, defaultLineLoaded]);
 
   const handleRemoveNode = async (nodeId: string) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     try {
       await deletePinkLineNode(nodeId);
       setNodes((prev) => prev.filter((n) => n.id !== nodeId));
-      const marker = markersRef.current.get(nodeId);
-      if (marker) {
-        mapRef.current?.removeLayer(marker);
-        markersRef.current.delete(nodeId);
-      }
     } catch (error) {
       console.error("Failed to delete node:", error);
       alert("Failed to delete node. Please try again.");
+    } finally {
+      busyRef.current = false;
     }
   };
 
@@ -262,34 +283,34 @@ const PinkLineMapPage = () => {
   };
 
   const handleNodeFormSubmit = async (name: string, description: string) => {
-    if (!pendingNode || !project) return;
-    const newNode = await createPinkLineNode(project.id, pendingNode.lat, pendingNode.lng, name || null, description || null);
-    if (newNode) {
-      setNodes((prev) => [...prev, newNode]);
+    if (!pendingNode || !project || busyRef.current) return;
+    busyRef.current = true;
+    try {
+      const newNode = await createPinkLineNode(project.id, pendingNode.lat, pendingNode.lng, name || null, description || null);
+      if (newNode) {
+        setNodes((prev) => [...prev, newNode]);
+      }
+      setPendingNode(null);
+    } finally {
+      busyRef.current = false;
     }
-    setPendingNode(null);
   };
 
   const handleClear = async () => {
-    if (!project) return;
-
-    const unsubmittedNodes = nodes.filter((n) => !n.submissionId);
+    if (!project || busyRef.current) return;
+    busyRef.current = true;
     try {
+      const currentNodes = await loadPinkLineNodes(project.id);
+      const unsubmittedNodes = currentNodes.filter((n) => !n.submissionId);
       for (const node of unsubmittedNodes) {
         await deletePinkLineNode(node.id);
       }
-      setNodes(nodes.filter((n) => n.submissionId !== null));
-      markersRef.current.forEach((marker) => {
-        mapRef.current?.removeLayer(marker);
-      });
-      markersRef.current.clear();
-      if (routeLineRef.current) {
-        mapRef.current?.removeLayer(routeLineRef.current);
-        routeLineRef.current = null;
-      }
+      setNodes((prev) => prev.filter((n) => n.submissionId !== null));
     } catch (error) {
       console.error("Failed to clear nodes:", error);
       alert("Failed to clear nodes. Please try again.");
+    } finally {
+      busyRef.current = false;
     }
   };
 
