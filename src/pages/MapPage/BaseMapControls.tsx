@@ -5,11 +5,10 @@ import L from "leaflet";
 interface BaseMapControlsProps {
   mapRef: React.MutableRefObject<L.Map | null>;
   drawControlRef: React.MutableRefObject<L.Control.Draw | null>;
-  featureCount: number;
   isHebrew?: boolean;
 }
 
-const BaseMapControls = ({ mapRef, drawControlRef, featureCount, isHebrew }: BaseMapControlsProps) => {
+const BaseMapControls = ({ mapRef, drawControlRef, isHebrew }: BaseMapControlsProps) => {
   const navigate = useNavigate();
 
   const disableAllModes = () => {

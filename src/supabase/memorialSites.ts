@@ -12,13 +12,6 @@ export interface MemorialSite {
   feature_type: MemorialFeatureType;
 }
 
-function getProjectId(): string {
-  const params = new URLSearchParams(window.location.search);
-  const projectId = params.get("projectId");
-  if (!projectId) throw new Error("Missing projectId in URL");
-  return projectId;
-}
-
 export async function loadCentralMemorial(projectId: string): Promise<MemorialSite | null> {
   const { data, error } = await supabase
     .from("geo_features")

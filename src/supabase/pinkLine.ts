@@ -8,15 +8,6 @@ export interface PinkLineNode {
   submissionId: string | null;
 }
 
-function getProjectId(): string {
-  const params = new URLSearchParams(window.location.search);
-  const projectId = params.get("projectId");
-  if (!projectId) {
-    throw new Error("Missing project ID in URL (?projectId=...)");
-  }
-  return projectId;
-}
-
 export async function createPinkLineNode(
   projectId: string,
   lat: number,

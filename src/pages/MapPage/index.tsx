@@ -1,5 +1,6 @@
 import { useState } from "react";
 import L from "leaflet";
+import type { Geometry } from "geojson";
 import { useMap } from "./hooks/useMap";
 import { useProject } from "../../context/ProjectContext";
 import PinkLineMapPage from "./PinkLineMapPage";
@@ -19,7 +20,10 @@ const MapPage = () => {
 
   if (projectMeta) {
     try {
-      const geojson = projectMeta;
+      const geojson: Geometry =
+        typeof projectMeta === "string"
+          ? (JSON.parse(projectMeta) as Geometry)
+          : (projectMeta as unknown as Geometry);
       if (geojson.type === "Polygon" && geojson.coordinates.length > 0) {
         const coords = geojson.coordinates[0];
         const latSum = coords.reduce(
@@ -60,7 +64,7 @@ const MapPage = () => {
   const isMemorialSites = project?.id === "33333333-3333-3333-3333-333333333333";
   const isTestimony = project?.id === TESTIMONY_PROJECT_ID;
   const isSpecialProject = project?.name === "Pink Line" || isMemorialSites;
-  const { mapRef, drawControlRef, featureCount } = useMap({ 
+  const { mapRef, drawControlRef } = useMap({
     center: mapInitCenter,
     enabled: !isLoading && !isSpecialProject,
     onShapeCreated: handleShapeCreated,
@@ -77,7 +81,7 @@ const MapPage = () => {
   return (
     <>
       <div key={project?.id || "no-project"} id="map" style={{ height: "100vh", width: "100%" }}></div>
-      <BaseMapControls mapRef={mapRef} drawControlRef={drawControlRef} featureCount={featureCount} isHebrew={isTestimony} />
+      <BaseMapControls mapRef={mapRef} drawControlRef={drawControlRef} isHebrew={isTestimony} />
       {pendingLayer && (
         project?.id === TESTIMONY_PROJECT_ID ? (
           <TestimonyForm

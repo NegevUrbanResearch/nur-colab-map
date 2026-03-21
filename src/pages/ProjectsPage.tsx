@@ -26,7 +26,7 @@ const ProjectsPage = () => {
         const data = await loadProjects();
         setProjects(data || []);
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Failed to load projects");
       } finally {
         setLoading(false);
       }

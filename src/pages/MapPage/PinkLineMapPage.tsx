@@ -35,7 +35,6 @@ const PinkLineMapPage = () => {
 
   // Nuke every route polyline from the map. Called before every re-render.
   const clearAllRouteLayers = (map: L.Map) => {
-    const count = routeLayersRef.current.length;
     for (const layer of routeLayersRef.current) {
       try { map.removeLayer(layer); } catch (_) { /* already gone */ }
     }
