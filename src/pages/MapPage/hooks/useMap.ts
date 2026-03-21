@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import "leaflet-draw/dist/leaflet.draw.css";
 import "leaflet-draw";
 import "../../../types/leaflet.d.ts";
+import { STADIA_API_KEY } from "../../../config";
 import {
   createGeometry,
   deleteGeometry,
@@ -55,9 +56,11 @@ export const useMap = ({ center, enabled = true, onShapeCreated, isHebrew }: Use
     mapRef.current = L.map("map").setView(center, 16);
 
       L.tileLayer(
-        "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg",
+        `https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg?api_key=${STADIA_API_KEY}`,
         {
           maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
         }
       ).addTo(mapRef.current);
 

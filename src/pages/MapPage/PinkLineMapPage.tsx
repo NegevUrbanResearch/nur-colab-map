@@ -7,9 +7,13 @@ import { createPinkLineNode, loadPinkLineNodes, submitPinkLineRoute, deletePinkL
 import { optimizeRoute } from "../../utils/routeOptimizer";
 import { parseDefaultLinePaths, buildIntegratedRoute } from "../../utils/pinkLineRoute";
 import supabase from "../../supabase";
+import { STADIA_API_KEY } from "../../config";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 
-const DEFAULT_PINK_LINE_URL = `${import.meta.env.BASE_URL}line-layer/pink-line-wgs84.geojson`;
+const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
+  ? import.meta.env.BASE_URL
+  : `${import.meta.env.BASE_URL}/`;
+const DEFAULT_PINK_LINE_URL = `${APP_BASE_URL}line-layer/pink-line-wgs84.geojson`;
 
 interface PinkLineNode {
   id: string;
@@ -74,9 +78,11 @@ const PinkLineMapPage = () => {
     mapRef.current = L.map("map").setView([31.42, 34.49], 13);
 
       L.tileLayer(
-        "https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg",
+        `https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg?api_key=${STADIA_API_KEY}`,
         {
           maxZoom: 19,
+          attribution:
+            '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
         }
       ).addTo(mapRef.current);
 
@@ -120,7 +126,12 @@ const PinkLineMapPage = () => {
       new customControls({ position: "topleft" }).addTo(mapRef.current);
 
       fetch(DEFAULT_PINK_LINE_URL)
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) {
+            throw new Error(`Failed to fetch pink line GeoJSON (${res.status})`);
+          }
+          return res.json();
+        })
         .then((geojson: GeoJSON.FeatureCollection) => {
           if (!mapRef.current) return;
           defaultLinePathsRef.current = parseDefaultLinePaths(geojson);

@@ -144,6 +144,12 @@ Local mode runs Supabase services in Docker containers on your machine.
 
 This repo includes a GitHub Pages workflow at `.github/workflows/deploy-pages.yml`.
 
+Set these in **Settings** -> **Secrets and variables** -> **Actions**:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_STADIA_API_KEY`
+
 ## Database Management
 
 ### Test User Credentials

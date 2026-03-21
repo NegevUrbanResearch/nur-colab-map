@@ -9,6 +9,7 @@ import {
   MemorialFeatureType,
 } from "../../supabase/memorialSites";
 import supabase from "../../supabase";
+import { STADIA_API_KEY } from "../../config";
 import MemorialSiteForm from "./MemorialSiteForm";
 import localMemorialIconUrl from "../../assets/memorial-sites/local-memorial-site.png";
 import regionalMemorialIconUrl from "../../assets/memorial-sites/regional-memorial-site.png";
@@ -60,8 +61,10 @@ const MemorialSitesMapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
-    L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg", {
+    L.tileLayer(`https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg?api_key=${STADIA_API_KEY}`, {
       maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
     }).addTo(mapRef.current);
 
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
