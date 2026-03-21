@@ -9,7 +9,7 @@ import { parseDefaultLinePaths, buildIntegratedRoute } from "../../utils/pinkLin
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 
-const DEFAULT_PINK_LINE_URL = "/line-layer/pink-line-wgs84.geojson";
+const DEFAULT_PINK_LINE_URL = `${import.meta.env.BASE_URL}line-layer/pink-line-wgs84.geojson`;
 
 interface PinkLineNode {
   id: string;

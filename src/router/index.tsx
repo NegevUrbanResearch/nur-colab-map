@@ -8,47 +8,52 @@ import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import Providers from "../Providers.tsx";
 
-const router = createBrowserRouter([
-  // I recommend you reflect the routes here in the pages folder
-  {
-    path: "/",
-    element: <Providers />,
-    children: [
-      // Public routes
-      {
-        path: "/",
-        element: <HomePage />,
-      },
-      {
-        path: "/auth/sign-in",
-        element: <SignInPage />,
-      },
-      {
-        path: "/auth/sign-up",
-        element: <SignUpPage />,
-      },
-      // Auth Protected routes
-      {
-        path: "/",
-        element: <AuthProtectedRoute />,
-        children: [
-          {
-            path: "/projects-page",
-            element: <ProjectsPage />,
-          },
+const router = createBrowserRouter(
+  [
+    // I recommend you reflect the routes here in the pages folder
+    {
+      path: "/",
+      element: <Providers />,
+      children: [
+        // Public routes
+        {
+          path: "/",
+          element: <HomePage />,
+        },
+        {
+          path: "/auth/sign-in",
+          element: <SignInPage />,
+        },
+        {
+          path: "/auth/sign-up",
+          element: <SignUpPage />,
+        },
+        // Auth Protected routes
+        {
+          path: "/",
+          element: <AuthProtectedRoute />,
+          children: [
+            {
+              path: "/projects-page",
+              element: <ProjectsPage />,
+            },
 
-          {
-            path: "/map-page",
-            element: <MapPage />,
-          },
-        ],
-      },
-    ],
-  },
+            {
+              path: "/map-page",
+              element: <MapPage />,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      path: "*",
+      element: <NotFoundPage />,
+    },
+  ],
   {
-    path: "*",
-    element: <NotFoundPage />,
-  },
-]);
+    basename: import.meta.env.BASE_URL,
+  }
+);
 
 export default router;
