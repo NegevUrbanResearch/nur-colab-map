@@ -1,5 +1,6 @@
 -- Local development seed file
 -- Usage: supabase db reset (runs migrations + seed automatically)
+-- NOTE: This file is for local development only. Do not use these credentials in cloud/prod.
 --
 -- Test user credentials:
 --   Email: test@gmail.com

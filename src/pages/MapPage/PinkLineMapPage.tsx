@@ -44,7 +44,6 @@ const PinkLineMapPage = () => {
       try { map.removeLayer(routeLineRef.current); } catch (_) { /* already gone */ }
       routeLineRef.current = null;
     }
-    console.log(`[PinkLine] Cleared ${count} route layers`);
   };
 
   useEffect(() => {
@@ -126,7 +125,6 @@ const PinkLineMapPage = () => {
         .then((geojson: GeoJSON.FeatureCollection) => {
           if (!mapRef.current) return;
           defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
-          console.log(`[PinkLine] Base line loaded: ${defaultLinePathsRef.current.length} paths`);
           setDefaultLineLoaded(true);
         })
         .catch((err) => console.error("Failed to load default pink line:", err));
@@ -179,8 +177,6 @@ const PinkLineMapPage = () => {
     if (hasBase) {
       const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
       const { solid, dashed } = buildIntegratedRoute(basePaths, userPoints);
-      console.log(`[PinkLine] Rendering ${solid.length} solid + ${dashed.length} dashed segments for ${nodes.length} nodes`);
-
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
 

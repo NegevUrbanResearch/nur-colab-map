@@ -10,7 +10,6 @@ const HomePage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log("Current User:", session || "None");
     if (session) {
       navigate("/projects-page");
     }

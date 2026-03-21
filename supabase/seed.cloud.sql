@@ -3,22 +3,38 @@
 --
 -- BEFORE RUNNING THIS:
 --   1. Go to Authentication → Users → Add User
---   2. Create user with email: test@gmail.com, password: password
---   3. The script will automatically find the user by email
+--   2. Create a real user with your own email + strong password
+--   3. Set target_email below to that user's email
+--   4. Do not use shared test credentials in cloud environments
 
 DO $$
 DECLARE
+    target_email text := 'CHANGE_ME_EMAIL@example.com';
     test_user_id uuid;
 BEGIN
-    -- Find test user by email
+    IF target_email = 'CHANGE_ME_EMAIL@example.com' THEN
+        RAISE EXCEPTION 'Set target_email in supabase/seed.cloud.sql before running this script';
+    END IF;
+
+    -- Find user by email
     SELECT id INTO test_user_id 
     FROM auth.users 
-    WHERE email = 'test@gmail.com' 
+    WHERE lower(email) = lower(target_email)
     LIMIT 1;
     
     IF test_user_id IS NULL THEN
-        RAISE EXCEPTION 'Test user not found. Please create user with email test@gmail.com via Dashboard first';
+        RAISE EXCEPTION 'User not found. Please create user with email % via Dashboard first', target_email;
     END IF;
+    -- Create Memorial Sites project
+    INSERT INTO public.projects (id, name, description, created_at)
+    VALUES (
+        '33333333-3333-3333-3333-333333333333',
+        'Memorial Sites',
+        'אתרי הנצחה',
+        now()
+    )
+    ON CONFLICT (id) DO NOTHING;
+    
     
     -- Create Testimony project
     INSERT INTO public.projects (id, name, description, created_at)
@@ -40,7 +56,7 @@ BEGIN
     )
     ON CONFLICT (id) DO NOTHING;
     
-    -- Add test user as editor to Testimony project
+    -- Add target user as editor to Testimony project
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (
         '11111111-1111-1111-1111-111111111111',
@@ -49,7 +65,7 @@ BEGIN
     )
     ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor';
     
-    -- Add test user as editor to Pink Line project
+    -- Add target user as editor to Pink Line project
     INSERT INTO public.project_members (project_id, user_id, role)
     VALUES (
         '22222222-2222-2222-2222-222222222222',
@@ -58,5 +74,14 @@ BEGIN
     )
     ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor';
     
-    RAISE NOTICE 'Seed data created successfully. Test user ID: %', test_user_id;
+    -- Add target user as editor to Memorial Sites project
+    INSERT INTO public.project_members (project_id, user_id, role)
+    VALUES (
+        '33333333-3333-3333-3333-333333333333',
+        test_user_id,
+        'editor'
+    )
+    ON CONFLICT (project_id, user_id) DO UPDATE SET role = 'editor';
+
+    RAISE NOTICE 'Seed data created successfully. User ID: %', test_user_id;
 END $$;

@@ -55,7 +55,6 @@ export async function updateGeometry(id: number, geom: GeoJSON) {
 }
 
 export async function deleteGeometry(id: number) {
-  console.log("Deleting geometry with ID:", id);
   const { error } = await supabase.from("geo_features").delete().eq("id", id);
   if (error) throw error;
 }

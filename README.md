@@ -19,6 +19,7 @@ A web application for mapping and visualizing data using Supabase and React.
 - [Schema Overview](#schema-overview)
 - [Quick Start](#quick-start)
 - [Backend Mode: Local vs Online](#backend-mode-local-vs-online)
+- [GitHub Pages Deployment](#github-pages-deployment)
 - [Database Management](#database-management)
 - [Development Commands](#development-commands)
 - [Dev Tips](#dev-tips)
@@ -99,12 +100,14 @@ Best for: Production, staging, or if you don't want to run Docker locally.
 
 5. **Seed test data** (optional):
    - Go to **Authentication** → **Users** → **Add User**
-   - Create a user with email `test@gmail.com` and password `password`
+   - Create a user with your own email and a strong password
+   - In `supabase/seed_data.sql`, set `target_email` to that email
    - Go to **SQL Editor** and run the contents of `supabase/seed_data.sql`
-   - The script automatically finds the test user and creates:
+   - The script creates:
      - **Testimony** project
      - **Pink Line** project
-     - Adds the test user as an editor to both projects
+     - **Memorial Sites** project
+     - Adds your selected user as an editor to all projects
 
 ### Option B: Local Mode (Supabase Local)
 
@@ -135,22 +138,26 @@ Local mode runs Supabase services in Docker containers on your machine.
    supabase db reset
    ```
 
-   This creates a test user and project automatically.
+   This creates a local-only test user and project automatically.
+
+## GitHub Pages Deployment
+
+This repo includes a GitHub Pages workflow at `.github/workflows/deploy-pages.yml`.
 
 ## Database Management
 
 ### Test User Credentials
 
-The seed file creates a test user you can use immediately (both local and cloud):
+`supabase/seed.sql` creates a local development test user:
 
 | Field    | Value            |
 | -------- | ---------------- |
 | Email    | `test@gmail.com` |
 | Password | `password`       |
 
-**Local mode**: This user is automatically added as owner of a "Test Project" when you run `supabase db reset`.
+**Local mode only**: This user is automatically added as owner of a "Test Project" when you run `supabase db reset`.
 
-**Cloud mode**: After creating the user via Dashboard, run `supabase/seed_data.sql` to add the user as an editor to "Testimony" and "Pink Line" projects.
+**Cloud mode**: Do not use shared demo credentials. Create a user with your own email and strong password, set `target_email` in `supabase/seed_data.sql`, then run it.
 
 ### Database Reset (Cloud)
 
@@ -158,7 +165,9 @@ If you need to completely reset your cloud database:
 
 1. Go to **SQL Editor** in your Supabase dashboard
 2. Run `supabase/nuclear_reset.sql` to drop everything and recreate the schema
-3. Run `supabase/seed_data.sql` to add test data (after creating the test user)
+3. Create a real user in Auth (your email + strong password)
+4. Set `target_email` in `supabase/seed_data.sql`
+5. Run `supabase/seed_data.sql` to add project data and memberships
 
 ### Applying Migrations
 

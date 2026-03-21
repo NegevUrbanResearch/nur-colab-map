@@ -24,7 +24,6 @@ const ProjectsPage = () => {
           await ensureMemorialSitesProjectForUser(user.id);
         }
         const data = await loadProjects();
-        console.log("Loaded projects:", data);
         setProjects(data || []);
       } catch (err) {
         setError(err.message);
