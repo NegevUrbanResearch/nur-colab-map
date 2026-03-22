@@ -7,7 +7,6 @@ import { createPinkLineNode, loadPinkLineNodes, submitPinkLineRoute, deletePinkL
 import { optimizeRoute } from "../../utils/routeOptimizer";
 import { parseDefaultLinePaths, buildIntegratedRoute } from "../../utils/pinkLineRoute";
 import supabase from "../../supabase";
-import { STADIA_API_KEY } from "../../config";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
@@ -77,14 +76,11 @@ const PinkLineMapPage = () => {
 
     mapRef.current = L.map("map").setView([31.42, 34.49], 13);
 
-      L.tileLayer(
-        `https://tiles.stadiamaps.com/tiles/alidade_satellite/{z}/{x}/{y}{r}.jpg?api_key=${STADIA_API_KEY}`,
-        {
-          maxZoom: 19,
-          attribution:
-            '&copy; <a href="https://stadiamaps.com/" target="_blank" rel="noopener noreferrer">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors',
-        }
-      ).addTo(mapRef.current);
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+      maxZoom: 19,
+      attribution:
+        "Tiles &copy; Esri",
+    }).addTo(mapRef.current);
 
       const customControls = L.Control.extend({
         onAdd: function () {

@@ -148,7 +148,6 @@ Set these in **Settings** -> **Secrets and variables** -> **Actions**:
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `VITE_STADIA_API_KEY`
 
 ## Database Management
 
@@ -183,6 +182,9 @@ If you need to completely reset your cloud database:
 ## Development Commands
 
 ```bash
+# Start app locally (alias of dev)
+npm start
+
 # Start development server
 npm run dev
 
