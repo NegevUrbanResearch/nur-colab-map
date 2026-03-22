@@ -274,6 +274,7 @@ const MapPage = () => {
     setPendingPinkTarget(null);
     setPendingMemorialTarget(null);
   };
+  const isEntryModalOpen = Boolean(pendingPinkTarget || pendingMemorialTarget);
 
   const handleClearPink = () => {
     if (pinkNodes.length === 0) return;
@@ -396,71 +397,31 @@ const MapPage = () => {
         />
       )}
 
-      {activeProject === "pink" && (
-        <div
-          style={{
-            position: "absolute",
-            top: "20px",
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 1000,
-            background: "white",
-            padding: "15px 25px",
-            borderRadius: "8px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.2)",
-            display: "flex",
-            gap: "15px",
-            alignItems: "center",
-            direction: "rtl",
-          }}
-        >
-          <div style={{ fontSize: "16px", fontWeight: "500" }}>
+      {activeProject === "pink" && !isEntryModalOpen && (
+        <div className="pink-toolbar" dir="rtl">
+          <div className="pink-toolbar-label">
             לחץ על המפה כדי להוסיף נקודות • {pinkNodes.length} נקודות
           </div>
-          {pinkNodes.length > 0 && (
-            <>
-              <button
-                type="button"
-                onClick={() => setShowSubmitModal(true)}
-                style={{
-                  padding: "8px 20px",
-                  backgroundColor: "#FF69B4",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  fontWeight: "500",
-                  width: "auto",
-                  minWidth: "0",
-                  marginTop: "0",
-                }}
-              >
-                הגשה
-              </button>
-              <button
-                type="button"
-                onClick={handleClearPink}
-                style={{
-                  padding: "8px 20px",
-                  backgroundColor: "#ccc",
-                  color: "black",
-                  border: "none",
-                  borderRadius: "5px",
-                  cursor: "pointer",
-                  fontWeight: "500",
-                  width: "auto",
-                  minWidth: "0",
-                  marginTop: "0",
-                }}
-              >
-                נקה הכל
-              </button>
-            </>
-          )}
+          <button
+            type="button"
+            onClick={() => setShowSubmitModal(true)}
+            className="pink-toolbar-action pink-toolbar-action-primary"
+            disabled={!hasPink && !hasMemorial}
+          >
+            הגשה
+          </button>
+          <button
+            type="button"
+            onClick={handleClearPink}
+            className="pink-toolbar-action"
+            disabled={pinkNodes.length === 0}
+          >
+            נקה הכל
+          </button>
         </div>
       )}
 
-      {activeProject === "memorial" && (
+      {activeProject === "memorial" && !isEntryModalOpen && (
         <div className="memorial-toolbar" dir="rtl">
           <button
             type="button"

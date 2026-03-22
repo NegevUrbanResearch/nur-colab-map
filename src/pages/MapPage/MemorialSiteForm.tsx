@@ -38,7 +38,7 @@ const MemorialSiteForm = ({
           e.preventDefault();
           if (canNext) handleNext();
         }}
-        className="shape-name-input-form"
+        className="shape-name-input-form memorial-site-form"
       >
         <div className="shape-name-input-fields">
           <label className="shape-name-input-label">{question}</label>
