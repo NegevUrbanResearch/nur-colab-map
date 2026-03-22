@@ -83,7 +83,7 @@ ul {
   margin: 0;
 }
 
-button:not(.base-map-control-btn):not(.shape-name-input-btn):not(.memorial-toolbar-drag-item):not(.memorial-toolbar-section):not(.memorial-toolbar-text-btn):not(.memorial-info-close) {
+button:not(.base-map-control-btn):not(.shape-name-input-btn):not(.memorial-toolbar-drag-item):not(.memorial-toolbar-section):not(.memorial-toolbar-text-btn):not(.memorial-info-close):not(.unified-map-chip):not(.unified-map-submit-btn):not(.unified-submit-action) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -252,6 +252,29 @@ a:hover {
   height: 1px;
   background: rgba(255, 255, 255, 0.15);
   margin: 4px 0;
+}
+
+.project-switch-btn {
+  width: auto !important;
+  min-width: 112px !important;
+  max-width: none !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
+}
+
+.project-switch-btn-active {
+  background-color: rgba(255, 255, 255, 0.18) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.project-signout-btn {
+  align-self: center;
 }
 
 .leaflet-draw-toolbar {
@@ -812,5 +835,152 @@ a:hover {
 .testimony-buttons .shape-name-input-btn {
   flex: 1;
   border-radius: 6px;
+}
+
+.unified-map-toolbar {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1100;
+  background: rgba(20, 20, 20, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unified-map-segment {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.unified-map-chip {
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 8px 14px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  cursor: pointer !important;
+  font-size: 13px !important;
+  line-height: 1.2 !important;
+  transition: all 0.15s ease !important;
+}
+
+.unified-map-chip:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.unified-map-chip-active {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.unified-map-submit-btn {
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 8px 18px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #ff5aa8, #fd85bc) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+}
+
+.unified-map-submit-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+}
+
+.unified-submit-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2200;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.unified-submit-modal {
+  width: min(440px, 92vw);
+  background: rgba(25, 25, 30, 0.93);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 18px;
+  color: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.unified-submit-modal h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.unified-submit-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.unified-submit-option input {
+  width: auto;
+  margin-top: 0;
+  padding: 0;
+}
+
+.unified-submit-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.unified-submit-action {
+  width: auto !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 8px 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.unified-submit-action-primary {
+  border: none !important;
+  background: linear-gradient(135deg, #4fc177, #2ca95f) !important;
+  color: #fff !important;
+}
+
+.unified-map-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2201;
+  background: rgba(25, 25, 30, 0.92);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.95);
+  padding: 10px 16px;
+  font-size: 13px;
 }
 

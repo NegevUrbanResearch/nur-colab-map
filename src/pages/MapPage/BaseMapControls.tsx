@@ -81,7 +81,7 @@ const BaseMapControls = ({ mapRef, drawControlRef, isHebrew }: BaseMapControlsPr
   };
 
   const handleHome = () => {
-    navigate("/projects-page");
+    navigate("/map-page");
   };
 
   const handleSignOut = async () => {

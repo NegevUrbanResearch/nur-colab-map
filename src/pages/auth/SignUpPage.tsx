@@ -15,7 +15,7 @@ const SignUpPage = () => {
 
   // If user is already logged in, redirect to protected page
   // This logic is being repeated in SignIn and SignUp..
-  if (session) return <Navigate to="/protected" />;
+  if (session) return <Navigate to="/map-page" />;
   // maybe we can create a wrapper component for these pages
   // just like the ./router/AuthProtectedRoute.tsx? up to you.
   // ==============================

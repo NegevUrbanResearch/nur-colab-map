@@ -11,7 +11,7 @@ const HomePage = () => {
 
   useEffect(() => {
     if (session) {
-      navigate("/projects-page");
+      navigate("/map-page");
     }
   }, [session, navigate]);
 
