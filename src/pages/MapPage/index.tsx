@@ -18,6 +18,7 @@ const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
 const DEFAULT_PINK_LINE_URL = `${APP_BASE_URL}line-layer/pink-line-wgs84.geojson`;
+const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 type ActiveProject = "pink" | "memorial";
 type SubmitScope = "pink" | "memorial" | "everything";
@@ -334,7 +335,19 @@ const MapPage = () => {
   };
 
   if (isBootstrapping) {
-    return <div style={{ padding: "24px" }}>Loading unified workspace...</div>;
+    return (
+      <div className="main-page-loader" role="status" aria-live="polite" aria-label="Loading map workspace">
+        <div className="main-page-loader-panel">
+          <div className="main-page-loader-orbit" aria-hidden="true">
+              <span className="main-page-loader-core">
+                <img src={FAVICON_URL} alt="" className="main-page-loader-logo" />
+              </span>
+          </div>
+          <h1 className="main-page-loader-title">טוען את סביבת המפה</h1>
+          <p className="main-page-loader-subtitle">מכין את שכבות הנתונים והכלים שלך...</p>
+        </div>
+      </div>
+    );
   }
 
   if (bootError) {
