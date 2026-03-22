@@ -21,7 +21,7 @@
     "leaflet-draw": "^1.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.2"
+    "react-router-dom": "^7.12.0"
   },
   "devDependencies": {
     "@types/geojson": "^7946.0.16",
