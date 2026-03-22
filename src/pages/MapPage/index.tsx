@@ -399,25 +399,29 @@ const MapPage = () => {
 
       {activeProject === "pink" && !isEntryModalOpen && (
         <div className="pink-toolbar" dir="rtl">
-          <div className="pink-toolbar-label">
-            לחץ על המפה כדי להוסיף נקודות • {pinkNodes.length} נקודות
+          <div className="pink-toolbar-meta">
+            <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
+            <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setShowSubmitModal(true)}
-            className="pink-toolbar-action pink-toolbar-action-primary"
-            disabled={!hasPink && !hasMemorial}
-          >
-            הגשה
-          </button>
-          <button
-            type="button"
-            onClick={handleClearPink}
-            className="pink-toolbar-action"
-            disabled={pinkNodes.length === 0}
-          >
-            נקה הכל
-          </button>
+          <div className="pink-toolbar-actions">
+            <button
+              type="button"
+              onClick={() => {
+                if (!hasPink && !hasMemorial) return;
+                setShowSubmitModal(true);
+              }}
+              className={`pink-toolbar-action pink-toolbar-action-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+            >
+              הגשה
+            </button>
+            <button
+              type="button"
+              onClick={handleClearPink}
+              className={`pink-toolbar-action pink-toolbar-action-secondary ${pinkNodes.length === 0 ? "toolbar-action-blocked" : ""}`}
+            >
+              נקה הכל
+            </button>
+          </div>
         </div>
       )}
 
@@ -460,16 +464,18 @@ const MapPage = () => {
           <div className="memorial-toolbar-actions">
             <button
               type="button"
-              className="memorial-toolbar-text-btn memorial-toolbar-text-btn-danger"
+              className={`memorial-toolbar-text-btn memorial-toolbar-text-btn-danger ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
               onClick={handleClearMemorial}
             >
               נקה הכל
             </button>
             <button
               type="button"
-              className="memorial-toolbar-text-btn memorial-toolbar-text-btn-submit"
-              onClick={() => setShowSubmitModal(true)}
-              disabled={!hasPink && !hasMemorial}
+              className={`memorial-toolbar-text-btn memorial-toolbar-text-btn-submit ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+              onClick={() => {
+                if (!hasPink && !hasMemorial) return;
+                setShowSubmitModal(true);
+              }}
             >
               הגשה
             </button>
