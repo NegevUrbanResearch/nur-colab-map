@@ -5,8 +5,8 @@ interface PinkLineNodeFormProps {
   onCancel: () => void;
 }
 
-const NAME_QUESTION = "מה השם של הנקודה הזו?";
-const DESCRIPTION_QUESTION = "מה קרה כאן ב-7 באוקטובר ולמה הקו צריך לעבור כאן?";
+const NAME_QUESTION = "מה השם של נקודת עניין הזו?";
+const DESCRIPTION_QUESTION = "הסבר מה קרה כאן ב-7 באוקטובר ולמה הקו צריך לעבור כאן?";
 
 const PinkLineNodeForm = ({ onSubmit, onCancel }: PinkLineNodeFormProps) => {
   const [step, setStep] = useState<1 | 2>(1);
@@ -46,32 +46,42 @@ const PinkLineNodeForm = ({ onSubmit, onCancel }: PinkLineNodeFormProps) => {
         <div className="shape-name-input-fields">
           <label className="shape-name-input-label">{question}</label>
           {step === 1 ? (
-          <input
-            ref={inputRef as React.RefObject<HTMLInputElement>}
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="shape-name-input-field"
-            dir="rtl"
-          />
-        ) : (
-          <textarea
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="shape-description-input-field"
-            rows={4}
-            dir="rtl"
-          />
-        )}
+            <input
+              ref={inputRef as React.RefObject<HTMLInputElement>}
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="shape-name-input-field"
+              dir="rtl"
+              autoFocus
+            />
+          ) : (
+            <textarea
+              ref={inputRef as React.RefObject<HTMLTextAreaElement>}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="shape-description-input-field"
+              rows={4}
+              dir="rtl"
+              autoFocus
+            />
+          )}
         </div>
         <div className="shape-name-input-buttons">
-          <button type="submit" className="shape-name-input-btn" disabled={!canNext}>
+          <button
+            type="submit"
+            className="shape-name-input-btn shape-name-input-btn-primary"
+            disabled={!canNext}
+          >
             {step === 1 ? "הבא" : "שמור"}
           </button>
-          <button type="button" onClick={onCancel} className="shape-name-input-btn">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="shape-name-input-btn shape-name-input-btn-secondary"
+          >
             ביטול
           </button>
         </div>

@@ -135,11 +135,11 @@ const BaseMapControls = ({ mapRef, drawControlRef, isHebrew }: BaseMapControlsPr
         ⌂
       </button>
       <button
-        className="base-map-control-btn"
+        className="base-map-control-btn project-switch-btn"
         onClick={handleSignOut}
-        title={isHebrew ? "התנתק" : "Sign Out"}
+        title="התנתק"
       >
-        ⏻
+        התנתק
       </button>
     </div>
   );

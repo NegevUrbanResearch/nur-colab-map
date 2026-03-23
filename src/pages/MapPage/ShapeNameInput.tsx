@@ -56,10 +56,14 @@ const ShapeNameInput = ({ onSubmit, onCancel }: ShapeNameInputProps) => {
           />
         </div>
         <div className="shape-name-input-buttons">
-          <button type="submit" className="shape-name-input-btn">
+          <button type="submit" className="shape-name-input-btn shape-name-input-btn-primary">
             Save
           </button>
-          <button type="button" onClick={onCancel} className="shape-name-input-btn">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="shape-name-input-btn shape-name-input-btn-secondary"
+          >
             Cancel
           </button>
         </div>

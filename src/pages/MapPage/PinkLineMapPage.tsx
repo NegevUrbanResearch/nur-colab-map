@@ -106,7 +106,8 @@ const PinkLineMapPage = () => {
             "leaflet-bar-part",
             container
           );
-          signOutButton.innerHTML = "⏻";
+          signOutButton.classList.add("project-switch-btn");
+          signOutButton.innerHTML = "התנתק";
           signOutButton.href = "#";
           signOutButton.onclick = async (e) => {
             e.preventDefault();

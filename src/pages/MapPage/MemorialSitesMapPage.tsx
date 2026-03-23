@@ -222,14 +222,14 @@ const MemorialSitesMapPage = () => {
           ⌂
         </button>
         <button
-          className="base-map-control-btn"
+          className="base-map-control-btn project-switch-btn"
           onClick={async () => {
             await supabase.auth.signOut();
             navigate("/");
           }}
           title="התנתק"
         >
-          ⏻
+          התנתק
         </button>
       </div>
 
@@ -289,14 +289,14 @@ const MemorialSitesMapPage = () => {
           </button>
           <button
             type="button"
-            className="memorial-toolbar-text-btn memorial-toolbar-text-btn-danger"
+            className="memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary"
             onClick={handleClearAll}
           >
             נקה הכל
           </button>
           <button
             type="button"
-            className="memorial-toolbar-text-btn memorial-toolbar-text-btn-submit"
+            className="memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-primary"
             onClick={handleSubmit}
             disabled={submitting}
           >

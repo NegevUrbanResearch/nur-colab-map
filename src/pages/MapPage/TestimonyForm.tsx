@@ -50,6 +50,7 @@ const TestimonyForm = ({ onSubmit, onCancel }: TestimonyFormProps) => {
             onKeyDown={(e) => e.key === "Escape" && onCancel()}
             className="shape-name-input-field testimony-field"
             dir="rtl"
+            autoFocus
           />
         ) : (
           <textarea
@@ -60,12 +61,13 @@ const TestimonyForm = ({ onSubmit, onCancel }: TestimonyFormProps) => {
             className="shape-description-input-field testimony-field"
             rows={5}
             dir="rtl"
+            autoFocus
           />
         )}
         <div className="testimony-buttons">
           <button
             type="submit"
-            className="shape-name-input-btn"
+            className="shape-name-input-btn shape-name-input-btn-primary"
             disabled={!canNext}
           >
             {step === 1 ? "הבא" : "שמור"}
@@ -73,7 +75,7 @@ const TestimonyForm = ({ onSubmit, onCancel }: TestimonyFormProps) => {
           <button
             type="button"
             onClick={onCancel}
-            className="shape-name-input-btn"
+            className="shape-name-input-btn shape-name-input-btn-secondary"
           >
             ביטול
           </button>

@@ -51,6 +51,7 @@ const MemorialSiteForm = ({
               onKeyDown={(e) => e.key === "Escape" && onCancel()}
               className="shape-name-input-field"
               dir="rtl"
+              autoFocus
             />
           ) : (
             <textarea
@@ -61,14 +62,23 @@ const MemorialSiteForm = ({
               className="shape-description-input-field"
               rows={4}
               dir="rtl"
+              autoFocus
             />
           )}
         </div>
         <div className="shape-name-input-buttons">
-          <button type="submit" className="shape-name-input-btn" disabled={!canNext}>
+          <button
+            type="submit"
+            className="shape-name-input-btn shape-name-input-btn-primary"
+            disabled={!canNext}
+          >
             {step === 1 ? "הבא" : "שמור"}
           </button>
-          <button type="button" onClick={onCancel} className="shape-name-input-btn">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="shape-name-input-btn shape-name-input-btn-secondary"
+          >
             ביטול
           </button>
         </div>

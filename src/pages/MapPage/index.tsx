@@ -412,10 +412,13 @@ const MapPage = () => {
 
       {activeProject === "pink" && !isEntryModalOpen && (
         <div className="pink-toolbar" dir="rtl">
-          <div className="pink-toolbar-meta">
-            <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
-            <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
+          <div className="pink-toolbar-section">
+            <div className="pink-toolbar-item-text">
+              <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
+              <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
+            </div>
           </div>
+          <div className="pink-toolbar-divider" />
           <div className="pink-toolbar-actions">
             <button
               type="button"
@@ -477,14 +480,14 @@ const MapPage = () => {
           <div className="memorial-toolbar-actions">
             <button
               type="button"
-              className={`memorial-toolbar-text-btn memorial-toolbar-text-btn-danger ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
+              className={`memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
               onClick={handleClearMemorial}
             >
               נקה הכל
             </button>
             <button
               type="button"
-              className={`memorial-toolbar-text-btn memorial-toolbar-text-btn-submit ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+              className={`memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
               onClick={() => {
                 if (!hasPink && !hasMemorial) return;
                 setShowSubmitModal(true);
@@ -503,9 +506,9 @@ const MapPage = () => {
             closeAllForms();
             setActiveProject("pink");
           }}
-          title="קו ורוד"
+          title="שביל תקומה"
         >
-          קו ורוד
+          שביל תקומה
         </button>
         <button
           className={`base-map-control-btn project-switch-btn ${activeProject === "memorial" ? "project-switch-btn-active" : ""}`}
@@ -519,14 +522,14 @@ const MapPage = () => {
         </button>
         <div className="base-map-controls-divider"></div>
         <button
-          className="base-map-control-btn project-signout-btn"
+          className="base-map-control-btn project-switch-btn project-signout-btn"
           onClick={async () => {
             await supabase.auth.signOut();
             navigate("/");
           }}
           title="התנתק"
         >
-          ⏻
+          התנתק
         </button>
       </div>
 
@@ -545,7 +548,7 @@ const MapPage = () => {
                 disabled={!hasPink}
                 onChange={() => setSubmitScope("pink")}
               />
-              <span>רק קו ורוד ({pinkNodes.length})</span>
+              <span>רק שביל תקומה ({pinkNodes.length})</span>
             </label>
             <label className="unified-submit-option">
               <input
