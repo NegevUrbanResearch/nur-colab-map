@@ -67,6 +67,7 @@ const MapPage = () => {
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
+  const centralSiteRef = useRef<PendingSite | null>(null);
 
   useEffect(() => {
     activeProjectRef.current = activeProject;
@@ -75,6 +76,10 @@ const MapPage = () => {
   useEffect(() => {
     activeMemorialTypeRef.current = activeMemorialType;
   }, [activeMemorialType]);
+
+  useEffect(() => {
+    centralSiteRef.current = centralSite;
+  }, [centralSite]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -139,6 +144,12 @@ const MapPage = () => {
       if (activeProjectRef.current === "pink") {
         setPendingPinkTarget({ lat: e.latlng.lat, lng: e.latlng.lng });
         return;
+      }
+      if (activeMemorialTypeRef.current === "central" && centralSiteRef.current) {
+        if (!confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) {
+          return;
+        }
+        setCentralSite(null);
       }
       setPendingMemorialTarget({
         lat: e.latlng.lat,
@@ -320,6 +331,65 @@ const MapPage = () => {
   };
   const isEntryModalOpen = Boolean(pendingPinkTarget || pendingMemorialTarget);
 
+  const ghostRef = useRef<HTMLDivElement | null>(null);
+
+  const handleToolbarDragStart = (e: React.PointerEvent, type: "central" | "local") => {
+    const startX = e.clientX;
+    const startY = e.clientY;
+    let dragging = false;
+    const iconSrc = type === "central" ? regionalMemorialIconUrl : localMemorialIconUrl;
+
+    const onMove = (ev: PointerEvent) => {
+      if (!dragging) {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (dx * dx + dy * dy < 25) return;
+        dragging = true;
+        const ghost = document.createElement("div");
+        ghost.style.cssText = "position:fixed;pointer-events:none;z-index:10000;opacity:0.85;transform:translate(-50%,-50%)";
+        const img = document.createElement("img");
+        img.src = iconSrc;
+        img.style.cssText = "width:40px;height:40px;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.4))";
+        ghost.appendChild(img);
+        document.body.appendChild(ghost);
+        ghostRef.current = ghost;
+      }
+      if (ghostRef.current) {
+        ghostRef.current.style.left = `${ev.clientX}px`;
+        ghostRef.current.style.top = `${ev.clientY}px`;
+      }
+    };
+
+    const onUp = (ev: PointerEvent) => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      if (ghostRef.current) {
+        ghostRef.current.remove();
+        ghostRef.current = null;
+      }
+      if (!dragging || !mapRef.current) return;
+
+      const mapEl = document.getElementById("map");
+      if (!mapEl) return;
+      const rect = mapEl.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+
+      const latlng = mapRef.current.containerPointToLatLng([x, y]);
+
+      if (type === "central" && centralSiteRef.current) {
+        if (!confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) return;
+        setCentralSite(null);
+      }
+
+      setPendingMemorialTarget({ lat: latlng.lat, lng: latlng.lng, type });
+    };
+
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+  };
+
   const handleClearPink = () => {
     if (pinkNodes.length === 0) return;
     if (!confirm("למחוק את כל נקודות הקו הוורוד?")) return;
@@ -490,14 +560,15 @@ const MapPage = () => {
             type="button"
             className={`memorial-toolbar-section ${activeMemorialType === "central" ? "memorial-toolbar-active" : ""}`}
             onClick={() => setActiveMemorialType("central")}
+            onPointerDown={(e) => handleToolbarDragStart(e, "central")}
           >
             <div className="memorial-toolbar-drag-item">
-              <img src={regionalMemorialIconUrl} alt="" className="memorial-toolbar-icon" />
+              <img src={regionalMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
             </div>
             <div className="memorial-toolbar-item-text">
               <span className="memorial-toolbar-item-label">אנדרטה מרכזית אזורית</span>
               <span className="memorial-toolbar-item-value">
-                {centralSite ? centralSite.name || "—" : "ניתן לבחור אחת בלבד"}
+                {centralSite ? centralSite.name || "—" : "גררו למפה או לחצו"}
               </span>
             </div>
           </button>
@@ -508,13 +579,14 @@ const MapPage = () => {
             type="button"
             className={`memorial-toolbar-section ${activeMemorialType === "local" ? "memorial-toolbar-active" : ""}`}
             onClick={() => setActiveMemorialType("local")}
+            onPointerDown={(e) => handleToolbarDragStart(e, "local")}
           >
             <div className="memorial-toolbar-drag-item">
-              <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" />
+              <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
             </div>
             <div className="memorial-toolbar-item-text">
               <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({localSites.length})</span>
-              <span className="memorial-toolbar-item-value">לחצו על המפה להוספה</span>
+              <span className="memorial-toolbar-item-value">גררו למפה או לחצו</span>
             </div>
           </button>
 
