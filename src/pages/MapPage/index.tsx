@@ -65,6 +65,8 @@ const MapPage = () => {
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
 
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
+  const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
+  const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
 
   useEffect(() => {
     activeProjectRef.current = activeProject;
@@ -184,7 +186,7 @@ const MapPage = () => {
 
     if (defaultLineLoaded && defaultLinePathsRef.current.length > 0) {
       const userPoints = pinkNodes.map((n) => [n.lat, n.lng] as [number, number]);
-      const { solid, dashed } = buildIntegratedRoute(defaultLinePathsRef.current, userPoints);
+      const { solid, dashed, removed } = buildIntegratedRoute(defaultLinePathsRef.current, userPoints);
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = {
         color: "#FF69B4",
@@ -192,7 +194,11 @@ const MapPage = () => {
         opacity: 0.9,
         dashArray: "10, 10",
       };
+      const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
 
+      for (const points of removed) {
+        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
+      }
       for (const points of solid) {
         routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
       }
@@ -256,6 +262,43 @@ const MapPage = () => {
     if (centralSite) placeMemorial(centralSite, true);
     localSites.forEach((site) => placeMemorial(site, false));
   }, [pinkNodes, centralSite, localSites, defaultLineLoaded]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (pendingPinkMarkerRef.current) {
+      try { mapRef.current.removeLayer(pendingPinkMarkerRef.current); } catch (_) {}
+      pendingPinkMarkerRef.current = null;
+    }
+    if (pendingPinkTarget) {
+      pendingPinkMarkerRef.current = L.marker([pendingPinkTarget.lat, pendingPinkTarget.lng], {
+        icon: L.divIcon({
+          className: "pink-line-node-marker",
+          html: `<div class="pink-line-node">+</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+      }).addTo(mapRef.current);
+    }
+  }, [pendingPinkTarget]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (pendingMemorialMarkerRef.current) {
+      try { mapRef.current.removeLayer(pendingMemorialMarkerRef.current); } catch (_) {}
+      pendingMemorialMarkerRef.current = null;
+    }
+    if (pendingMemorialTarget) {
+      const iconUrl = pendingMemorialTarget.type === "central" ? regionalMemorialIconUrl : localMemorialIconUrl;
+      pendingMemorialMarkerRef.current = L.marker([pendingMemorialTarget.lat, pendingMemorialTarget.lng], {
+        icon: L.icon({
+          iconUrl,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+          popupAnchor: [0, -20],
+        }),
+      }).addTo(mapRef.current);
+    }
+  }, [pendingMemorialTarget]);
 
   const hasPink = pinkNodes.length > 0;
   const hasMemorial = useMemo(() => Boolean(centralSite) || localSites.length > 0, [centralSite, localSites.length]);

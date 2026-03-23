@@ -6,7 +6,8 @@ interface PinkLineNodeFormProps {
 }
 
 const NAME_QUESTION = "מה השם של נקודת עניין הזו?";
-const DESCRIPTION_QUESTION = "הסבר מה קרה כאן ב-7 באוקטובר ולמה הקו צריך לעבור כאן?";
+const DESCRIPTION_QUESTION =
+  "הסבר מה קרה כאן ב-7 באוקטובר ולמה הקו צריך לעבור כאן?";
 
 const PinkLineNodeForm = ({ onSubmit, onCancel }: PinkLineNodeFormProps) => {
   const [step, setStep] = useState<1 | 2>(1);

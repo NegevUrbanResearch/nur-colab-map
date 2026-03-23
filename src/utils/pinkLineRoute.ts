@@ -146,6 +146,7 @@ function orderPointsBetweenEndpoints(
 export interface IntegratedRoute {
   solid: LatLng[][];
   dashed: LatLng[][];
+  removed: LatLng[][];
 }
 
 export function buildIntegratedRoute(
@@ -154,13 +155,14 @@ export function buildIntegratedRoute(
 ): IntegratedRoute {
   const solid: LatLng[][] = [];
   const dashed: LatLng[][] = [];
+  const removed: LatLng[][] = [];
 
   const basePath = mergePaths(basePaths);
-  if (basePath.length === 0) return { solid, dashed };
+  if (basePath.length === 0) return { solid, dashed, removed };
 
   if (userPoints.length === 0) {
     solid.push([...basePath]);
-    return { solid, dashed };
+    return { solid, dashed, removed };
   }
 
   const prefix = buildPrefixDistances(basePath);
@@ -188,6 +190,7 @@ export function buildIntegratedRoute(
       inThisDetour.map((x) => x.point)
     );
     dashed.push([leave, ...pointsInOrder, rejoin]);
+    removed.push(basePath.slice(intr.start, intr.end + 1));
   }
 
   let lastEnd = 0;
@@ -201,5 +204,5 @@ export function buildIntegratedRoute(
     solid.push(basePath.slice(lastEnd, basePath.length));
   }
 
-  return { solid, dashed };
+  return { solid, dashed, removed };
 }

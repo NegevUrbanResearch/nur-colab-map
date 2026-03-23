@@ -35,6 +35,7 @@ const PinkLineMapPage = () => {
   const [pendingNode, setPendingNode] = useState<{ lat: number; lng: number } | null>(null);
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
   const busyRef = useRef(false);
+  const pendingMarkerRef = useRef<L.Marker | null>(null);
 
   // Nuke every route polyline from the map. Called before every re-render.
   const clearAllRouteLayers = (map: L.Map) => {
@@ -183,10 +184,15 @@ const PinkLineMapPage = () => {
     // Step 3: Rebuild route via buildIntegratedRoute (handles both 0 and >0 nodes)
     if (hasBase) {
       const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
-      const { solid, dashed } = buildIntegratedRoute(basePaths, userPoints);
+      const { solid, dashed, removed } = buildIntegratedRoute(basePaths, userPoints);
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
+      const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
 
+      for (const pts of removed) {
+        const layer = L.polyline(pts as L.LatLngExpression[], removedStyle).addTo(map);
+        routeLayersRef.current.push(layer);
+      }
       for (const pts of solid) {
         const layer = L.polyline(pts as L.LatLngExpression[], solidStyle).addTo(map);
         routeLayersRef.current.push(layer);
@@ -250,6 +256,24 @@ const PinkLineMapPage = () => {
       markersRef.current.set(node.id, marker);
     });
   }, [nodes, defaultLineLoaded]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    if (pendingMarkerRef.current) {
+      try { mapRef.current.removeLayer(pendingMarkerRef.current); } catch (_) {}
+      pendingMarkerRef.current = null;
+    }
+    if (pendingNode) {
+      pendingMarkerRef.current = L.marker([pendingNode.lat, pendingNode.lng], {
+        icon: L.divIcon({
+          className: "pink-line-node-marker",
+          html: `<div class="pink-line-node">+</div>`,
+          iconSize: [30, 30],
+          iconAnchor: [15, 15],
+        }),
+      }).addTo(mapRef.current);
+    }
+  }, [pendingNode]);
 
   const handleRemoveNode = async (nodeId: string) => {
     if (busyRef.current) return;
