@@ -1,6 +1,7 @@
 import { GeoJSON } from "geojson";
 import supabase from ".";
 import { MemorialFeatureType } from "./memorialSites";
+import type { MapWorkspaceProjectIds } from "./submissionBatches";
 
 export interface PendingPinkNodeSubmission {
   name: string | null;
@@ -17,25 +18,64 @@ export interface PendingMemorialSubmission {
   feature_type: MemorialFeatureType;
 }
 
-interface SubmitUnifiedFeaturesParams {
-  submissionId: string;
+export type UnifiedSubmissionWriteMode = "new" | "overwrite";
+
+type SubmitUnifiedFeaturesParamsBase = {
   pinkProjectId: string | null;
   memorialProjectId: string | null;
   includePink: boolean;
   includeMemorial: boolean;
   pinkNodes: PendingPinkNodeSubmission[];
   memorialSites: PendingMemorialSubmission[];
+};
+
+/** Create a new submission batch row and insert features (default). */
+export type SubmitUnifiedFeaturesParamsNew = SubmitUnifiedFeaturesParamsBase & {
+  mode?: "new";
+  submissionId: string;
+  /** When omitted, uses the same legacy-style default as DB backfill: `הגשה ללא שם - <short id>`. */
+  submissionName?: string;
+};
+
+/** Replace all features in the map workspace for an existing submission and refresh batch metadata. */
+export type SubmitUnifiedFeaturesParamsOverwrite = SubmitUnifiedFeaturesParamsBase & {
+  mode: "overwrite";
+  targetSubmissionId: string;
+  submissionName: string;
+  /**
+   * Limits deletes to these projects; defaults to `{ pinkProjectId, memorialProjectId }` from this call.
+   */
+  mapWorkspaceProjects?: MapWorkspaceProjectIds;
+};
+
+export type SubmitUnifiedFeaturesParams =
+  | SubmitUnifiedFeaturesParamsNew
+  | SubmitUnifiedFeaturesParamsOverwrite;
+
+function defaultSubmissionBatchName(submissionId: string): string {
+  const short = submissionId.replace(/-/g, "").slice(0, 8);
+  return `הגשה ללא שם - ${short}`;
 }
 
-export async function submitUnifiedFeatures({
-  submissionId,
-  pinkProjectId,
-  memorialProjectId,
-  includePink,
-  includeMemorial,
-  pinkNodes,
-  memorialSites,
-}: SubmitUnifiedFeaturesParams): Promise<void> {
+function buildGeoFeatureRows(
+  submissionId: string,
+  params: Pick<
+    SubmitUnifiedFeaturesParams,
+    | "pinkProjectId"
+    | "memorialProjectId"
+    | "includePink"
+    | "includeMemorial"
+    | "pinkNodes"
+    | "memorialSites"
+  >
+): Array<{
+  project_id: string;
+  submission_id: string;
+  name: string;
+  description: string;
+  geom: GeoJSON;
+  feature_type?: MemorialFeatureType;
+}> {
   const rows: Array<{
     project_id: string;
     submission_id: string;
@@ -45,14 +85,14 @@ export async function submitUnifiedFeatures({
     feature_type?: MemorialFeatureType;
   }> = [];
 
-  if (includePink) {
-    if (!pinkProjectId) {
+  if (params.includePink) {
+    if (!params.pinkProjectId) {
       throw new Error("Pink Line project not found for this user.");
     }
 
     rows.push(
-      ...pinkNodes.map((node) => ({
-        project_id: pinkProjectId,
+      ...params.pinkNodes.map((node) => ({
+        project_id: params.pinkProjectId!,
         submission_id: submissionId,
         name: node.name?.trim() || "Pink Line Node",
         description: node.description?.trim() || "",
@@ -61,14 +101,14 @@ export async function submitUnifiedFeatures({
     );
   }
 
-  if (includeMemorial) {
-    if (!memorialProjectId) {
+  if (params.includeMemorial) {
+    if (!params.memorialProjectId) {
       throw new Error("Memorial Sites project not found for this user.");
     }
 
     rows.push(
-      ...memorialSites.map((site) => ({
-        project_id: memorialProjectId,
+      ...params.memorialSites.map((site) => ({
+        project_id: params.memorialProjectId!,
         submission_id: submissionId,
         name: site.name?.trim() || "",
         description: site.description?.trim() || "",
@@ -78,8 +118,73 @@ export async function submitUnifiedFeatures({
     );
   }
 
+  return rows;
+}
+
+function rowsToRpcPayload(
+  rows: ReturnType<typeof buildGeoFeatureRows>
+): Array<{
+  project_id: string;
+  name: string;
+  description: string;
+  lng: number;
+  lat: number;
+  feature_type: MemorialFeatureType | null;
+}> {
+  return rows.map((r) => {
+    const g = r.geom as GeoJSON.Point;
+    const [lng, lat] = g.coordinates;
+    return {
+      project_id: r.project_id,
+      name: r.name,
+      description: r.description,
+      lng,
+      lat,
+      feature_type: r.feature_type ?? null,
+    };
+  });
+}
+
+/**
+ * Inserts map features for the pink and/or memorial projects under one `submission_id`, via a single
+ * transactional RPC (`submit_unified_submission_write`).
+ */
+export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams): Promise<void> {
+  if (params.mode === "overwrite") {
+    const { targetSubmissionId, submissionName } = params;
+    const workspace: MapWorkspaceProjectIds =
+      params.mapWorkspaceProjects ?? {
+        pinkProjectId: params.pinkProjectId,
+        memorialProjectId: params.memorialProjectId,
+      };
+
+    const rows = buildGeoFeatureRows(targetSubmissionId, params);
+    const { error } = await supabase.rpc("submit_unified_submission_write", {
+      p_mode: "overwrite",
+      p_submission_id: targetSubmissionId,
+      p_submission_name: submissionName,
+      p_pink_project_id: workspace.pinkProjectId,
+      p_memorial_project_id: workspace.memorialProjectId,
+      p_feature_rows: rowsToRpcPayload(rows),
+    });
+    if (error) throw error;
+    return;
+  }
+
+  const { submissionId } = params;
+  const trimmedName = params.submissionName?.trim();
+  const batchName = trimmedName ? trimmedName : defaultSubmissionBatchName(submissionId);
+
+  const rows = buildGeoFeatureRows(submissionId, params);
   if (rows.length === 0) return;
 
-  const { error } = await supabase.from("geo_features").insert(rows);
+  const { error } = await supabase.rpc("submit_unified_submission_write", {
+    p_mode: "new",
+    p_submission_id: submissionId,
+    p_submission_name: batchName,
+    p_pink_project_id: params.pinkProjectId,
+    p_memorial_project_id: params.memorialProjectId,
+    p_feature_rows: rowsToRpcPayload(rows),
+  });
   if (error) throw error;
 }

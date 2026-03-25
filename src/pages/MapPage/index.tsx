@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -10,6 +10,11 @@ import { optimizeRoute } from "../../utils/routeOptimizer";
 import { buildIntegratedRoute, parseDefaultLinePaths } from "../../utils/pinkLineRoute";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
+import {
+  listSubmissionBatchSummariesForMapContext,
+  loadSubmissionBatchMapDetail,
+  type SubmissionBatchSummary,
+} from "../../supabase/submissionBatches";
 import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 
@@ -22,6 +27,7 @@ const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 type ActiveProject = "pink" | "memorial";
 type SubmitScope = "pink" | "memorial" | "everything";
+type SubmitEditDisposition = "overwrite" | "saveAsNew";
 
 interface PendingPinkNode {
   tempId: string;
@@ -64,6 +70,18 @@ const MapPage = () => {
   const [submittedSummary, setSubmittedSummary] = useState<string | null>(null);
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
 
+  const [submissionBatches, setSubmissionBatches] = useState<SubmissionBatchSummary[]>([]);
+  const [submissionBatchesLoading, setSubmissionBatchesLoading] = useState(false);
+  const [submissionBatchesError, setSubmissionBatchesError] = useState<string | null>(null);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const [submissionNameInput, setSubmissionNameInput] = useState("");
+  const [loadingSubmissionDetail, setLoadingSubmissionDetail] = useState(false);
+  const [submitEditDisposition, setSubmitEditDisposition] = useState<SubmitEditDisposition>("overwrite");
+
+  const submissionDetailLoadSeqRef = useRef(0);
+  const selectedSubmissionIdRef = useRef<string | null>(null);
+  const submissionNameInputRef = useRef("");
+
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
@@ -80,6 +98,14 @@ const MapPage = () => {
   useEffect(() => {
     centralSiteRef.current = centralSite;
   }, [centralSite]);
+
+  useLayoutEffect(() => {
+    selectedSubmissionIdRef.current = selectedSubmissionId;
+  }, [selectedSubmissionId]);
+
+  useLayoutEffect(() => {
+    submissionNameInputRef.current = submissionNameInput;
+  }, [submissionNameInput]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -116,6 +142,54 @@ const MapPage = () => {
 
     bootstrap();
   }, [navigate]);
+
+  const refreshSubmissionBatchesList = useCallback(async () => {
+    try {
+      const list = await listSubmissionBatchSummariesForMapContext({
+        activeProject,
+        pinkProjectId,
+        memorialProjectId,
+      });
+      setSubmissionBatches(list);
+      setSubmissionBatchesError(null);
+    } catch (err) {
+      console.error("Failed to refresh submission batches:", err);
+      setSubmissionBatchesError("טעינת הגשות נכשלה");
+    }
+  }, [activeProject, pinkProjectId, memorialProjectId]);
+
+  useEffect(() => {
+    if (isBootstrapping || bootError) return;
+    let cancelled = false;
+    (async () => {
+      setSubmissionBatchesLoading(true);
+      setSubmissionBatchesError(null);
+      try {
+        const list = await listSubmissionBatchSummariesForMapContext({
+          activeProject,
+          pinkProjectId,
+          memorialProjectId,
+        });
+        if (!cancelled) setSubmissionBatches(list);
+      } catch (err) {
+        console.error("Failed to load submission batches:", err);
+        if (!cancelled) {
+          setSubmissionBatchesError("טעינת הגשות נכשלה");
+          setSubmissionBatches([]);
+        }
+      } finally {
+        if (!cancelled) setSubmissionBatchesLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isBootstrapping, bootError, activeProject, pinkProjectId, memorialProjectId]);
+
+  useEffect(() => {
+    if (!showSubmitModal) return;
+    if (selectedSubmissionId) setSubmitEditDisposition("overwrite");
+  }, [showSubmitModal, selectedSubmissionId]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -314,7 +388,36 @@ const MapPage = () => {
   const hasPink = pinkNodes.length > 0;
   const hasMemorial = useMemo(() => Boolean(centralSite) || localSites.length > 0, [centralSite, localSites.length]);
 
+  const submissionSelectRows = useMemo(() => {
+    const rows = submissionBatches.map((b) => ({ id: b.submissionId, label: b.name }));
+    if (selectedSubmissionId && !rows.some((r) => r.id === selectedSubmissionId)) {
+      return [
+        {
+          id: selectedSubmissionId,
+          label: submissionNameInput.trim() || `…${selectedSubmissionId.slice(0, 8)}`,
+        },
+        ...rows,
+      ];
+    }
+    return rows;
+  }, [submissionBatches, selectedSubmissionId, submissionNameInput]);
+
+  const isEditingExistingSubmission = selectedSubmissionId !== null;
+
+  /** Overwrite RPC deletes all workspace rows for this submission; partial scope would wipe the other domain. */
+  const lockFullWorkspaceOverwrite =
+    isEditingExistingSubmission &&
+    submitEditDisposition === "overwrite" &&
+    hasPink &&
+    hasMemorial;
+
+  const overwriteScopeRadiosLocked = showSubmitModal && lockFullWorkspaceOverwrite;
+
   useEffect(() => {
+    if (lockFullWorkspaceOverwrite) {
+      setSubmitScope("everything");
+      return;
+    }
     if (!showSubmitModal) return;
     if (hasPink && hasMemorial) {
       setSubmitScope("everything");
@@ -323,13 +426,87 @@ const MapPage = () => {
     } else if (hasMemorial) {
       setSubmitScope("memorial");
     }
-  }, [showSubmitModal, hasPink, hasMemorial]);
+  }, [showSubmitModal, hasPink, hasMemorial, lockFullWorkspaceOverwrite]);
 
   const closeAllForms = () => {
     setPendingPinkTarget(null);
     setPendingMemorialTarget(null);
   };
   const isEntryModalOpen = Boolean(pendingPinkTarget || pendingMemorialTarget);
+
+  const handleSubmissionSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    if (value === "") {
+      submissionDetailLoadSeqRef.current += 1;
+      selectedSubmissionIdRef.current = null;
+      submissionNameInputRef.current = "";
+      setSelectedSubmissionId(null);
+      setSubmissionNameInput("");
+      setLoadingSubmissionDetail(false);
+      setPinkNodes([]);
+      setCentralSite(null);
+      setLocalSites([]);
+      closeAllForms();
+      return;
+    }
+
+    const revertId = selectedSubmissionIdRef.current;
+    const revertName = submissionNameInputRef.current;
+    const revertPinkNodes = pinkNodes;
+    const revertCentralSite = centralSite;
+    const revertLocalSites = localSites;
+    const seq = ++submissionDetailLoadSeqRef.current;
+
+    selectedSubmissionIdRef.current = value;
+    submissionNameInputRef.current = "";
+    setSelectedSubmissionId(value);
+    setSubmissionNameInput("");
+    setLoadingSubmissionDetail(true);
+    setPinkNodes([]);
+    setCentralSite(null);
+    setLocalSites([]);
+    closeAllForms();
+
+    try {
+      const detail = await loadSubmissionBatchMapDetail(value, {
+        pinkProjectId,
+        memorialProjectId,
+      });
+      if (seq !== submissionDetailLoadSeqRef.current) return;
+
+      setPinkNodes(
+        detail.pinkNodes.map((n) => ({
+          tempId: n.tempId,
+          name: n.name,
+          description: n.description,
+          lat: n.lat,
+          lng: n.lng,
+        }))
+      );
+      setCentralSite(detail.centralSite);
+      setLocalSites(detail.localSites);
+      selectedSubmissionIdRef.current = detail.submissionId;
+      submissionNameInputRef.current = detail.name;
+      setSelectedSubmissionId(detail.submissionId);
+      setSubmissionNameInput(detail.name);
+      closeAllForms();
+    } catch (err) {
+      if (seq !== submissionDetailLoadSeqRef.current) return;
+      console.error("Failed to load submission batch:", err);
+      alert("טעינת ההגשה נכשלה");
+      selectedSubmissionIdRef.current = revertId;
+      submissionNameInputRef.current = revertName;
+      setSelectedSubmissionId(revertId);
+      setSubmissionNameInput(revertName);
+      setPinkNodes(revertPinkNodes);
+      setCentralSite(revertCentralSite);
+      setLocalSites(revertLocalSites);
+    } finally {
+      if (seq === submissionDetailLoadSeqRef.current) {
+        setLoadingSubmissionDetail(false);
+      }
+    }
+  };
 
   const ghostRef = useRef<HTMLDivElement | null>(null);
 
@@ -405,39 +582,118 @@ const MapPage = () => {
   };
 
   const submitSelection = async () => {
-    const includePink = submitScope === "pink" || submitScope === "everything";
-    const includeMemorial = submitScope === "memorial" || submitScope === "everything";
+    let includePink = submitScope === "pink" || submitScope === "everything";
+    let includeMemorial = submitScope === "memorial" || submitScope === "everything";
+    if (lockFullWorkspaceOverwrite) {
+      includePink = true;
+      includeMemorial = true;
+    }
     if (!includePink && !includeMemorial) return;
+
+    const submissionDisplayName = submissionNameInput.trim();
+    if (!submissionDisplayName) return;
+
+    const memorialRows = [...(centralSite ? [centralSite] : []), ...localSites];
+    const mapWorkspaceProjects = { pinkProjectId, memorialProjectId };
 
     setSubmitting(true);
     try {
-      const submissionId = crypto.randomUUID();
-      const memorialRows = [...(centralSite ? [centralSite] : []), ...localSites];
+      const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
 
-      await submitUnifiedFeatures({
-        submissionId,
-        pinkProjectId,
-        memorialProjectId,
-        includePink,
-        includeMemorial,
-        pinkNodes,
-        memorialSites: memorialRows,
-      });
+      if (useOverwrite) {
+        await submitUnifiedFeatures({
+          mode: "overwrite",
+          targetSubmissionId: selectedSubmissionId!,
+          submissionName: submissionDisplayName,
+          mapWorkspaceProjects,
+          pinkProjectId,
+          memorialProjectId,
+          includePink,
+          includeMemorial,
+          pinkNodes,
+          memorialSites: memorialRows,
+        });
+      } else {
+        const submissionId = crypto.randomUUID();
+        await submitUnifiedFeatures({
+          submissionId,
+          submissionName: submissionDisplayName,
+          pinkProjectId,
+          memorialProjectId,
+          includePink,
+          includeMemorial,
+          pinkNodes,
+          memorialSites: memorialRows,
+        });
+        selectedSubmissionIdRef.current = submissionId;
+        setSelectedSubmissionId(submissionId);
+      }
 
-      if (includePink) setPinkNodes([]);
-      if (includeMemorial) {
-        setCentralSite(null);
-        setLocalSites([]);
+      await refreshSubmissionBatchesList();
+
+      const syncSubmissionId = selectedSubmissionIdRef.current;
+      const loadSeq = ++submissionDetailLoadSeqRef.current;
+      if (syncSubmissionId) {
+        try {
+          const detail = await loadSubmissionBatchMapDetail(syncSubmissionId, {
+            pinkProjectId,
+            memorialProjectId,
+          });
+          if (loadSeq !== submissionDetailLoadSeqRef.current) {
+            // User changed selection while loading; do not overwrite their map state.
+          } else if (selectedSubmissionIdRef.current !== syncSubmissionId) {
+            // Selection no longer matches the submission we synced.
+          } else {
+            setPinkNodes(
+              detail.pinkNodes.map((n) => ({
+                tempId: n.tempId,
+                name: n.name,
+                description: n.description,
+                lat: n.lat,
+                lng: n.lng,
+              }))
+            );
+            setCentralSite(detail.centralSite);
+            setLocalSites(detail.localSites);
+            submissionNameInputRef.current = detail.name;
+            setSubmissionNameInput(detail.name);
+            selectedSubmissionIdRef.current = detail.submissionId;
+            setSelectedSubmissionId(detail.submissionId);
+          }
+        } catch (reloadErr) {
+          if (
+            loadSeq === submissionDetailLoadSeqRef.current &&
+            selectedSubmissionIdRef.current === syncSubmissionId
+          ) {
+            console.error("Failed to reload submission after save:", reloadErr);
+            if (includePink) setPinkNodes([]);
+            if (includeMemorial) {
+              setCentralSite(null);
+              setLocalSites([]);
+            }
+          }
+        }
+      } else {
+        if (includePink) setPinkNodes([]);
+        if (includeMemorial) {
+          setCentralSite(null);
+          setLocalSites([]);
+        }
       }
 
       setShowSubmitModal(false);
+
       const submittedParts = [
-        includePink ? `${pinkNodes.length} pink points` : null,
-        includeMemorial ? `${memorialRows.length} memorial sites` : null,
+        includePink ? `${pinkNodes.length} נקודות שביל` : null,
+        includeMemorial ? `${memorialRows.length} אתרי הנצחה` : null,
       ]
         .filter(Boolean)
-        .join(" + ");
-      setSubmittedSummary(`Submitted ${submittedParts} (submission id: ${submissionId.slice(0, 8)}...)`);
+        .join(" · ");
+      setSubmittedSummary(
+        submittedParts
+          ? `נשמר בהצלחה: ${submissionDisplayName} (${submittedParts})`
+          : `נשמר בהצלחה: ${submissionDisplayName}`
+      );
       window.setTimeout(() => setSubmittedSummary(null), 3000);
     } catch (error) {
       console.error("Failed to submit unified features:", error);
@@ -615,6 +871,42 @@ const MapPage = () => {
       )}
 
       <div className="base-map-controls">
+        <div className="base-map-submissions-selector hook-base-map-submissions" dir="rtl">
+          <label className="base-map-submissions-label" htmlFor="map-submission-select">
+            הגשות
+          </label>
+          <select
+            id="map-submission-select"
+            className="base-map-submission-select base-map-control-btn project-switch-btn"
+            value={selectedSubmissionId ?? ""}
+            onChange={(e) => void handleSubmissionSelectChange(e)}
+            disabled={submissionBatchesLoading || loadingSubmissionDetail}
+            aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+          >
+            <option value="">הגשה חדשה</option>
+            {submissionSelectRows.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          {submissionBatchesLoading && (
+            <span className="base-map-submissions-status" aria-live="polite">
+              טוען רשימה…
+            </span>
+          )}
+          {loadingSubmissionDetail && (
+            <span className="base-map-submissions-status" aria-live="polite">
+              טוען הגשה…
+            </span>
+          )}
+          {submissionBatchesError && !submissionBatchesLoading && (
+            <span className="base-map-submissions-error" role="alert">
+              {submissionBatchesError}
+            </span>
+          )}
+        </div>
+        <div className="base-map-controls-divider" />
         <button
           className={`base-map-control-btn project-switch-btn ${activeProject === "pink" ? "project-switch-btn-active" : ""}`}
           onClick={() => {
@@ -653,40 +945,108 @@ const MapPage = () => {
       {showSubmitModal && (
         <div className="unified-submit-overlay" onClick={() => setShowSubmitModal(false)}>
           <div className="unified-submit-modal" onClick={(e) => e.stopPropagation()} dir="rtl">
-            <h3>מה לשלוח?</h3>
-            <label className="unified-submit-option">
+            <h3 className="unified-submit-modal-title">שליחת הגשה</h3>
+            <div className="unified-submit-name-field">
+              <label className="unified-submit-name-label" htmlFor="unified-submit-name">
+                שם ההגשה (חובה)
+              </label>
               <input
-                type="radio"
-                name="submit-scope"
-                value="pink"
-                checked={submitScope === "pink"}
-                disabled={!hasPink}
-                onChange={() => setSubmitScope("pink")}
+                id="unified-submit-name"
+                type="text"
+                className="unified-submit-name-input"
+                value={submissionNameInput}
+                onChange={(e) => setSubmissionNameInput(e.target.value)}
+                placeholder="לדוגמה: מסלול מעודכן"
+                autoComplete="off"
               />
-              <span>רק שביל תקומה ({pinkNodes.length})</span>
-            </label>
-            <label className="unified-submit-option">
-              <input
-                type="radio"
-                name="submit-scope"
-                value="memorial"
-                checked={submitScope === "memorial"}
-                disabled={!hasMemorial}
-                onChange={() => setSubmitScope("memorial")}
-              />
-              <span>רק אתרי הנצחה ({(centralSite ? 1 : 0) + localSites.length})</span>
-            </label>
-            <label className="unified-submit-option">
-              <input
-                type="radio"
-                name="submit-scope"
-                value="everything"
-                checked={submitScope === "everything"}
-                disabled={!hasPink || !hasMemorial}
-                onChange={() => setSubmitScope("everything")}
-              />
-              <span>הכל ביחד (אותו submission id)</span>
-            </label>
+              {!submissionNameInput.trim() && (
+                <p className="unified-submit-name-hint">יש להזין שם לפני השליחה</p>
+              )}
+            </div>
+
+            {isEditingExistingSubmission && (
+              <div className="unified-submit-panel-group" role="group" aria-labelledby="unified-submit-disposition-label">
+                <div className="unified-submit-panel-head">
+                  <span id="unified-submit-disposition-label" className="unified-submit-panel-label">
+                    איך לשמור
+                  </span>
+                  <span className="unified-submit-panel-caption">בחרו אם לעדכן את ההגשה הפתוחה או ליצור הגשה חדשה</span>
+                </div>
+                <div className="unified-submit-card-row">
+                  <button
+                    type="button"
+                    className={`unified-submit-choice-card ${submitEditDisposition === "overwrite" ? "unified-submit-choice-card--active" : ""}`}
+                    onClick={() => setSubmitEditDisposition("overwrite")}
+                    aria-pressed={submitEditDisposition === "overwrite"}
+                  >
+                    <span className="unified-submit-choice-card-title">עדכון ההגשה</span>
+                    <span className="unified-submit-choice-card-desc">דורס את ההגשה הקיימת</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`unified-submit-choice-card ${submitEditDisposition === "saveAsNew" ? "unified-submit-choice-card--active" : ""}`}
+                    onClick={() => setSubmitEditDisposition("saveAsNew")}
+                    aria-pressed={submitEditDisposition === "saveAsNew"}
+                  >
+                    <span className="unified-submit-choice-card-title">הגשה חדשה</span>
+                    <span className="unified-submit-choice-card-desc">יוצר הגשה חדשה; ההגשה הקיימת נשארת</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div
+              className={`unified-submit-scope-reveal${overwriteScopeRadiosLocked ? " unified-submit-scope-reveal--hidden" : ""}`}
+              aria-hidden={overwriteScopeRadiosLocked}
+            >
+              <div className="unified-submit-scope-reveal__inner">
+                <div className="unified-submit-panel-group" role="group" aria-labelledby="unified-submit-scope-label">
+                  <div className="unified-submit-panel-head">
+                    <span id="unified-submit-scope-label" className="unified-submit-panel-label">
+                      מה לכלול בשליחה
+                    </span>
+                  </div>
+                  <div
+                    className="unified-submit-segment-group"
+                    role="toolbar"
+                    aria-label="בחירת טווח שליחה"
+                  >
+                    <button
+                      type="button"
+                      className={`unified-submit-segment-btn ${submitScope === "pink" ? "unified-submit-segment-btn--active" : ""}`}
+                      disabled={!hasPink}
+                      onClick={() => setSubmitScope("pink")}
+                      aria-pressed={submitScope === "pink"}
+                    >
+                      <span className="unified-submit-segment-title">שביל תקומה</span>
+                      <span className="unified-submit-segment-meta">{pinkNodes.length} נקודות</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`unified-submit-segment-btn ${submitScope === "memorial" ? "unified-submit-segment-btn--active" : ""}`}
+                      disabled={!hasMemorial}
+                      onClick={() => setSubmitScope("memorial")}
+                      aria-pressed={submitScope === "memorial"}
+                    >
+                      <span className="unified-submit-segment-title">אתרי הנצחה</span>
+                      <span className="unified-submit-segment-meta">
+                        {(centralSite ? 1 : 0) + localSites.length} אתרים
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`unified-submit-segment-btn ${submitScope === "everything" ? "unified-submit-segment-btn--active" : ""}`}
+                      disabled={!hasPink || !hasMemorial}
+                      onClick={() => setSubmitScope("everything")}
+                      aria-pressed={submitScope === "everything"}
+                    >
+                      <span className="unified-submit-segment-title">שביל + אתרים</span>
+                      <span className="unified-submit-segment-meta">אותה הגשה</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div className="unified-submit-actions">
               <button
@@ -699,7 +1059,7 @@ const MapPage = () => {
               <button
                 type="button"
                 className="unified-submit-action unified-submit-action-primary"
-                disabled={submitting}
+                disabled={submitting || !submissionNameInput.trim()}
                 onClick={submitSelection}
               >
                 {submitting ? "שולח..." : "שליחה"}

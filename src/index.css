@@ -89,7 +89,7 @@ button:not(.base-map-control-btn):not(.shape-name-input-btn):not(
     .memorial-info-close
   ):not(.unified-map-chip):not(.unified-map-submit-btn):not(
     .unified-submit-action
-  ) {
+  ):not(.unified-submit-choice-card):not(.unified-submit-segment-btn) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -1156,25 +1156,220 @@ a:hover {
   gap: 12px;
 }
 
-.unified-submit-modal h3 {
+.unified-submit-modal-title {
   margin: 0;
   font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.96);
+  line-height: 1.25;
 }
 
-.unified-submit-option {
+/* Submit modal: smooth show/hide for "what to include" when overwrite locks full scope */
+.unified-submit-scope-reveal {
+  display: grid;
+  grid-template-rows: 1fr;
+  opacity: 1;
+  transition:
+    grid-template-rows 0.42s cubic-bezier(0.32, 0.72, 0, 1),
+    opacity 0.32s ease;
+}
+
+.unified-submit-scope-reveal--hidden {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.unified-submit-scope-reveal__inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unified-submit-scope-reveal {
+    transition-duration: 0.01ms;
+  }
+}
+
+.unified-submit-panel-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 10px;
-  font-size: 14px;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-.unified-submit-option input {
-  width: auto;
-  margin-top: 0;
-  padding: 0;
+.unified-submit-panel-head {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: right;
+}
+
+.unified-submit-panel-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.94);
+  line-height: 1.3;
+}
+
+.unified-submit-panel-caption {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.unified-submit-card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+@media (max-width: 420px) {
+  .unified-submit-card-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.unified-submit-choice-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  text-align: right;
+  padding: 12px 12px;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 0 !important;
+  height: auto !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.16) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease !important;
+  font-family: inherit !important;
+  box-shadow: none !important;
+}
+
+.unified-submit-choice-card:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+}
+
+.unified-submit-choice-card:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45) !important;
+  outline-offset: 2px !important;
+}
+
+.unified-submit-choice-card--active {
+  border-color: rgba(100, 200, 255, 0.55) !important;
+  background: rgba(80, 160, 255, 0.12) !important;
+  box-shadow:
+    0 0 0 1px rgba(100, 200, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.unified-submit-choice-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.96);
+}
+
+.unified-submit-choice-card-desc {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.52);
+}
+
+.unified-submit-segment-group {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.unified-submit-segment-btn {
+  flex: 1 1 0;
+  min-width: min(100%, 108px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  text-align: right;
+  padding: 10px 10px !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-width: none !important;
+  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  cursor: pointer !important;
+  font-family: inherit !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease !important;
+  box-shadow: none !important;
+}
+
+.unified-submit-segment-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+.unified-submit-segment-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4) !important;
+  outline-offset: 2px !important;
+}
+
+.unified-submit-segment-btn:disabled {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+}
+
+.unified-submit-segment-btn--active {
+  border-color: rgba(255, 90, 168, 0.65) !important;
+  background: rgba(255, 90, 168, 0.14) !important;
+  color: rgba(255, 255, 255, 1) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.unified-submit-segment-title {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.unified-submit-segment-meta {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.unified-submit-segment-btn--active .unified-submit-segment-meta {
+  color: rgba(255, 220, 235, 0.85);
 }
 
 .unified-submit-actions {
@@ -1198,6 +1393,222 @@ a:hover {
   border: none !important;
   background: linear-gradient(135deg, #4fc177, #2ca95f) !important;
   color: #fff !important;
+}
+
+.unified-submit-action:disabled,
+.unified-submit-action-primary:disabled {
+  opacity: 0.48;
+  cursor: not-allowed !important;
+}
+
+.unified-submit-action-primary:disabled {
+  background: linear-gradient(135deg, rgba(79, 193, 119, 0.55), rgba(44, 169, 95, 0.55)) !important;
+}
+
+/* MapPage: submission batch selector + unified submit name (glass / RTL / form-safe) */
+.base-map-submissions-group,
+.base-map-submissions-selector {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  text-align: start;
+}
+
+.base-map-submissions-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  direction: rtl;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.base-map-submission-select {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  min-height: 38px !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding-block: 8px !important;
+  padding-inline: 12px 30px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  line-height: 1.2 !important;
+  font-family: inherit !important;
+  text-align: right !important;
+  direction: rtl !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  box-sizing: border-box !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='none' stroke='%23ffffff' stroke-opacity='0.72' stroke-width='1.4' stroke-linecap='round' d='M2.5 4.25L6 7.75l3.5-3.5'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: left 10px center !important;
+  background-size: 12px !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.base-map-submission-select:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+}
+
+.base-map-submission-select:focus {
+  outline: none !important;
+  border-color: rgba(255, 255, 255, 0.48) !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.base-map-submission-select:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.45) !important;
+  outline-offset: 2px !important;
+}
+
+.base-map-submission-select:disabled {
+  opacity: 0.48 !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.52) !important;
+}
+
+.base-map-submission-select option {
+  color: #1a1a1c;
+  background: #f4f4f5;
+}
+
+.base-map-submissions-status {
+  font-size: 11px;
+  line-height: 1.35;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.55);
+  direction: rtl;
+}
+
+.base-map-submissions-status--error,
+.base-map-submissions-error {
+  font-size: 11px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: rgba(255, 170, 170, 0.98);
+  direction: rtl;
+}
+
+.unified-submit-name-group,
+.unified-submit-name-field {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+  text-align: start;
+}
+
+.unified-submit-name-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  direction: rtl;
+  line-height: 1.3;
+  margin: 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+input.unified-submit-name-input,
+.unified-submit-name-input {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin-top: 0 !important;
+  margin-inline: 0 !important;
+  padding: 10px 14px !important;
+  height: auto !important;
+  min-height: 44px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  line-height: 1.35 !important;
+  font-family: inherit !important;
+  text-align: right !important;
+  direction: rtl !important;
+  color: rgba(255, 255, 255, 0.96) !important;
+  background-color: rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.24) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  outline: none !important;
+  caret-color: rgba(255, 255, 255, 0.98) !important;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+.unified-submit-name-input::placeholder {
+  color: rgba(255, 255, 255, 0.42) !important;
+  font-weight: 400 !important;
+}
+
+.unified-submit-name-input:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.unified-submit-name-input:focus {
+  background-color: rgba(255, 255, 255, 0.09) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.unified-submit-name-input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.4) !important;
+  outline-offset: 2px !important;
+}
+
+.unified-submit-name-input:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  color: rgba(255, 255, 255, 0.48) !important;
+}
+
+.unified-submit-name-input:user-invalid,
+.unified-submit-name-input[aria-invalid="true"] {
+  border-color: rgba(255, 130, 130, 0.65) !important;
+  background-color: rgba(220, 50, 50, 0.12) !important;
+}
+
+.unified-submit-name-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: rgba(255, 200, 120, 0.9);
+  direction: rtl;
 }
 
 .unified-map-toast {
@@ -1390,6 +1801,16 @@ a:hover {
     min-width: 0;
     width: 100%;
   }
+
+  .base-map-submissions-group,
+  .base-map-submissions-selector {
+    min-width: 0;
+    gap: 5px;
+  }
+
+  .base-map-submission-select {
+    font-size: 11px !important;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1535,9 +1956,43 @@ a:hover {
     padding: 14px;
   }
 
-  .unified-submit-option {
-    font-size: 13px;
-    padding: 6px;
+  .unified-submit-name-label {
+    font-size: 12px;
+  }
+
+  input.unified-submit-name-input,
+  .unified-submit-name-input {
+    min-height: 42px !important;
+    padding: 10px 12px !important;
+    font-size: 14px !important;
+  }
+
+  .unified-submit-name-hint {
+    font-size: 11px;
+  }
+
+  .base-map-submissions-group,
+  .base-map-submissions-selector {
+    gap: 4px;
+  }
+
+  .base-map-submissions-label {
+    font-size: 10px;
+  }
+
+  .base-map-submission-select {
+    min-height: 36px !important;
+    padding-block: 6px !important;
+    padding-inline: 10px 26px !important;
+    font-size: 10px !important;
+    background-position: left 8px center !important;
+    background-size: 11px !important;
+  }
+
+  .base-map-submissions-status,
+  .base-map-submissions-status--error,
+  .base-map-submissions-error {
+    font-size: 10px;
   }
 
   .unified-map-toast {
