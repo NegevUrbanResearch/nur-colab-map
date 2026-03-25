@@ -173,6 +173,86 @@ export async function listSubmissionBatchSummariesForMapContext(
   });
 }
 
+/**
+ * Lists submission batches that have at least one feature in either workspace project
+ * (pink line and/or memorial), ordered by batch `updated_at` descending.
+ * Stable when switching MapPage active project tab; does not depend on `activeProject`.
+ */
+export async function listSubmissionBatchSummariesForWorkspace(
+  ctx: MapWorkspaceProjectIds
+): Promise<SubmissionBatchSummary[]> {
+  const { pinkProjectId, memorialProjectId } = ctx;
+  const projectIds = [pinkProjectId, memorialProjectId].filter((id): id is string => Boolean(id));
+  if (projectIds.length === 0) return [];
+
+  const idRows = await fetchAllGeoFeaturePages<{ submission_id: string | null }>((from, to) =>
+    supabase
+      .from("geo_features")
+      .select("submission_id")
+      .in("project_id", projectIds)
+      .not("submission_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+
+  const submissionIds = [
+    ...new Set(idRows.map((r) => r.submission_id).filter((id): id is string => Boolean(id))),
+  ];
+
+  if (submissionIds.length === 0) return [];
+
+  const { data: batchRows, error: batchErr } = await supabase
+    .from("submission_batches")
+    .select("submission_id, submission_name, created_at, updated_at")
+    .in("submission_id", submissionIds)
+    .order("updated_at", { ascending: false });
+
+  if (batchErr) throw batchErr;
+
+  const orderedIds = (batchRows ?? []).map((r: SubmissionBatchListRow) => r.submission_id);
+
+  if (orderedIds.length === 0) return [];
+
+  const countRows = await fetchAllGeoFeaturePages<GeoFeatureCountRow>((from, to) =>
+    supabase
+      .from("geo_features")
+      .select("submission_id, project_id, feature_type")
+      .in("submission_id", orderedIds)
+      .not("submission_id", "is", null)
+      .order("id", { ascending: true })
+      .range(from, to)
+  );
+
+  const countMap = new Map<string, ReturnType<typeof emptySummaryCounts>>();
+  for (const sid of orderedIds) countMap.set(sid, emptySummaryCounts());
+
+  for (const row of countRows) {
+    const r = row;
+    const bucket = countMap.get(r.submission_id);
+    if (!bucket) continue;
+
+    if (pinkProjectId && r.project_id === pinkProjectId) {
+      bucket.pinkNodeCount += 1;
+    } else if (memorialProjectId && r.project_id === memorialProjectId) {
+      if (r.feature_type === "central") bucket.memorialCentralCount += 1;
+      else if (r.feature_type === "local") bucket.memorialLocalCount += 1;
+    }
+  }
+
+  return (batchRows ?? []).map((raw: SubmissionBatchListRow) => {
+    const counts = countMap.get(raw.submission_id) ?? emptySummaryCounts();
+    return {
+      submissionId: raw.submission_id,
+      name: raw.submission_name,
+      createdAt: raw.created_at,
+      updatedAt: raw.updated_at,
+      pinkNodeCount: counts.pinkNodeCount,
+      memorialCentralCount: counts.memorialCentralCount,
+      memorialLocalCount: counts.memorialLocalCount,
+    };
+  });
+}
+
 function pointLatLng(geom: unknown): { lat: number; lng: number } | null {
   const g = geom as GeoJSON | undefined;
   if (!g || g.type !== "Point") return null;

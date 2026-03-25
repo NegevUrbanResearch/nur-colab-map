@@ -11,7 +11,7 @@ import { buildIntegratedRoute, parseDefaultLinePaths } from "../../utils/pinkLin
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
-  listSubmissionBatchSummariesForMapContext,
+  listSubmissionBatchSummariesForWorkspace,
   loadSubmissionBatchMapDetail,
   type SubmissionBatchSummary,
 } from "../../supabase/submissionBatches";
@@ -82,6 +82,15 @@ const MapPage = () => {
   const selectedSubmissionIdRef = useRef<string | null>(null);
   const submissionNameInputRef = useRef("");
 
+  const [memorialDragPlacementEnabled, setMemorialDragPlacementEnabled] = useState(true);
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const sync = () => setMemorialDragPlacementEnabled(!mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
@@ -145,8 +154,7 @@ const MapPage = () => {
 
   const refreshSubmissionBatchesList = useCallback(async () => {
     try {
-      const list = await listSubmissionBatchSummariesForMapContext({
-        activeProject,
+      const list = await listSubmissionBatchSummariesForWorkspace({
         pinkProjectId,
         memorialProjectId,
       });
@@ -156,7 +164,7 @@ const MapPage = () => {
       console.error("Failed to refresh submission batches:", err);
       setSubmissionBatchesError("טעינת הגשות נכשלה");
     }
-  }, [activeProject, pinkProjectId, memorialProjectId]);
+  }, [pinkProjectId, memorialProjectId]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -165,8 +173,7 @@ const MapPage = () => {
       setSubmissionBatchesLoading(true);
       setSubmissionBatchesError(null);
       try {
-        const list = await listSubmissionBatchSummariesForMapContext({
-          activeProject,
+        const list = await listSubmissionBatchSummariesForWorkspace({
           pinkProjectId,
           memorialProjectId,
         });
@@ -184,7 +191,7 @@ const MapPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [isBootstrapping, bootError, activeProject, pinkProjectId, memorialProjectId]);
+  }, [isBootstrapping, bootError, pinkProjectId, memorialProjectId]);
 
   useEffect(() => {
     if (!showSubmitModal) return;
@@ -411,11 +418,18 @@ const MapPage = () => {
     hasPink &&
     hasMemorial;
 
-  const overwriteScopeRadiosLocked = showSubmitModal && lockFullWorkspaceOverwrite;
+  const hideSubmitScopePanel =
+    showSubmitModal && isEditingExistingSubmission && submitEditDisposition === "overwrite";
 
   useEffect(() => {
-    if (lockFullWorkspaceOverwrite) {
-      setSubmitScope("everything");
+    if (isEditingExistingSubmission && submitEditDisposition === "overwrite") {
+      if (hasPink && hasMemorial) {
+        setSubmitScope("everything");
+      } else if (hasPink) {
+        setSubmitScope("pink");
+      } else if (hasMemorial) {
+        setSubmitScope("memorial");
+      }
       return;
     }
     if (!showSubmitModal) return;
@@ -426,7 +440,14 @@ const MapPage = () => {
     } else if (hasMemorial) {
       setSubmitScope("memorial");
     }
-  }, [showSubmitModal, hasPink, hasMemorial, lockFullWorkspaceOverwrite]);
+  }, [
+    showSubmitModal,
+    hasPink,
+    hasMemorial,
+    isEditingExistingSubmission,
+    submitEditDisposition,
+    lockFullWorkspaceOverwrite,
+  ]);
 
   const closeAllForms = () => {
     setPendingPinkTarget(null);
@@ -511,6 +532,7 @@ const MapPage = () => {
   const ghostRef = useRef<HTMLDivElement | null>(null);
 
   const handleToolbarDragStart = (e: React.PointerEvent, type: "central" | "local") => {
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const startX = e.clientX;
     const startY = e.clientY;
     let dragging = false;
@@ -549,9 +571,16 @@ const MapPage = () => {
       const mapEl = document.getElementById("map");
       if (!mapEl) return;
       const rect = mapEl.getBoundingClientRect();
-      const x = ev.clientX - rect.left;
-      const y = ev.clientY - rect.top;
-      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return;
+      const styles = window.getComputedStyle(mapEl);
+      const paddingLeft = parseFloat(styles.paddingLeft) || 0;
+      const paddingRight = parseFloat(styles.paddingRight) || 0;
+      const paddingTop = parseFloat(styles.paddingTop) || 0;
+      const paddingBottom = parseFloat(styles.paddingBottom) || 0;
+      const contentWidth = rect.width - paddingLeft - paddingRight;
+      const contentHeight = rect.height - paddingTop - paddingBottom;
+      const x = ev.clientX - rect.left - paddingLeft;
+      const y = ev.clientY - rect.top - paddingTop;
+      if (x < 0 || y < 0 || x > contentWidth || y > contentHeight) return;
 
       const latlng = mapRef.current.containerPointToLatLng([x, y]);
 
@@ -791,6 +820,7 @@ const MapPage = () => {
           <div className="pink-toolbar-actions">
             <button
               type="button"
+              dir="rtl"
               onClick={() => {
                 if (!hasPink && !hasMemorial) return;
                 setShowSubmitModal(true);
@@ -801,6 +831,7 @@ const MapPage = () => {
             </button>
             <button
               type="button"
+              dir="rtl"
               onClick={handleClearPink}
               className={`pink-toolbar-action pink-toolbar-action-secondary ${pinkNodes.length === 0 ? "toolbar-action-blocked" : ""}`}
             >
@@ -811,12 +842,17 @@ const MapPage = () => {
       )}
 
       {activeProject === "memorial" && !isEntryModalOpen && (
-        <div className="memorial-toolbar" dir="rtl">
+        <div
+          className={`memorial-toolbar${memorialDragPlacementEnabled ? "" : " memorial-toolbar--tap-only"}`}
+          dir="rtl"
+        >
           <button
             type="button"
             className={`memorial-toolbar-section ${activeMemorialType === "central" ? "memorial-toolbar-active" : ""}`}
             onClick={() => setActiveMemorialType("central")}
-            onPointerDown={(e) => handleToolbarDragStart(e, "central")}
+            onPointerDown={
+              memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "central") : undefined
+            }
           >
             <div className="memorial-toolbar-drag-item">
               <img src={regionalMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
@@ -824,7 +860,11 @@ const MapPage = () => {
             <div className="memorial-toolbar-item-text">
               <span className="memorial-toolbar-item-label">אנדרטה מרכזית אזורית</span>
               <span className="memorial-toolbar-item-value">
-                {centralSite ? centralSite.name || "—" : "גררו למפה או לחצו"}
+                {centralSite
+                  ? centralSite.name || "—"
+                  : memorialDragPlacementEnabled
+                    ? "גררו למפה או לחצו"
+                    : "לחצו על המפה"}
               </span>
             </div>
           </button>
@@ -835,14 +875,16 @@ const MapPage = () => {
             type="button"
             className={`memorial-toolbar-section ${activeMemorialType === "local" ? "memorial-toolbar-active" : ""}`}
             onClick={() => setActiveMemorialType("local")}
-            onPointerDown={(e) => handleToolbarDragStart(e, "local")}
+            onPointerDown={memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "local") : undefined}
           >
             <div className="memorial-toolbar-drag-item">
               <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
             </div>
             <div className="memorial-toolbar-item-text">
               <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({localSites.length})</span>
-              <span className="memorial-toolbar-item-value">גררו למפה או לחצו</span>
+              <span className="memorial-toolbar-item-value">
+                {memorialDragPlacementEnabled ? "גררו למפה או לחצו" : "לחצו על המפה"}
+              </span>
             </div>
           </button>
 
@@ -851,14 +893,8 @@ const MapPage = () => {
           <div className="memorial-toolbar-actions">
             <button
               type="button"
-              className={`memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
-              onClick={handleClearMemorial}
-            >
-              נקה הכל
-            </button>
-            <button
-              type="button"
-              className={`memorial-toolbar-text-btn memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+              dir="rtl"
+              className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
               onClick={() => {
                 if (!hasPink && !hasMemorial) return;
                 setShowSubmitModal(true);
@@ -866,69 +902,82 @@ const MapPage = () => {
             >
               הגשה
             </button>
+            <button
+              type="button"
+              dir="rtl"
+              className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
+              onClick={handleClearMemorial}
+            >
+              נקה הכל
+            </button>
           </div>
         </div>
       )}
 
       <div className="base-map-controls">
-        <div className="base-map-submissions-selector hook-base-map-submissions" dir="rtl">
-          <label className="base-map-submissions-label" htmlFor="map-submission-select">
-            הגשות
-          </label>
-          <select
-            id="map-submission-select"
-            className="base-map-submission-select base-map-control-btn project-switch-btn"
-            value={selectedSubmissionId ?? ""}
-            onChange={(e) => void handleSubmissionSelectChange(e)}
-            disabled={submissionBatchesLoading || loadingSubmissionDetail}
-            aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
-          >
-            <option value="">הגשה חדשה</option>
-            {submissionSelectRows.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-          {submissionBatchesLoading && (
-            <span className="base-map-submissions-status" aria-live="polite">
-              טוען רשימה…
-            </span>
-          )}
-          {loadingSubmissionDetail && (
-            <span className="base-map-submissions-status" aria-live="polite">
-              טוען הגשה…
-            </span>
-          )}
-          {submissionBatchesError && !submissionBatchesLoading && (
-            <span className="base-map-submissions-error" role="alert">
-              {submissionBatchesError}
-            </span>
-          )}
+        <div className="base-map-controls-mobile-stack" dir="rtl">
+          <div className="base-map-submissions-selector hook-base-map-submissions" dir="rtl">
+            <label className="base-map-submissions-label" htmlFor="map-submission-select">
+              הגשות
+            </label>
+            <select
+              id="map-submission-select"
+              className="base-map-submission-select base-map-control-btn project-switch-btn"
+              value={selectedSubmissionId ?? ""}
+              onChange={(e) => void handleSubmissionSelectChange(e)}
+              disabled={submissionBatchesLoading || loadingSubmissionDetail}
+              aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+            >
+              <option value="">הגשה חדשה</option>
+              {submissionSelectRows.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+            {submissionBatchesLoading && (
+              <span className="base-map-submissions-status" aria-live="polite">
+                טוען רשימה…
+              </span>
+            )}
+            {loadingSubmissionDetail && (
+              <span className="base-map-submissions-status" aria-live="polite">
+                טוען הגשה…
+              </span>
+            )}
+            {submissionBatchesError && !submissionBatchesLoading && (
+              <span className="base-map-submissions-error" role="alert">
+                {submissionBatchesError}
+              </span>
+            )}
+          </div>
+          <div className="base-map-controls-divider base-map-controls-divider--after-submissions" />
+          <div className="base-map-controls-mobile-project-row" dir="rtl">
+            <button
+              className={`base-map-control-btn project-switch-btn ${activeProject === "pink" ? "project-switch-btn-active" : ""}`}
+              onClick={() => {
+                closeAllForms();
+                setActiveProject("pink");
+              }}
+              title="שביל תקומה"
+            >
+              שביל תקומה
+            </button>
+            <button
+              className={`base-map-control-btn project-switch-btn ${activeProject === "memorial" ? "project-switch-btn-active" : ""}`}
+              onClick={() => {
+                closeAllForms();
+                setActiveProject("memorial");
+              }}
+              title="אתרי הנצחה"
+            >
+              אתרי הנצחה
+            </button>
+          </div>
         </div>
-        <div className="base-map-controls-divider" />
+        <div className="base-map-controls-divider base-map-controls-divider--before-signout" />
         <button
-          className={`base-map-control-btn project-switch-btn ${activeProject === "pink" ? "project-switch-btn-active" : ""}`}
-          onClick={() => {
-            closeAllForms();
-            setActiveProject("pink");
-          }}
-          title="שביל תקומה"
-        >
-          שביל תקומה
-        </button>
-        <button
-          className={`base-map-control-btn project-switch-btn ${activeProject === "memorial" ? "project-switch-btn-active" : ""}`}
-          onClick={() => {
-            closeAllForms();
-            setActiveProject("memorial");
-          }}
-          title="אתרי הנצחה"
-        >
-          אתרי הנצחה
-        </button>
-        <div className="base-map-controls-divider"></div>
-        <button
+          dir="rtl"
           className="base-map-control-btn project-switch-btn project-signout-btn"
           onClick={async () => {
             await supabase.auth.signOut();
@@ -996,8 +1045,8 @@ const MapPage = () => {
             )}
 
             <div
-              className={`unified-submit-scope-reveal${overwriteScopeRadiosLocked ? " unified-submit-scope-reveal--hidden" : ""}`}
-              aria-hidden={overwriteScopeRadiosLocked}
+              className={`unified-submit-scope-reveal${hideSubmitScopePanel ? " unified-submit-scope-reveal--hidden" : ""}`}
+              aria-hidden={hideSubmitScopePanel}
             >
               <div className="unified-submit-scope-reveal__inner">
                 <div className="unified-submit-panel-group" role="group" aria-labelledby="unified-submit-scope-label">

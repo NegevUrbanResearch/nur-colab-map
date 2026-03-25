@@ -195,6 +195,16 @@ a:hover {
   border: none;
 }
 
+@media (min-width: 901px) {
+  .base-map-controls-mobile-stack {
+    display: contents;
+  }
+
+  .base-map-controls-mobile-project-row {
+    display: contents;
+  }
+}
+
 .base-map-control-btn {
   width: 48px !important;
   height: 48px !important;
@@ -344,6 +354,7 @@ a:hover {
 }
 
 .pink-toolbar-actions {
+  direction: ltr;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -571,6 +582,14 @@ a:hover {
   cursor: grabbing;
 }
 
+.memorial-toolbar--tap-only .memorial-toolbar-drag-item {
+  cursor: default;
+}
+
+.memorial-toolbar--tap-only .memorial-toolbar-drag-item:active {
+  cursor: default;
+}
+
 .memorial-toolbar-icon {
   width: 36px;
   height: 36px;
@@ -605,6 +624,7 @@ a:hover {
 }
 
 .memorial-toolbar-actions {
+  direction: ltr;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1744,13 +1764,145 @@ input.unified-submit-name-input,
 }
 
 @media (max-width: 900px) {
+  :root,
+  body {
+    --map-safe-left: max(10px, env(safe-area-inset-left, 0px));
+    --map-safe-right: max(10px, env(safe-area-inset-right, 0px));
+    --map-safe-top: max(10px, env(safe-area-inset-top, 0px));
+    --map-safe-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+    --map-top-chrome: 102px;
+    --map-bottom-chrome: 148px;
+  }
+
+  /* Inset map so fixed UI does not cover tiles / zoom control. */
+  #map {
+    box-sizing: border-box;
+    padding-top: calc(var(--map-safe-top) + var(--map-top-chrome));
+    padding-bottom: calc(var(--map-safe-bottom) + var(--map-bottom-chrome));
+  }
+
+  /* Top bar: RTL stack (submissions → project row) + sign-out on physical right */
+  .base-map-controls {
+    top: var(--map-safe-top);
+    bottom: auto;
+    left: var(--map-safe-left);
+    right: var(--map-safe-right);
+    max-width: none;
+    width: auto;
+    min-width: 0;
+    box-sizing: border-box;
+    flex-direction: row;
+    direction: ltr;
+    flex-wrap: nowrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: visible;
+  }
+
+  .base-map-controls-divider {
+    width: 1px;
+    height: 28px;
+    align-self: center;
+    flex-shrink: 0;
+    margin: 0 2px;
+  }
+
+  .base-map-controls-divider--after-submissions,
+  .base-map-controls-divider--before-signout {
+    display: none;
+  }
+
+  .base-map-controls-mobile-stack {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 4px;
+    direction: rtl;
+  }
+
+  .base-map-controls-mobile-stack .hook-base-map-submissions {
+    flex: 0 0 auto;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .base-map-controls-mobile-project-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .base-map-controls-mobile-project-row .project-switch-btn {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .project-signout-btn {
+    flex: 0 0 auto;
+    align-self: center;
+  }
+
+  /* Contextual toolbars anchored to bottom; RTL text stays correct via dir="rtl" on bars. */
+  .pink-toolbar,
   .memorial-toolbar {
-    width: min(84vw, 560px);
-    max-width: calc(100vw - 20px);
-    overflow: visible;
+    top: auto;
+    bottom: var(--map-safe-bottom);
+    left: var(--map-safe-left);
+    right: var(--map-safe-right);
+    transform: none;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  .pink-toolbar {
     flex-wrap: wrap;
     gap: 6px;
+    align-items: stretch;
+  }
+
+  .pink-toolbar-section {
     justify-content: center;
+  }
+
+  .pink-toolbar-item-text {
+    width: 100%;
+    align-items: center;
+    text-align: center;
+  }
+
+  .pink-toolbar-title {
+    font-size: 14px;
+  }
+
+  .pink-toolbar-count {
+    font-size: 13px;
+  }
+
+  .leaflet-draw-actions,
+  .leaflet-draw-edit-remove {
+    top: calc(var(--map-safe-top) + var(--map-top-chrome) + 8px) !important;
+    bottom: auto !important;
+    left: var(--map-safe-left) !important;
+    right: var(--map-safe-right) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    flex-wrap: wrap;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+
+  .memorial-toolbar {
+    overflow: visible;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: stretch;
     padding: 6px;
   }
 
@@ -1759,12 +1911,21 @@ input.unified-submit-name-input,
   }
 
   .memorial-toolbar-section {
-    flex: 1 1 220px;
+    flex: 1 1 calc(50% - 2px);
     min-width: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    gap: 6px;
+    padding: 8px 6px;
   }
 
   .memorial-toolbar-item-text {
     min-width: 0;
+    width: 100%;
+    align-items: center;
+    text-align: center;
   }
 
   .memorial-toolbar-item-label,
@@ -1773,12 +1934,13 @@ input.unified-submit-name-input,
     overflow-wrap: anywhere;
   }
 
-  .memorial-toolbar-actions {
-    flex: 1 1 100%;
-    flex-direction: row;
-    justify-content: flex-end;
-    gap: 6px;
-    padding: 2px 0 0;
+  .memorial-toolbar-item-label {
+    font-size: 13px;
+  }
+
+  .memorial-toolbar-item-value {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
   }
 
   .memorial-toolbar-text-btn {
@@ -1787,9 +1949,13 @@ input.unified-submit-name-input,
   }
 
   .shape-name-input-container {
-    width: calc(100vw - 20px);
-    left: 10px;
+    top: calc(var(--map-safe-top) + var(--map-top-chrome) + 8px);
+    bottom: auto;
+    left: var(--map-safe-left);
+    right: var(--map-safe-right);
+    width: auto;
     transform: none;
+    box-sizing: border-box;
   }
 
   .shape-name-input-form {
@@ -1808,17 +1974,51 @@ input.unified-submit-name-input,
     gap: 5px;
   }
 
+  .base-map-submissions-label {
+    font-size: 12px;
+  }
+
   .base-map-submission-select {
-    font-size: 11px !important;
+    font-size: 13px !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .base-map-submissions-status,
+  .base-map-submissions-status--error,
+  .base-map-submissions-error {
+    font-size: 12px;
+  }
+
+  .base-map-controls .project-switch-btn {
+    font-size: 13px !important;
+  }
+
+  .unified-map-toast {
+    bottom: calc(var(--map-safe-bottom) + var(--map-bottom-chrome) + 10px);
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    max-width: calc(100vw - var(--map-safe-left) - var(--map-safe-right) - 16px);
+    box-sizing: border-box;
   }
 }
 
 @media (max-width: 640px) {
+  :root,
+  body {
+    --map-safe-left: max(8px, env(safe-area-inset-left, 0px));
+    --map-safe-right: max(8px, env(safe-area-inset-right, 0px));
+    --map-safe-top: max(8px, env(safe-area-inset-top, 0px));
+    --map-safe-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+    --map-top-chrome: 118px;
+    --map-bottom-chrome: 168px;
+  }
+
   .base-map-controls {
-    top: 8px;
-    bottom: auto;
-    left: 8px;
-    padding: 4px;
+    top: var(--map-safe-top);
+    padding: 5px 6px;
+    gap: 5px;
   }
 
   .project-switch-btn {
@@ -1827,15 +2027,17 @@ input.unified-submit-name-input,
     font-size: 10px !important;
   }
 
+  .base-map-controls .project-switch-btn {
+    font-size: 12px !important;
+  }
+
   .pink-toolbar,
-  .memorial-toolbar,
+  .memorial-toolbar {
+    bottom: var(--map-safe-bottom);
+  }
+
   .shape-name-input-container {
-    top: 8px;
-    left: 104px;
-    right: 8px;
-    width: auto;
-    max-width: none;
-    transform: none;
+    top: calc(var(--map-safe-top) + var(--map-top-chrome) + 6px);
   }
 
   .pink-toolbar {
@@ -1846,6 +2048,7 @@ input.unified-submit-name-input,
   .pink-toolbar-section {
     flex: 1 1 100%;
     padding: 6px 8px;
+    justify-content: center;
   }
 
   .pink-toolbar-divider {
@@ -1854,23 +2057,26 @@ input.unified-submit-name-input,
 
   .pink-toolbar-item-text {
     min-width: 0;
+    width: 100%;
+    align-items: center;
+    text-align: center;
   }
 
   .pink-toolbar-title {
-    font-size: 12px;
+    font-size: 13px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
 
   .pink-toolbar-count {
-    font-size: 11px;
+    font-size: 12px;
     padding: 4px 8px;
   }
 
   .pink-toolbar-actions {
     flex: 1 1 100%;
     flex-direction: row;
-    justify-content: flex-end;
+    justify-content: flex-start;
     gap: 6px;
     padding: 2px 0 0;
   }
@@ -1879,7 +2085,7 @@ input.unified-submit-name-input,
     flex: 1 1 auto;
     min-width: 110px !important;
     padding: 8px 10px !important;
-    font-size: 12px !important;
+    font-size: 13px !important;
   }
 
   .memorial-toolbar {
@@ -1888,9 +2094,14 @@ input.unified-submit-name-input,
   }
 
   .memorial-toolbar-section {
-    flex: 1 1 100%;
-    padding: 6px 8px;
-    gap: 8px;
+    flex: 1 1 calc(50% - 2px);
+    min-width: 0;
+    padding: 6px 4px;
+    gap: 6px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    justify-content: flex-start;
   }
 
   .memorial-toolbar-icon {
@@ -1900,14 +2111,34 @@ input.unified-submit-name-input,
 
   .memorial-toolbar-item-label {
     font-size: 12px;
+    line-height: 1.25;
   }
 
   .memorial-toolbar-item-value {
-    font-size: 9px;
+    font-size: 11px;
+    line-height: 1.3;
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .memorial-toolbar-item-text {
+    align-items: center;
+    text-align: center;
+    width: 100%;
   }
 
   .memorial-toolbar-actions {
     flex: 1 1 100%;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 6px;
+    padding: 2px 0 0;
+  }
+
+  .memorial-toolbar-action-btn {
+    flex: 1 1 auto;
+    min-width: 110px !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
   }
 
   .memorial-toolbar-text-btn {
@@ -1977,28 +2208,31 @@ input.unified-submit-name-input,
   }
 
   .base-map-submissions-label {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .base-map-submission-select {
-    min-height: 36px !important;
-    padding-block: 6px !important;
-    padding-inline: 10px 26px !important;
-    font-size: 10px !important;
+    min-height: 38px !important;
+    padding-block: 7px !important;
+    padding-inline: 10px 28px !important;
+    font-size: 12px !important;
     background-position: left 8px center !important;
-    background-size: 11px !important;
+    background-size: 12px !important;
   }
 
   .base-map-submissions-status,
   .base-map-submissions-status--error,
   .base-map-submissions-error {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .unified-map-toast {
-    width: calc(100vw - 16px);
-    left: 8px;
-    transform: none;
+    width: calc(100vw - var(--map-safe-left) - var(--map-safe-right) - 16px);
+    max-width: none;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
     font-size: 12px;
+    bottom: calc(var(--map-safe-bottom) + var(--map-bottom-chrome) + 8px);
   }
 }
