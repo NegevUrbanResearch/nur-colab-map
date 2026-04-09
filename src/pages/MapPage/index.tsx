@@ -22,12 +22,15 @@ import {
 import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
+import { addParkingLotsLayer } from "../../utils/parkingLayer";
 
 const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const DEFAULT_PINK_LINE_URL = `${APP_BASE_URL}line-layer/pink-line-wgs84.geojson`;
+const HERITAGE_AXIS_URL = `${APP_BASE_URL}line-layer/heritage-axis.geojson`;
+const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
+const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 type ActiveProject = "pink" | "memorial";
@@ -122,6 +125,7 @@ const MapPage = () => {
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
+  const parkingLayerRef = useRef<L.LayerGroup | null>(null);
   const centralSiteRef = useRef<PendingSite | null>(null);
 
   useEffect(() => {
@@ -243,6 +247,7 @@ const MapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
+    const mapInstance = mapRef.current;
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       maxZoom: 19,
       attribution: "Tiles &copy; Esri",
@@ -267,18 +272,25 @@ const MapPage = () => {
       });
     });
 
-    fetch(DEFAULT_PINK_LINE_URL)
+    fetch(HERITAGE_AXIS_URL)
       .then((res) => {
-        if (!res.ok) throw new Error(`Failed to fetch pink line GeoJSON (${res.status})`);
+        if (!res.ok) throw new Error(`Failed to fetch heritage axis GeoJSON (${res.status})`);
         return res.json();
       })
       .then((geojson: GeoJSON.FeatureCollection) => {
         defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
         setDefaultLineLoaded(true);
       })
-      .catch((err) => console.error("Failed to load default pink line:", err));
+      .catch((err) => console.error("Failed to load heritage axis line:", err));
+
+    addParkingLotsLayer(mapInstance, PARKING_LOTS_URL, PARKING_ICON_URL, () => mapRef.current === mapInstance)
+      .then((group) => {
+        if (group) parkingLayerRef.current = group;
+      })
+      .catch((err) => console.error("Failed to load parking lots:", err));
 
     return () => {
+      parkingLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -354,15 +366,20 @@ const MapPage = () => {
         dashArray: "10, 10",
       };
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
+      const showPinkDetours = pinkNodes.length > 0;
 
-      for (const points of removed) {
-        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
+      if (showPinkDetours) {
+        for (const points of removed) {
+          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
+        }
       }
       for (const points of solid) {
         routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
       }
-      for (const points of dashed) {
-        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+      if (showPinkDetours) {
+        for (const points of dashed) {
+          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+        }
       }
     }
 

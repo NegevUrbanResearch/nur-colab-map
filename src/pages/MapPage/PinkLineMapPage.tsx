@@ -5,7 +5,6 @@ import "leaflet/dist/leaflet.css";
 import { useProject } from "../../context/ProjectContext";
 import {
   createPinkLineNode,
-  loadLatestSubmittedPinkLineRoute,
   loadPinkLineNodes,
   submitPinkLineRoute,
   deletePinkLineNode,
@@ -19,11 +18,14 @@ import {
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
+import { addParkingLotsLayer } from "../../utils/parkingLayer";
 
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const DEFAULT_PINK_LINE_URL = `${APP_BASE_URL}line-layer/pink-line-wgs84.geojson`;
+const HERITAGE_AXIS_URL = `${APP_BASE_URL}line-layer/heritage-axis.geojson`;
+const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
+const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
 
 interface PinkLineNode {
   id: string;
@@ -67,10 +69,10 @@ const PinkLineMapPage = () => {
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
   const [integratedRoute, setIntegratedRoute] = useState<IntegratedRoute | null>(null);
   const [routeForPersistence, setRouteForPersistence] = useState<Array<[number, number]>>([]);
-  const [lastSubmittedRoute, setLastSubmittedRoute] = useState<Array<[number, number]> | null>(null);
   const [routeError, setRouteError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const pendingMarkerRef = useRef<L.Marker | null>(null);
+  const parkingLayerRef = useRef<L.LayerGroup | null>(null);
 
   // Nuke every route polyline from the map. Called before every re-render.
   const clearAllRouteLayers = (map: L.Map) => {
@@ -111,6 +113,7 @@ const PinkLineMapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map").setView([31.42, 34.49], 13);
+    const mapInstance = mapRef.current;
 
     L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
       maxZoom: 19,
@@ -158,10 +161,10 @@ const PinkLineMapPage = () => {
 
       new customControls({ position: "topleft" }).addTo(mapRef.current);
 
-      fetch(DEFAULT_PINK_LINE_URL)
+      fetch(HERITAGE_AXIS_URL)
         .then((res) => {
           if (!res.ok) {
-            throw new Error(`Failed to fetch pink line GeoJSON (${res.status})`);
+            throw new Error(`Failed to fetch heritage axis GeoJSON (${res.status})`);
           }
           return res.json();
         })
@@ -170,7 +173,13 @@ const PinkLineMapPage = () => {
           defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
           setDefaultLineLoaded(true);
         })
-        .catch((err) => console.error("Failed to load default pink line:", err));
+        .catch((err) => console.error("Failed to load heritage axis line:", err));
+
+      addParkingLotsLayer(mapInstance, PARKING_LOTS_URL, PARKING_ICON_URL, () => mapRef.current === mapInstance)
+        .then((group) => {
+          if (group) parkingLayerRef.current = group;
+        })
+        .catch((err) => console.error("Failed to load parking lots:", err));
 
       mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
@@ -183,16 +192,10 @@ const PinkLineMapPage = () => {
         setNodes(existingNodes);
       };
 
-      const loadLastSubmittedRoute = async () => {
-        if (!project) return;
-        const latest = await loadLatestSubmittedPinkLineRoute(project.id);
-        setLastSubmittedRoute(latest?.points ?? null);
-      };
-
       loadExistingNodes();
-      loadLastSubmittedRoute();
 
     return () => {
+      parkingLayerRef.current = null;
       if (mapRef.current) {
         clearAllRouteLayers(mapRef.current);
         markersRef.current.forEach((marker) => {
@@ -261,29 +264,30 @@ const PinkLineMapPage = () => {
     // Step 2: Remove every route polyline
     clearAllRouteLayers(map);
 
-    // Step 3: Draw computed integrated route or latest submitted route
+    // Step 3: Draw computed integrated route (heritage axis + detours)
     if (integratedRoute) {
       const { solid, dashed, removed } = integratedRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
+      const showUserDetours = nodes.length > 0;
 
-      for (const pts of removed) {
-        const layer = L.polyline(pts as L.LatLngExpression[], removedStyle).addTo(map);
-        routeLayersRef.current.push(layer);
+      if (showUserDetours) {
+        for (const pts of removed) {
+          const layer = L.polyline(pts as L.LatLngExpression[], removedStyle).addTo(map);
+          routeLayersRef.current.push(layer);
+        }
       }
       for (const pts of solid) {
         const layer = L.polyline(pts as L.LatLngExpression[], solidStyle).addTo(map);
         routeLayersRef.current.push(layer);
       }
-      for (const pts of dashed) {
-        const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
-        routeLayersRef.current.push(layer);
+      if (showUserDetours) {
+        for (const pts of dashed) {
+          const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
+          routeLayersRef.current.push(layer);
+        }
       }
-    } else if (nodes.length === 0 && lastSubmittedRoute && lastSubmittedRoute.length > 1) {
-      const latestStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.75 };
-      const layer = L.polyline(lastSubmittedRoute as L.LatLngExpression[], latestStyle).addTo(map);
-      routeLayersRef.current.push(layer);
     }
 
     // Step 4: Double-check — count pink layers actually on the map
@@ -329,7 +333,7 @@ const PinkLineMapPage = () => {
 
       markersRef.current.set(node.id, marker);
     });
-  }, [nodes, defaultLineLoaded, integratedRoute, lastSubmittedRoute]);
+  }, [nodes, defaultLineLoaded, integratedRoute]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -379,9 +383,6 @@ const PinkLineMapPage = () => {
           unsubmittedNodes.map((n) => n.id),
           routeForPersistence
         );
-        if (routeForPersistence.length > 1) {
-          setLastSubmittedRoute(routeForPersistence);
-        }
         const updatedNodes = await loadPinkLineNodes(project.id);
         setNodes(updatedNodes);
         alert(

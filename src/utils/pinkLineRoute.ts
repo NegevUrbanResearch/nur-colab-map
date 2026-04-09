@@ -1,5 +1,6 @@
 /**
- * Integrated route: one continuous path along the pink line with detours to visit user points.
+ * Heritage axis from GeoJSON is split into continuous runs (no artificial long chords). Detours
+ * (dashed / removed) apply only when user points are present; each point is tied to the nearest run.
  * Minimizes added length + changePenalty * (removed original length).
  * Solid = unchanged original route; dashed = detour segments (leave → [points] → rejoin).
  * Edit CHANGE_PENALTY below (e.g. 0.5 ≈ no net benefit when replacing 1 km with a detour that adds 500 m).
@@ -35,23 +36,78 @@ export function parseDefaultLinePaths(
   return paths;
 }
 
-function mergePaths(paths: LatLng[][]): LatLng[] {
-  if (paths.length === 0) return [];
-  const merged: LatLng[] = [];
-  for (const path of paths) {
-    if (merged.length === 0) {
-      merged.push(...path);
+const EARTH_RADIUS_M = 6_371_000;
+const MAX_HERITAGE_GAP_METERS = 3500;
+
+function haversineMeters(a: LatLng, b: LatLng): number {
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const [lat1, lon1] = [a[0], a[1]];
+  const [lat2, lon2] = [b[0], b[1]];
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+function splitPathAtMaxGapMeters(path: LatLng[], maxGapMeters: number): LatLng[][] {
+  if (path.length < 2) return [];
+  const runs: LatLng[][] = [];
+  let cur: LatLng[] = [path[0]];
+  for (let i = 1; i < path.length; i++) {
+    if (haversineMeters(path[i - 1], path[i]) > maxGapMeters) {
+      if (cur.length >= 2) runs.push(cur);
+      cur = [path[i]];
     } else {
-      const last = merged[merged.length - 1];
-      const first = path[0];
-      if (last[0] === first[0] && last[1] === first[1]) {
-        merged.push(...path.slice(1));
-      } else {
-        merged.push(...path);
-      }
+      cur.push(path[i]);
     }
   }
-  return merged;
+  if (cur.length >= 2) runs.push(cur);
+  return runs;
+}
+
+function normalizeHeritageSegments(paths: LatLng[][]): LatLng[][] {
+  const out: LatLng[][] = [];
+  for (const p of paths) {
+    for (const run of splitPathAtMaxGapMeters(p, MAX_HERITAGE_GAP_METERS)) {
+      out.push(run);
+    }
+  }
+  return out;
+}
+
+function distPointToSegment(p: LatLng, a: LatLng, b: LatLng): number {
+  const px = p[1];
+  const py = p[0];
+  const ax = a[1];
+  const ay = a[0];
+  const bx = b[1];
+  const by = b[0];
+  const abx = bx - ax;
+  const aby = by - ay;
+  const apx = px - ax;
+  const apy = py - ay;
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 < 1e-18) return dist(p, a);
+  let t = (apx * abx + apy * aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  const qx = ax + t * abx;
+  const qy = ay + t * aby;
+  const dlat = py - qy;
+  const dlng = px - qx;
+  return Math.sqrt(dlat * dlat + dlng * dlng);
+}
+
+function minDistancePointToPolyline(p: LatLng, path: LatLng[]): number {
+  if (path.length === 0) return Number.POSITIVE_INFINITY;
+  if (path.length === 1) return dist(p, path[0]);
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < path.length - 1; i++) {
+    const d = distPointToSegment(p, path[i], path[i + 1]);
+    if (d < best) best = d;
+  }
+  return best;
 }
 
 function buildPrefixDistances(path: LatLng[]): number[] {
@@ -150,15 +206,14 @@ export interface IntegratedRoute {
   degradedDashedSegments: number;
 }
 
-export function buildIntegratedRoute(
-  basePaths: LatLng[][],
+function buildIntegratedRouteOneSegment(
+  basePath: LatLng[],
   userPoints: LatLng[]
 ): IntegratedRoute {
   const solid: LatLng[][] = [];
   const dashed: LatLng[][] = [];
   const removed: LatLng[][] = [];
 
-  const basePath = mergePaths(basePaths);
   if (basePath.length === 0) return { solid, dashed, removed, degradedDashedSegments: 0 };
 
   if (userPoints.length === 0) {
@@ -203,6 +258,46 @@ export function buildIntegratedRoute(
   }
   if (lastEnd < basePath.length - 1) {
     solid.push(basePath.slice(lastEnd, basePath.length));
+  }
+
+  return { solid, dashed, removed, degradedDashedSegments: 0 };
+}
+
+export function buildIntegratedRoute(
+  basePaths: LatLng[][],
+  userPoints: LatLng[]
+): IntegratedRoute {
+  const solid: LatLng[][] = [];
+  const dashed: LatLng[][] = [];
+  const removed: LatLng[][] = [];
+
+  const segments = normalizeHeritageSegments(basePaths);
+  if (segments.length === 0) return { solid, dashed, removed, degradedDashedSegments: 0 };
+
+  if (userPoints.length === 0) {
+    for (const s of segments) solid.push([...s]);
+    return { solid, dashed, removed, degradedDashedSegments: 0 };
+  }
+
+  const pointsBySegment: LatLng[][] = segments.map(() => []);
+  for (const p of userPoints) {
+    let bestSi = 0;
+    let bestD = Number.POSITIVE_INFINITY;
+    for (let si = 0; si < segments.length; si++) {
+      const d = minDistancePointToPolyline(p, segments[si]);
+      if (d < bestD) {
+        bestD = d;
+        bestSi = si;
+      }
+    }
+    pointsBySegment[bestSi].push(p);
+  }
+
+  for (let si = 0; si < segments.length; si++) {
+    const part = buildIntegratedRouteOneSegment(segments[si], pointsBySegment[si]);
+    solid.push(...part.solid);
+    dashed.push(...part.dashed);
+    removed.push(...part.removed);
   }
 
   return { solid, dashed, removed, degradedDashedSegments: 0 };
@@ -305,6 +400,10 @@ export async function buildIntegratedRouteWithGoogleDetours(
   userPoints: LatLng[],
   options: BuildGoogleIntegratedRouteOptions
 ): Promise<IntegratedRoute> {
+  if (userPoints.length === 0) {
+    return buildIntegratedRoute(basePaths, []);
+  }
+
   const base = buildIntegratedRoute(basePaths, userPoints);
   if (base.dashed.length === 0) return base;
 
