@@ -76,7 +76,7 @@ function buildGeoFeatureRows(
   name: string;
   description: string;
   geom: GeoJSON;
-  feature_type?: MemorialFeatureType;
+  feature_type?: MemorialFeatureType | "pink_line_node";
 }> {
   const rows: Array<{
     project_id: string;
@@ -84,7 +84,7 @@ function buildGeoFeatureRows(
     name: string;
     description: string;
     geom: GeoJSON;
-    feature_type?: MemorialFeatureType;
+    feature_type?: MemorialFeatureType | "pink_line_node";
   }> = [];
 
   if (params.includePink) {
@@ -99,6 +99,7 @@ function buildGeoFeatureRows(
         name: node.name?.trim() || "Pink Line Node",
         description: node.description?.trim() || "",
         geom: { type: "Point", coordinates: [node.lng, node.lat] } as GeoJSON,
+        feature_type: "pink_line_node" as const,
       }))
     );
   }
@@ -131,7 +132,7 @@ function rowsToRpcPayload(
   description: string;
   lng: number;
   lat: number;
-  feature_type: MemorialFeatureType | null;
+  feature_type: MemorialFeatureType | "pink_line_node" | null;
 }> {
   return rows.map((r) => {
     const g = r.geom as GeoJSON.Point;

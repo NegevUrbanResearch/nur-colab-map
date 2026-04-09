@@ -57,8 +57,12 @@ type SubmissionBatchRow = SubmissionBatchListRow & {
 type GeoFeatureCountRow = {
   submission_id: string;
   project_id: string;
-  feature_type: MemorialFeatureType | null;
+  feature_type: string | null;
 };
+
+function isLegacyOrTaggedPinkNode(featureType: string | null): boolean {
+  return featureType === null || featureType === "pink_line_node";
+}
 
 /** PostgREST default row cap; paginate reads to avoid truncated lists and wrong counts. */
 const GEO_FEATURES_PAGE_SIZE = 1000;
@@ -152,6 +156,7 @@ export async function listSubmissionBatchSummariesForMapContext(
     if (!bucket) continue;
 
     if (pinkProjectId && r.project_id === pinkProjectId) {
+      if (r.feature_type === "pink_line_route") continue;
       bucket.pinkNodeCount += 1;
     } else if (memorialProjectId && r.project_id === memorialProjectId) {
       if (r.feature_type === "central") bucket.memorialCentralCount += 1;
@@ -232,6 +237,7 @@ export async function listSubmissionBatchSummariesForWorkspace(
     if (!bucket) continue;
 
     if (pinkProjectId && r.project_id === pinkProjectId) {
+      if (r.feature_type === "pink_line_route") continue;
       bucket.pinkNodeCount += 1;
     } else if (memorialProjectId && r.project_id === memorialProjectId) {
       if (r.feature_type === "central") bucket.memorialCentralCount += 1;
@@ -287,7 +293,7 @@ export async function loadSubmissionBatchMapDetail(
     description: string | null;
     geom: unknown;
     project_id: string;
-    feature_type: MemorialFeatureType | null;
+    feature_type: string | null;
     created_at: string | null;
   };
 
@@ -312,6 +318,7 @@ export async function loadSubmissionBatchMapDetail(
     const tempId = `gf-${row.id}`;
 
     if (pinkProjectId && row.project_id === pinkProjectId) {
+      if (!isLegacyOrTaggedPinkNode(row.feature_type)) continue;
       pinkNodes.push({
         tempId,
         name: row.name,

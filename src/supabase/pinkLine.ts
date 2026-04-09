@@ -29,6 +29,7 @@ export async function createPinkLineNode(
         geom: pointGeoJSON,
         project_id: projectId,
         submission_id: null,
+        feature_type: "pink_line_node",
       },
     ])
     .select("id")
@@ -104,7 +105,7 @@ export async function submitPinkLineRoute(
 
   const { error } = await supabase
     .from("geo_features")
-    .update({ submission_id: submissionId })
+    .update({ submission_id: submissionId, feature_type: "pink_line_node" })
     .in("id", nodeIds)
     .eq("project_id", projectId);
 
