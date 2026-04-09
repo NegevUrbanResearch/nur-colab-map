@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -17,6 +17,7 @@ import {
 } from "../../utils/pinkLineRoute";
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
+import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
 
@@ -70,7 +71,13 @@ const PinkLineMapPage = () => {
   const [integratedRoute, setIntegratedRoute] = useState<IntegratedRoute | null>(null);
   const [routeForPersistence, setRouteForPersistence] = useState<Array<[number, number]>>([]);
   const [routeError, setRouteError] = useState<string | null>(null);
+  const [isFetchingPinkRoute, setIsFetchingPinkRoute] = useState(false);
   const busyRef = useRef(false);
+
+  const pinkUserPointsKey = useMemo(
+    () => JSON.stringify(nodes.map((n) => [n.lat, n.lng])),
+    [nodes]
+  );
   const pendingMarkerRef = useRef<L.Marker | null>(null);
   const parkingLayerRef = useRef<L.LayerGroup | null>(null);
 
@@ -214,14 +221,23 @@ const PinkLineMapPage = () => {
     const rebuildRoute = async () => {
       const basePaths = defaultLinePathsRef.current;
       if (basePaths.length === 0) {
+        setIsFetchingPinkRoute(false);
         setIntegratedRoute(null);
         setRouteForPersistence([]);
         setRouteError(null);
         return;
       }
 
-      const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
+      const userPoints = JSON.parse(pinkUserPointsKey) as [number, number][];
+      const willCallGoogle = userPoints.length > 0;
+      if (!willCallGoogle) {
+        setIsFetchingPinkRoute(false);
+      }
+
       try {
+        if (willCallGoogle) {
+          setIsFetchingPinkRoute(true);
+        }
         const route = await buildIntegratedRouteWithGoogleDetours(basePaths, userPoints, {
           computeRoute: async (waypoints) => {
             const computed = await computeRouteViaEdgeFunction(waypoints);
@@ -239,6 +255,10 @@ const PinkLineMapPage = () => {
         setIntegratedRoute(null);
         setRouteForPersistence([]);
         setRouteError("Failed to compute route using Google Routes. Please adjust points and try again.");
+      } finally {
+        if (!cancelled && willCallGoogle) {
+          setIsFetchingPinkRoute(false);
+        }
       }
     };
 
@@ -247,7 +267,7 @@ const PinkLineMapPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [nodes, defaultLineLoaded, project?.id]);
+  }, [pinkUserPointsKey, defaultLineLoaded, project?.id]);
 
   // Single rendering effect: clears ALL visuals, then redraws from scratch.
   // Every pink polyline on the map comes from routeLayersRef — nothing else.
@@ -439,6 +459,9 @@ const PinkLineMapPage = () => {
           onSubmit={handleNodeFormSubmit}
           onCancel={() => setPendingNode(null)}
         />
+      )}
+      {!pendingNode && (isSubmitting || isFetchingPinkRoute) && (
+        <PinkRouteFetchingBanner variant={isSubmitting ? "submit" : "route"} />
       )}
       <div
         style={{

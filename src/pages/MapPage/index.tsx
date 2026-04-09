@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import PinkLineNodeForm from "./PinkLineNodeForm";
+import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
 import MemorialSiteForm from "./MemorialSiteForm";
 import localMemorialIconUrl from "../../assets/memorial-sites/local-memorial-site.png";
 import regionalMemorialIconUrl from "../../assets/memorial-sites/regional-memorial-site.png";
@@ -100,6 +101,12 @@ const MapPage = () => {
   const [integratedPinkRoute, setIntegratedPinkRoute] = useState<IntegratedRoute | null>(null);
   const [pinkRouteForPersistence, setPinkRouteForPersistence] = useState<Array<[number, number]>>([]);
   const [pinkRouteError, setPinkRouteError] = useState<string | null>(null);
+  const [isFetchingPinkRoute, setIsFetchingPinkRoute] = useState(false);
+
+  const pinkUserPointsKey = useMemo(
+    () => JSON.stringify(pinkNodes.map((n) => [n.lat, n.lng])),
+    [pinkNodes]
+  );
 
   const [submissionBatches, setSubmissionBatches] = useState<SubmissionBatchSummary[]>([]);
   const [submissionBatchesLoading, setSubmissionBatchesLoading] = useState(false);
@@ -306,14 +313,23 @@ const MapPage = () => {
 
     const rebuildPinkRoute = async () => {
       if (!defaultLineLoaded || defaultLinePathsRef.current.length === 0) {
+        setIsFetchingPinkRoute(false);
         setIntegratedPinkRoute(null);
         setPinkRouteForPersistence([]);
         setPinkRouteError(null);
         return;
       }
 
-      const userPoints = pinkNodes.map((n) => [n.lat, n.lng] as [number, number]);
+      const userPoints = JSON.parse(pinkUserPointsKey) as [number, number][];
+      const willCallGoogle = userPoints.length > 0;
+      if (!willCallGoogle) {
+        setIsFetchingPinkRoute(false);
+      }
+
       try {
+        if (willCallGoogle) {
+          setIsFetchingPinkRoute(true);
+        }
         const route = await buildIntegratedRouteWithGoogleDetours(defaultLinePathsRef.current, userPoints, {
           computeRoute: async (waypoints) => {
             const computed = await computeRouteViaEdgeFunction(waypoints);
@@ -331,6 +347,10 @@ const MapPage = () => {
         setIntegratedPinkRoute(null);
         setPinkRouteForPersistence([]);
         setPinkRouteError("Failed to compute route using Google Routes. Please adjust points and try again.");
+      } finally {
+        if (!cancelled && willCallGoogle) {
+          setIsFetchingPinkRoute(false);
+        }
       }
     };
 
@@ -339,7 +359,7 @@ const MapPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [pinkNodes, defaultLineLoaded, pinkProjectId]);
+  }, [pinkUserPointsKey, defaultLineLoaded, pinkProjectId]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -850,6 +870,12 @@ const MapPage = () => {
   return (
     <>
       <div id="map" style={{ height: "100vh", width: "100%" }} />
+
+      {!pendingPinkTarget &&
+        !pendingMemorialTarget &&
+        (submitting || isFetchingPinkRoute) && (
+          <PinkRouteFetchingBanner variant={submitting ? "submit" : "route"} />
+        )}
 
       {pendingPinkTarget && (
         <PinkLineNodeForm

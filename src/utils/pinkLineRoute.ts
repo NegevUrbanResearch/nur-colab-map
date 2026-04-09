@@ -51,7 +51,10 @@ function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-function splitPathAtMaxGapMeters(path: LatLng[], maxGapMeters: number): LatLng[][] {
+function splitPathAtMaxGapMeters(
+  path: LatLng[],
+  maxGapMeters: number
+): LatLng[][] {
   if (path.length < 2) return [];
   const runs: LatLng[][] = [];
   let cur: LatLng[] = [path[0]];
@@ -214,7 +217,8 @@ function buildIntegratedRouteOneSegment(
   const dashed: LatLng[][] = [];
   const removed: LatLng[][] = [];
 
-  if (basePath.length === 0) return { solid, dashed, removed, degradedDashedSegments: 0 };
+  if (basePath.length === 0)
+    return { solid, dashed, removed, degradedDashedSegments: 0 };
 
   if (userPoints.length === 0) {
     solid.push([...basePath]);
@@ -272,7 +276,8 @@ export function buildIntegratedRoute(
   const removed: LatLng[][] = [];
 
   const segments = normalizeHeritageSegments(basePaths);
-  if (segments.length === 0) return { solid, dashed, removed, degradedDashedSegments: 0 };
+  if (segments.length === 0)
+    return { solid, dashed, removed, degradedDashedSegments: 0 };
 
   if (userPoints.length === 0) {
     for (const s of segments) solid.push([...s]);
@@ -294,7 +299,10 @@ export function buildIntegratedRoute(
   }
 
   for (let si = 0; si < segments.length; si++) {
-    const part = buildIntegratedRouteOneSegment(segments[si], pointsBySegment[si]);
+    const part = buildIntegratedRouteOneSegment(
+      segments[si],
+      pointsBySegment[si]
+    );
     solid.push(...part.solid);
     dashed.push(...part.dashed);
     removed.push(...part.removed);
@@ -321,7 +329,11 @@ function metersToLngDegrees(meters: number, latitude: number): number {
   return meters / (METERS_PER_DEGREE_LAT * cosLat);
 }
 
-function jitterPoint(point: LatLng, radiusMeters: number, bearingDegrees: number): LatLng {
+function jitterPoint(
+  point: LatLng,
+  radiusMeters: number,
+  bearingDegrees: number
+): LatLng {
   if (radiusMeters <= 0) return point;
   const angle = (bearingDegrees * Math.PI) / 180;
   const deltaNorth = Math.cos(angle) * radiusMeters;
@@ -340,7 +352,8 @@ async function buildGoogleLegWithRetries(
   let lastError: unknown = null;
   for (let attempt = 0; attempt < JITTER_RADII_METERS.length; attempt++) {
     const radius = JITTER_RADII_METERS[attempt];
-    const baseBearing = JITTER_BEARINGS_DEGREES[legIndex % JITTER_BEARINGS_DEGREES.length];
+    const baseBearing =
+      JITTER_BEARINGS_DEGREES[legIndex % JITTER_BEARINGS_DEGREES.length];
     const bearing = (baseBearing + attempt * 37) % 360;
     const jitteredStart = jitterPoint(start, radius, bearing);
     const jitteredEnd = jitterPoint(end, radius, (bearing + 180) % 360);
@@ -407,7 +420,10 @@ export async function buildIntegratedRouteWithGoogleDetours(
   const base = buildIntegratedRoute(basePaths, userPoints);
   if (base.dashed.length === 0) return base;
 
-  const routed = await buildGoogleDashedSegments(base.dashed, options.computeRoute);
+  const routed = await buildGoogleDashedSegments(
+    base.dashed,
+    options.computeRoute
+  );
   return {
     solid: base.solid,
     removed: base.removed,

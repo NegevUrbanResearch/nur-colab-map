@@ -877,6 +877,54 @@ a:hover {
   z-index: 1002;
 }
 
+.pink-route-fetch-container {
+  z-index: 1003;
+  pointer-events: none;
+}
+
+.pink-route-fetch-inner {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  width: auto;
+  min-width: 0;
+  max-width: min(320px, calc(100vw - 24px));
+}
+
+.pink-route-fetch-inner.shape-name-input-form {
+  padding: 6px 10px;
+  gap: 6px;
+  align-items: center;
+}
+
+.pink-route-fetch-spinner {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #ff69b4;
+  border-radius: 50%;
+  animation: pink-route-fetch-spin 0.65s linear infinite;
+}
+
+.pink-route-fetch-label {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  white-space: normal;
+}
+
+@keyframes pink-route-fetch-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .shape-name-input-form {
   background: rgba(20, 20, 20, 0.4);
   backdrop-filter: blur(12px);

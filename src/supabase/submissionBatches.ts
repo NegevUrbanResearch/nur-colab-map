@@ -68,7 +68,10 @@ function isLegacyOrTaggedPinkNode(featureType: string | null): boolean {
 const GEO_FEATURES_PAGE_SIZE = 1000;
 
 async function fetchAllGeoFeaturePages<T>(
-  run: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
+  run: (
+    from: number,
+    to: number
+  ) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 ): Promise<T[]> {
   const acc: T[] = [];
   let offset = 0;
@@ -93,7 +96,9 @@ function emptySummaryCounts() {
   };
 }
 
-function filterProjectIdForListContext(ctx: MapSubmissionListContext): string | null {
+function filterProjectIdForListContext(
+  ctx: MapSubmissionListContext
+): string | null {
   if (ctx.activeProject === "pink") return ctx.pinkProjectId;
   return ctx.memorialProjectId;
 }
@@ -108,7 +113,9 @@ export async function listSubmissionBatchSummariesForMapContext(
   const projectId = filterProjectIdForListContext(ctx);
   if (!projectId) return [];
 
-  const idRows = await fetchAllGeoFeaturePages<{ submission_id: string | null }>((from, to) =>
+  const idRows = await fetchAllGeoFeaturePages<{
+    submission_id: string | null;
+  }>((from, to) =>
     supabase
       .from("geo_features")
       .select("submission_id")
@@ -119,7 +126,11 @@ export async function listSubmissionBatchSummariesForMapContext(
   );
 
   const submissionIds = [
-    ...new Set(idRows.map((r) => r.submission_id).filter((id): id is string => Boolean(id))),
+    ...new Set(
+      idRows
+        .map((r) => r.submission_id)
+        .filter((id): id is string => Boolean(id))
+    ),
   ];
 
   if (submissionIds.length === 0) return [];
@@ -132,18 +143,21 @@ export async function listSubmissionBatchSummariesForMapContext(
 
   if (batchErr) throw batchErr;
 
-  const orderedIds = (batchRows ?? []).map((r: SubmissionBatchListRow) => r.submission_id);
+  const orderedIds = (batchRows ?? []).map(
+    (r: SubmissionBatchListRow) => r.submission_id
+  );
 
   if (orderedIds.length === 0) return [];
 
-  const countRows = await fetchAllGeoFeaturePages<GeoFeatureCountRow>((from, to) =>
-    supabase
-      .from("geo_features")
-      .select("submission_id, project_id, feature_type")
-      .in("submission_id", orderedIds)
-      .not("submission_id", "is", null)
-      .order("id", { ascending: true })
-      .range(from, to)
+  const countRows = await fetchAllGeoFeaturePages<GeoFeatureCountRow>(
+    (from, to) =>
+      supabase
+        .from("geo_features")
+        .select("submission_id, project_id, feature_type")
+        .in("submission_id", orderedIds)
+        .not("submission_id", "is", null)
+        .order("id", { ascending: true })
+        .range(from, to)
   );
 
   const countMap = new Map<string, ReturnType<typeof emptySummaryCounts>>();
@@ -187,10 +201,14 @@ export async function listSubmissionBatchSummariesForWorkspace(
   ctx: MapWorkspaceProjectIds
 ): Promise<SubmissionBatchSummary[]> {
   const { pinkProjectId, memorialProjectId } = ctx;
-  const projectIds = [pinkProjectId, memorialProjectId].filter((id): id is string => Boolean(id));
+  const projectIds = [pinkProjectId, memorialProjectId].filter(
+    (id): id is string => Boolean(id)
+  );
   if (projectIds.length === 0) return [];
 
-  const idRows = await fetchAllGeoFeaturePages<{ submission_id: string | null }>((from, to) =>
+  const idRows = await fetchAllGeoFeaturePages<{
+    submission_id: string | null;
+  }>((from, to) =>
     supabase
       .from("geo_features")
       .select("submission_id")
@@ -201,7 +219,11 @@ export async function listSubmissionBatchSummariesForWorkspace(
   );
 
   const submissionIds = [
-    ...new Set(idRows.map((r) => r.submission_id).filter((id): id is string => Boolean(id))),
+    ...new Set(
+      idRows
+        .map((r) => r.submission_id)
+        .filter((id): id is string => Boolean(id))
+    ),
   ];
 
   if (submissionIds.length === 0) return [];
@@ -214,18 +236,21 @@ export async function listSubmissionBatchSummariesForWorkspace(
 
   if (batchErr) throw batchErr;
 
-  const orderedIds = (batchRows ?? []).map((r: SubmissionBatchListRow) => r.submission_id);
+  const orderedIds = (batchRows ?? []).map(
+    (r: SubmissionBatchListRow) => r.submission_id
+  );
 
   if (orderedIds.length === 0) return [];
 
-  const countRows = await fetchAllGeoFeaturePages<GeoFeatureCountRow>((from, to) =>
-    supabase
-      .from("geo_features")
-      .select("submission_id, project_id, feature_type")
-      .in("submission_id", orderedIds)
-      .not("submission_id", "is", null)
-      .order("id", { ascending: true })
-      .range(from, to)
+  const countRows = await fetchAllGeoFeaturePages<GeoFeatureCountRow>(
+    (from, to) =>
+      supabase
+        .from("geo_features")
+        .select("submission_id, project_id, feature_type")
+        .in("submission_id", orderedIds)
+        .not("submission_id", "is", null)
+        .order("id", { ascending: true })
+        .range(from, to)
   );
 
   const countMap = new Map<string, ReturnType<typeof emptySummaryCounts>>();
@@ -278,7 +303,9 @@ export async function loadSubmissionBatchMapDetail(
 
   const { data: batch, error: batchErr } = await supabase
     .from("submission_batches")
-    .select("submission_id, submission_name, created_by, created_at, updated_at")
+    .select(
+      "submission_id, submission_name, created_by, created_at, updated_at"
+    )
     .eq("submission_id", submissionId)
     .maybeSingle();
 
@@ -300,7 +327,9 @@ export async function loadSubmissionBatchMapDetail(
   const features = await fetchAllGeoFeaturePages<FeatureRow>((from, to) =>
     supabase
       .from("geo_features")
-      .select("id, name, description, geom, project_id, feature_type, created_at")
+      .select(
+        "id, name, description, geom, project_id, feature_type, created_at"
+      )
       .eq("submission_id", submissionId)
       .order("id", { ascending: true })
       .range(from, to)
@@ -438,9 +467,10 @@ export async function deleteSubmissionFeaturesForOverwrite(
   mapWorkspaceProjects?: MapWorkspaceProjectIds
 ): Promise<void> {
   if (mapWorkspaceProjects) {
-    const allowed = [mapWorkspaceProjects.pinkProjectId, mapWorkspaceProjects.memorialProjectId].filter(
-      (id): id is string => Boolean(id)
-    );
+    const allowed = [
+      mapWorkspaceProjects.pinkProjectId,
+      mapWorkspaceProjects.memorialProjectId,
+    ].filter((id): id is string => Boolean(id));
     if (allowed.length === 0) return;
     const { error } = await supabase
       .from("geo_features")
@@ -451,6 +481,9 @@ export async function deleteSubmissionFeaturesForOverwrite(
     return;
   }
 
-  const { error } = await supabase.from("geo_features").delete().eq("submission_id", submissionId);
+  const { error } = await supabase
+    .from("geo_features")
+    .delete()
+    .eq("submission_id", submissionId);
   if (error) throw error;
 }
