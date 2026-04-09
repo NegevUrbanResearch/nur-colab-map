@@ -147,6 +147,7 @@ export interface IntegratedRoute {
   solid: LatLng[][];
   dashed: LatLng[][];
   removed: LatLng[][];
+  degradedDashedSegments: number;
 }
 
 export function buildIntegratedRoute(
@@ -158,11 +159,11 @@ export function buildIntegratedRoute(
   const removed: LatLng[][] = [];
 
   const basePath = mergePaths(basePaths);
-  if (basePath.length === 0) return { solid, dashed, removed };
+  if (basePath.length === 0) return { solid, dashed, removed, degradedDashedSegments: 0 };
 
   if (userPoints.length === 0) {
     solid.push([...basePath]);
-    return { solid, dashed, removed };
+    return { solid, dashed, removed, degradedDashedSegments: 0 };
   }
 
   const prefix = buildPrefixDistances(basePath);
@@ -204,5 +205,114 @@ export function buildIntegratedRoute(
     solid.push(basePath.slice(lastEnd, basePath.length));
   }
 
-  return { solid, dashed, removed };
+  return { solid, dashed, removed, degradedDashedSegments: 0 };
+}
+
+export interface BuildGoogleIntegratedRouteOptions {
+  computeRoute: (waypoints: LatLng[]) => Promise<LatLng[]>;
+}
+
+const JITTER_RADII_METERS = [0, 5, 10, 20, 35];
+const JITTER_BEARINGS_DEGREES = [0, 60, 120, 180, 240, 300];
+const METERS_PER_DEGREE_LAT = 111320;
+
+function metersToLatDegrees(meters: number): number {
+  return meters / METERS_PER_DEGREE_LAT;
+}
+
+function metersToLngDegrees(meters: number, latitude: number): number {
+  const cosLat = Math.cos((latitude * Math.PI) / 180);
+  if (Math.abs(cosLat) < 1e-6) return 0;
+  return meters / (METERS_PER_DEGREE_LAT * cosLat);
+}
+
+function jitterPoint(point: LatLng, radiusMeters: number, bearingDegrees: number): LatLng {
+  if (radiusMeters <= 0) return point;
+  const angle = (bearingDegrees * Math.PI) / 180;
+  const deltaNorth = Math.cos(angle) * radiusMeters;
+  const deltaEast = Math.sin(angle) * radiusMeters;
+  const latOffset = metersToLatDegrees(deltaNorth);
+  const lngOffset = metersToLngDegrees(deltaEast, point[0]);
+  return [point[0] + latOffset, point[1] + lngOffset];
+}
+
+async function buildGoogleLegWithRetries(
+  start: LatLng,
+  end: LatLng,
+  legIndex: number,
+  computeRoute: (waypoints: LatLng[]) => Promise<LatLng[]>
+): Promise<LatLng[]> {
+  let lastError: unknown = null;
+  for (let attempt = 0; attempt < JITTER_RADII_METERS.length; attempt++) {
+    const radius = JITTER_RADII_METERS[attempt];
+    const baseBearing = JITTER_BEARINGS_DEGREES[legIndex % JITTER_BEARINGS_DEGREES.length];
+    const bearing = (baseBearing + attempt * 37) % 360;
+    const jitteredStart = jitterPoint(start, radius, bearing);
+    const jitteredEnd = jitterPoint(end, radius, (bearing + 180) % 360);
+
+    try {
+      const points = await computeRoute([jitteredStart, jitteredEnd]);
+      if (points.length >= 2) {
+        return points;
+      }
+      lastError = new Error("Route API returned an invalid segment.");
+    } catch (_) {
+      lastError = _;
+    }
+  }
+
+  throw new Error(
+    `Failed to compute route segment after ${JITTER_RADII_METERS.length} attempts${
+      lastError instanceof Error ? `: ${lastError.message}` : "."
+    }`
+  );
+}
+
+async function buildGoogleDashedSegments(
+  dashedSegments: LatLng[][],
+  computeRoute: (waypoints: LatLng[]) => Promise<LatLng[]>
+): Promise<{ dashed: LatLng[][]; degradedDashedSegments: number }> {
+  const routedDashed: LatLng[][] = [];
+
+  for (const segment of dashedSegments) {
+    if (segment.length < 2) {
+      routedDashed.push(segment);
+      continue;
+    }
+
+    const mergedLegPoints: LatLng[] = [];
+
+    for (let i = 0; i < segment.length - 1; i++) {
+      const start = segment[i];
+      const end = segment[i + 1];
+      const leg = await buildGoogleLegWithRetries(start, end, i, computeRoute);
+
+      if (mergedLegPoints.length === 0) {
+        mergedLegPoints.push(...leg);
+      } else {
+        mergedLegPoints.push(...leg.slice(1));
+      }
+    }
+
+    routedDashed.push(mergedLegPoints);
+  }
+
+  return { dashed: routedDashed, degradedDashedSegments: 0 };
+}
+
+export async function buildIntegratedRouteWithGoogleDetours(
+  basePaths: LatLng[][],
+  userPoints: LatLng[],
+  options: BuildGoogleIntegratedRouteOptions
+): Promise<IntegratedRoute> {
+  const base = buildIntegratedRoute(basePaths, userPoints);
+  if (base.dashed.length === 0) return base;
+
+  const routed = await buildGoogleDashedSegments(base.dashed, options.computeRoute);
+  return {
+    solid: base.solid,
+    removed: base.removed,
+    dashed: routed.dashed,
+    degradedDashedSegments: routed.degradedDashedSegments,
+  };
 }

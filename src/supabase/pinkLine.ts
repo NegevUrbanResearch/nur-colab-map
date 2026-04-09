@@ -8,6 +8,11 @@ export interface PinkLineNode {
   submissionId: string | null;
 }
 
+export interface PinkLineRoute {
+  submissionId: string;
+  points: Array<[number, number]>;
+}
+
 export async function createPinkLineNode(
   projectId: string,
   lat: number,
@@ -71,10 +76,36 @@ export async function loadPinkLineNodes(projectId: string): Promise<PinkLineNode
   }).filter((node): node is PinkLineNode => node !== null);
 }
 
-export async function submitPinkLineRoute(projectId: string, nodeIds: string[]): Promise<void> {
-  if (nodeIds.length === 0) return;
+export async function submitPinkLineRoute(
+  projectId: string,
+  nodeIds: string[],
+  routePoints: Array<[number, number]> = []
+): Promise<string> {
+  if (nodeIds.length === 0) {
+    throw new Error("Cannot submit route without nodes.");
+  }
 
   const submissionId = crypto.randomUUID();
+
+  if (routePoints.length > 1) {
+    const routeGeoJSON: GeoJSON = {
+      type: "LineString",
+      coordinates: routePoints.map(([lat, lng]) => [lng, lat]),
+    };
+
+    const { error: routeError } = await supabase.from("geo_features").insert([
+      {
+        name: "Pink Line Route",
+        description: "Computed route using Google Routes API",
+        geom: routeGeoJSON,
+        project_id: projectId,
+        submission_id: submissionId,
+        feature_type: "pink_line_route",
+      },
+    ]);
+
+    if (routeError) throw routeError;
+  }
 
   const { error } = await supabase
     .from("geo_features")
@@ -83,6 +114,38 @@ export async function submitPinkLineRoute(projectId: string, nodeIds: string[]):
     .eq("project_id", projectId);
 
   if (error) throw error;
+
+  return submissionId;
+}
+
+export async function loadLatestSubmittedPinkLineRoute(
+  projectId: string
+): Promise<PinkLineRoute | null> {
+  const { data, error } = await supabase
+    .from("geo_features")
+    .select("submission_id, geom")
+    .eq("project_id", projectId)
+    .eq("feature_type", "pink_line_route")
+    .not("submission_id", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data || !data.submission_id) return null;
+
+  const geom = data.geom as GeoJSON;
+  if (!geom || geom.type !== "LineString") return null;
+
+  const coords = (geom as any).coordinates as [number, number][];
+  const points: Array<[number, number]> = coords.map(([lng, lat]) => [lat, lng]);
+
+  if (points.length < 2) return null;
+
+  return {
+    submissionId: data.submission_id,
+    points,
+  };
 }
 
 export async function deletePinkLineNode(nodeId: string): Promise<void> {

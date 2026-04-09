@@ -26,6 +26,8 @@ type SubmitUnifiedFeaturesParamsBase = {
   includePink: boolean;
   includeMemorial: boolean;
   pinkNodes: PendingPinkNodeSubmission[];
+  /** Lat/lng pairs; persisted as LineString after RPC (RPC accepts points only). */
+  pinkRoutePoints?: Array<[number, number]>;
   memorialSites: PendingMemorialSubmission[];
 };
 
@@ -145,11 +147,39 @@ function rowsToRpcPayload(
   });
 }
 
+async function insertPinkRouteLineIfNeeded(
+  submissionId: string,
+  pinkProjectId: string | null,
+  includePink: boolean,
+  pinkRoutePoints: Array<[number, number]> | undefined
+): Promise<void> {
+  if (!includePink || !pinkProjectId) return;
+  const pts = pinkRoutePoints ?? [];
+  if (pts.length < 2) return;
+
+  const routeGeoJSON: GeoJSON = {
+    type: "LineString",
+    coordinates: pts.map(([lat, lng]) => [lng, lat]),
+  };
+
+  const { error } = await supabase.from("geo_features").insert({
+    project_id: pinkProjectId,
+    submission_id: submissionId,
+    name: "Pink Line Route",
+    description: "Computed route using Google Routes API",
+    geom: routeGeoJSON,
+    feature_type: "pink_line_route",
+  });
+  if (error) throw error;
+}
+
 /**
  * Inserts map features for the pink and/or memorial projects under one `submission_id`, via a single
  * transactional RPC (`submit_unified_submission_write`).
  */
 export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams): Promise<void> {
+  const pinkRoutePoints = params.pinkRoutePoints;
+
   if (params.mode === "overwrite") {
     const { targetSubmissionId, submissionName } = params;
     const workspace: MapWorkspaceProjectIds =
@@ -168,6 +198,12 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
       p_feature_rows: rowsToRpcPayload(rows),
     });
     if (error) throw error;
+    await insertPinkRouteLineIfNeeded(
+      targetSubmissionId,
+      params.pinkProjectId,
+      params.includePink,
+      pinkRoutePoints
+    );
     return;
   }
 
@@ -176,7 +212,11 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
   const batchName = trimmedName ? trimmedName : defaultSubmissionBatchName(submissionId);
 
   const rows = buildGeoFeatureRows(submissionId, params);
-  if (rows.length === 0) return;
+  const hasPersistableRoute =
+    params.includePink &&
+    pinkRoutePoints &&
+    pinkRoutePoints.length > 1;
+  if (rows.length === 0 && !hasPersistableRoute) return;
 
   const { error } = await supabase.rpc("submit_unified_submission_write", {
     p_mode: "new",
@@ -187,4 +227,10 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
     p_feature_rows: rowsToRpcPayload(rows),
   });
   if (error) throw error;
+  await insertPinkRouteLineIfNeeded(
+    submissionId,
+    params.pinkProjectId,
+    params.includePink,
+    pinkRoutePoints
+  );
 }

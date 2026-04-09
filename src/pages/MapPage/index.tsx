@@ -7,7 +7,11 @@ import MemorialSiteForm from "./MemorialSiteForm";
 import localMemorialIconUrl from "../../assets/memorial-sites/local-memorial-site.png";
 import regionalMemorialIconUrl from "../../assets/memorial-sites/regional-memorial-site.png";
 import { optimizeRoute } from "../../utils/routeOptimizer";
-import { buildIntegratedRoute, parseDefaultLinePaths } from "../../utils/pinkLineRoute";
+import {
+  buildIntegratedRouteWithGoogleDetours,
+  IntegratedRoute,
+  parseDefaultLinePaths,
+} from "../../utils/pinkLineRoute";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -17,6 +21,7 @@ import {
 } from "../../supabase/submissionBatches";
 import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
+import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 
 const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
@@ -35,6 +40,26 @@ interface PendingPinkNode {
   description: string | null;
   lat: number;
   lng: number;
+}
+
+function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
+  const source = route.dashed.length > 0 ? route.dashed : route.solid;
+  const flattened: Array<[number, number]> = [];
+  for (const segment of source) {
+    if (flattened.length === 0) {
+      flattened.push(...segment);
+      continue;
+    }
+    if (segment.length === 0) continue;
+    const [lastLat, lastLng] = flattened[flattened.length - 1];
+    const [firstLat, firstLng] = segment[0];
+    if (lastLat === firstLat && lastLng === firstLng) {
+      flattened.push(...segment.slice(1));
+    } else {
+      flattened.push(...segment);
+    }
+  }
+  return flattened;
 }
 
 const MapPage = () => {
@@ -69,6 +94,9 @@ const MapPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submittedSummary, setSubmittedSummary] = useState<string | null>(null);
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
+  const [integratedPinkRoute, setIntegratedPinkRoute] = useState<IntegratedRoute | null>(null);
+  const [pinkRouteForPersistence, setPinkRouteForPersistence] = useState<Array<[number, number]>>([]);
+  const [pinkRouteError, setPinkRouteError] = useState<string | null>(null);
 
   const [submissionBatches, setSubmissionBatches] = useState<SubmissionBatchSummary[]>([]);
   const [submissionBatchesLoading, setSubmissionBatchesLoading] = useState(false);
@@ -262,6 +290,46 @@ const MapPage = () => {
   }, [isBootstrapping, bootError]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const rebuildPinkRoute = async () => {
+      if (!defaultLineLoaded || defaultLinePathsRef.current.length === 0) {
+        setIntegratedPinkRoute(null);
+        setPinkRouteForPersistence([]);
+        setPinkRouteError(null);
+        return;
+      }
+
+      const userPoints = pinkNodes.map((n) => [n.lat, n.lng] as [number, number]);
+      try {
+        const route = await buildIntegratedRouteWithGoogleDetours(defaultLinePathsRef.current, userPoints, {
+          computeRoute: async (waypoints) => {
+            const computed = await computeRouteViaEdgeFunction(waypoints);
+            return computed.points;
+          },
+        });
+
+        if (cancelled) return;
+        setIntegratedPinkRoute(route);
+        setPinkRouteForPersistence(flattenSegmentsForPersistence(route));
+        setPinkRouteError(null);
+      } catch (error) {
+        console.error("Failed to build Google-routed pink line:", error);
+        if (cancelled) return;
+        setIntegratedPinkRoute(null);
+        setPinkRouteForPersistence([]);
+        setPinkRouteError("Failed to compute route using Google Routes. Please adjust points and try again.");
+      }
+    };
+
+    rebuildPinkRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pinkNodes, defaultLineLoaded, pinkProjectId]);
+
+  useEffect(() => {
     if (!mapRef.current) return;
     const map = mapRef.current;
 
@@ -276,9 +344,8 @@ const MapPage = () => {
     });
     routeLayersRef.current = [];
 
-    if (defaultLineLoaded && defaultLinePathsRef.current.length > 0) {
-      const userPoints = pinkNodes.map((n) => [n.lat, n.lng] as [number, number]);
-      const { solid, dashed, removed } = buildIntegratedRoute(defaultLinePathsRef.current, userPoints);
+    if (integratedPinkRoute) {
+      const { solid, dashed, removed } = integratedPinkRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = {
         color: "#FF69B4",
@@ -353,7 +420,7 @@ const MapPage = () => {
 
     if (centralSite) placeMemorial(centralSite, true);
     localSites.forEach((site) => placeMemorial(site, false));
-  }, [pinkNodes, centralSite, localSites, defaultLineLoaded]);
+  }, [pinkNodes, centralSite, localSites, defaultLineLoaded, integratedPinkRoute]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -618,6 +685,10 @@ const MapPage = () => {
       includeMemorial = true;
     }
     if (!includePink && !includeMemorial) return;
+    if (includePink && pinkNodes.length > 0 && pinkRouteForPersistence.length < 2) {
+      alert(pinkRouteError || "Cannot submit: Google route calculation failed.");
+      return;
+    }
 
     const submissionDisplayName = submissionNameInput.trim();
     if (!submissionDisplayName) return;
@@ -640,6 +711,7 @@ const MapPage = () => {
           includePink,
           includeMemorial,
           pinkNodes,
+          pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
         });
       } else {
@@ -652,6 +724,7 @@ const MapPage = () => {
           includePink,
           includeMemorial,
           pinkNodes,
+          pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
         });
         selectedSubmissionIdRef.current = submissionId;
@@ -814,6 +887,11 @@ const MapPage = () => {
             <div className="pink-toolbar-item-text">
               <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
               <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
+              {pinkRouteError && (
+                <span className="pink-toolbar-count" style={{ color: "#b00020", fontWeight: 600 }}>
+                  {pinkRouteError}
+                </span>
+              )}
             </div>
           </div>
           <div className="pink-toolbar-divider" />

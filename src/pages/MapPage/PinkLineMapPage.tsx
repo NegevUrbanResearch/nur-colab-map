@@ -3,11 +3,22 @@ import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useProject } from "../../context/ProjectContext";
-import { createPinkLineNode, loadPinkLineNodes, submitPinkLineRoute, deletePinkLineNode } from "../../supabase/pinkLine";
+import {
+  createPinkLineNode,
+  loadLatestSubmittedPinkLineRoute,
+  loadPinkLineNodes,
+  submitPinkLineRoute,
+  deletePinkLineNode,
+} from "../../supabase/pinkLine";
 import { optimizeRoute } from "../../utils/routeOptimizer";
-import { parseDefaultLinePaths, buildIntegratedRoute } from "../../utils/pinkLineRoute";
+import {
+  parseDefaultLinePaths,
+  buildIntegratedRouteWithGoogleDetours,
+  IntegratedRoute,
+} from "../../utils/pinkLineRoute";
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
+import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
@@ -19,6 +30,26 @@ interface PinkLineNode {
   lat: number;
   lng: number;
   submissionId: string | null;
+}
+
+function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
+  const source = route.dashed.length > 0 ? route.dashed : route.solid;
+  const flattened: Array<[number, number]> = [];
+  for (const segment of source) {
+    if (flattened.length === 0) {
+      flattened.push(...segment);
+      continue;
+    }
+    if (segment.length === 0) continue;
+    const [lastLat, lastLng] = flattened[flattened.length - 1];
+    const [firstLat, firstLng] = segment[0];
+    if (lastLat === firstLat && lastLng === firstLng) {
+      flattened.push(...segment.slice(1));
+    } else {
+      flattened.push(...segment);
+    }
+  }
+  return flattened;
 }
 
 const PinkLineMapPage = () => {
@@ -34,6 +65,10 @@ const PinkLineMapPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingNode, setPendingNode] = useState<{ lat: number; lng: number } | null>(null);
   const [defaultLineLoaded, setDefaultLineLoaded] = useState(false);
+  const [integratedRoute, setIntegratedRoute] = useState<IntegratedRoute | null>(null);
+  const [routeForPersistence, setRouteForPersistence] = useState<Array<[number, number]>>([]);
+  const [lastSubmittedRoute, setLastSubmittedRoute] = useState<Array<[number, number]> | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
   const busyRef = useRef(false);
   const pendingMarkerRef = useRef<L.Marker | null>(null);
 
@@ -148,7 +183,14 @@ const PinkLineMapPage = () => {
         setNodes(existingNodes);
       };
 
+      const loadLastSubmittedRoute = async () => {
+        if (!project) return;
+        const latest = await loadLatestSubmittedPinkLineRoute(project.id);
+        setLastSubmittedRoute(latest?.points ?? null);
+      };
+
       loadExistingNodes();
+      loadLastSubmittedRoute();
 
     return () => {
       if (mapRef.current) {
@@ -162,6 +204,47 @@ const PinkLineMapPage = () => {
       }
     };
   }, [project]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const rebuildRoute = async () => {
+      const basePaths = defaultLinePathsRef.current;
+      if (basePaths.length === 0) {
+        setIntegratedRoute(null);
+        setRouteForPersistence([]);
+        setRouteError(null);
+        return;
+      }
+
+      const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
+      try {
+        const route = await buildIntegratedRouteWithGoogleDetours(basePaths, userPoints, {
+          computeRoute: async (waypoints) => {
+            const computed = await computeRouteViaEdgeFunction(waypoints);
+            return computed.points;
+          },
+        });
+
+        if (cancelled) return;
+        setIntegratedRoute(route);
+        setRouteForPersistence(flattenSegmentsForPersistence(route));
+        setRouteError(null);
+      } catch (error) {
+        console.error("Failed to build Google-routed pink line:", error);
+        if (cancelled) return;
+        setIntegratedRoute(null);
+        setRouteForPersistence([]);
+        setRouteError("Failed to compute route using Google Routes. Please adjust points and try again.");
+      }
+    };
+
+    rebuildRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nodes, defaultLineLoaded, project?.id]);
 
   // Single rendering effect: clears ALL visuals, then redraws from scratch.
   // Every pink polyline on the map comes from routeLayersRef — nothing else.
@@ -178,13 +261,9 @@ const PinkLineMapPage = () => {
     // Step 2: Remove every route polyline
     clearAllRouteLayers(map);
 
-    const basePaths = defaultLinePathsRef.current;
-    const hasBase = basePaths.length > 0;
-
-    // Step 3: Rebuild route via buildIntegratedRoute (handles both 0 and >0 nodes)
-    if (hasBase) {
-      const userPoints = nodes.map((n) => [n.lat, n.lng] as [number, number]);
-      const { solid, dashed, removed } = buildIntegratedRoute(basePaths, userPoints);
+    // Step 3: Draw computed integrated route or latest submitted route
+    if (integratedRoute) {
+      const { solid, dashed, removed } = integratedRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
@@ -201,15 +280,10 @@ const PinkLineMapPage = () => {
         const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
         routeLayersRef.current.push(layer);
       }
-    } else if (nodes.length > 1) {
-      const optimizedRoute = optimizeRoute(nodes);
-      const routeCoords = optimizedRoute.map((node) => [node.lat, node.lng] as L.LatLngExpression);
-      routeLineRef.current = L.polyline(routeCoords, {
-        color: "#FF69B4",
-        weight: 6,
-        opacity: 0.8,
-        dashArray: "10, 10",
-      }).addTo(map);
+    } else if (nodes.length === 0 && lastSubmittedRoute && lastSubmittedRoute.length > 1) {
+      const latestStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.75 };
+      const layer = L.polyline(lastSubmittedRoute as L.LatLngExpression[], latestStyle).addTo(map);
+      routeLayersRef.current.push(layer);
     }
 
     // Step 4: Double-check — count pink layers actually on the map
@@ -255,7 +329,7 @@ const PinkLineMapPage = () => {
 
       markersRef.current.set(node.id, marker);
     });
-  }, [nodes, defaultLineLoaded]);
+  }, [nodes, defaultLineLoaded, integratedRoute, lastSubmittedRoute]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -291,15 +365,30 @@ const PinkLineMapPage = () => {
 
   const handleSubmit = async () => {
     if (nodes.length === 0 || !project) return;
+    if (routeForPersistence.length < 2) {
+      alert(routeError || "Route is not ready. Google Routes failed to compute this path.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
       const unsubmittedNodes = nodes.filter((n) => !n.submissionId);
       if (unsubmittedNodes.length > 0) {
-        await submitPinkLineRoute(project.id, unsubmittedNodes.map((n) => n.id));
+        const submissionId = await submitPinkLineRoute(
+          project.id,
+          unsubmittedNodes.map((n) => n.id),
+          routeForPersistence
+        );
+        if (routeForPersistence.length > 1) {
+          setLastSubmittedRoute(routeForPersistence);
+        }
         const updatedNodes = await loadPinkLineNodes(project.id);
         setNodes(updatedNodes);
-        alert(`Route submitted successfully! ${unsubmittedNodes.length} point${unsubmittedNodes.length !== 1 ? "s" : ""} saved.`);
+        alert(
+          `Route submitted successfully! ${unsubmittedNodes.length} point${
+            unsubmittedNodes.length !== 1 ? "s" : ""
+          } saved. Submission: ${submissionId.slice(0, 8)}...`
+        );
       }
     } catch (error) {
       console.error("Failed to submit route:", error);
@@ -369,6 +458,11 @@ const PinkLineMapPage = () => {
         <div style={{ fontSize: "16px", fontWeight: "500" }}>
           לחץ על המפה כדי להוסיף נקודות • {nodes.length} נקודות
         </div>
+        {routeError && (
+          <div style={{ color: "#b00020", fontSize: "14px", fontWeight: 600 }}>
+            {routeError}
+          </div>
+        )}
         {nodes.length > 0 && (
           <>
             <button
