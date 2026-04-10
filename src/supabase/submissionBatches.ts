@@ -1,6 +1,6 @@
 import { GeoJSON } from "geojson";
 import supabase from ".";
-import type { MemorialFeatureType, PendingSite } from "./memorialSites";
+import type { PendingSite } from "./memorialSites";
 
 /** Matches `PendingPinkNode` in MapPage (`tempId` is stable per geo_feature row for hydration). */
 export interface SubmissionBatchPinkNodeState {
