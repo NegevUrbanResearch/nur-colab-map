@@ -113,6 +113,123 @@ function minDistancePointToPolyline(p: LatLng, path: LatLng[]): number {
   return best;
 }
 
+function closestLatLngOnSegment(p: LatLng, a: LatLng, b: LatLng): LatLng {
+  const px = p[1];
+  const py = p[0];
+  const ax = a[1];
+  const ay = a[0];
+  const bx = b[1];
+  const by = b[0];
+  const abx = bx - ax;
+  const aby = by - ay;
+  const apx = px - ax;
+  const apy = py - ay;
+  const ab2 = abx * abx + aby * aby;
+  if (ab2 < 1e-18) return [a[0], a[1]];
+  let t = (apx * abx + apy * aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+  return [ay + t * aby, ax + t * abx];
+}
+
+function closestOnHeritage(p: LatLng, heritage: LatLng[][]): { point: LatLng; meters: number } {
+  let bestM = Number.POSITIVE_INFINITY;
+  let bestP: LatLng = p;
+  for (const path of heritage) {
+    if (path.length < 2) {
+      if (path.length === 1) {
+        const m = haversineMeters(p, path[0]);
+        if (m < bestM) {
+          bestM = m;
+          bestP = path[0];
+        }
+      }
+      continue;
+    }
+    for (let i = 0; i < path.length - 1; i++) {
+      const q = closestLatLngOnSegment(p, path[i], path[i + 1]);
+      const m = haversineMeters(p, q);
+      if (m < bestM) {
+        bestM = m;
+        bestP = q;
+      }
+    }
+  }
+  return { point: bestP, meters: bestM };
+}
+
+function minDistancePointToHeritageMeters(p: LatLng, heritage: LatLng[][]): number {
+  return closestOnHeritage(p, heritage).meters;
+}
+
+const HERITAGE_ROUTE_MERGE_M = 10;
+
+function trimInteriorVerticesNearHeritage(
+  points: LatLng[],
+  heritage: LatLng[][],
+  thresholdM: number
+): LatLng[] {
+  if (points.length <= 2) return points;
+  const out: LatLng[] = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    if (minDistancePointToHeritageMeters(points[i], heritage) < thresholdM) continue;
+    out.push(points[i]);
+  }
+  out.push(points[points.length - 1]);
+  const dedup: LatLng[] = [];
+  for (const pt of out) {
+    const prev = dedup[dedup.length - 1];
+    if (prev && prev[0] === pt[0] && prev[1] === pt[1]) continue;
+    dedup.push(pt);
+  }
+  return dedup.length >= 2 ? dedup : points;
+}
+
+function mergeDetourPaintNearHeritage(
+  pieces: DetourPaintPiece[],
+  heritage: LatLng[][]
+): DetourPaintPiece[] {
+  if (heritage.length === 0) return pieces;
+  const next: DetourPaintPiece[] = [];
+  for (const piece of pieces) {
+    if (piece.kind === "road") {
+      const trimmed = trimInteriorVerticesNearHeritage(
+        piece.points,
+        heritage,
+        HERITAGE_ROUTE_MERGE_M
+      );
+      next.push({
+        kind: "road",
+        points: trimmed.length >= 2 ? trimmed : piece.points,
+      });
+      continue;
+    }
+    next.push(piece);
+  }
+
+  for (let i = 1; i < next.length; i++) {
+    const prev = next[i - 1];
+    const cur = next[i];
+    if (prev.kind !== "road" || cur.kind !== "offroad") continue;
+    const pts = [...prev.points];
+    let joint = pts[pts.length - 1];
+    const snap = closestOnHeritage(joint, heritage);
+    if (snap.meters <= HERITAGE_ROUTE_MERGE_M) joint = snap.point;
+    pts[pts.length - 1] = joint;
+    while (pts.length >= 2) {
+      const a = pts[pts.length - 2];
+      const b = pts[pts.length - 1];
+      if (a[0] === b[0] && a[1] === b[1]) pts.pop();
+      else break;
+    }
+    if (pts.length < 2) continue;
+    const roadEnd = pts[pts.length - 1];
+    next[i - 1] = { kind: "road", points: pts };
+    next[i] = { kind: "offroad", roadEnd, target: cur.target };
+  }
+
+  return next;
+}
+
 function buildPrefixDistances(path: LatLng[]): number[] {
   const prefix: number[] = [0];
   for (let i = 1; i < path.length; i++) {
@@ -202,11 +319,59 @@ function orderPointsBetweenEndpoints(
   return route.slice(1, -1);
 }
 
+export type DetourPaintPiece =
+  | { kind: "road"; points: LatLng[] }
+  | { kind: "offroad"; roadEnd: LatLng; target: LatLng };
+
 export interface IntegratedRoute {
   solid: LatLng[][];
   dashed: LatLng[][];
   removed: LatLng[][];
+  /** Populated when Google-routed detours split on-road geometry from direct off-network legs. */
+  detourPaint?: DetourPaintPiece[];
   degradedDashedSegments: number;
+}
+
+export const OFFICIAL_NETWORK_GAP_METERS = 28;
+
+function appendLatLngDeduped(out: LatLng[], pts: LatLng[]) {
+  for (const p of pts) {
+    const prev = out[out.length - 1];
+    if (prev && prev[0] === p[0] && prev[1] === p[1]) continue;
+    out.push(p);
+  }
+}
+
+export function flattenIntegratedRouteForPersistence(route: IntegratedRoute): Array<[number, number]> {
+  const flattened: LatLng[] = [];
+
+  if (route.detourPaint && route.detourPaint.length > 0) {
+    for (const piece of route.detourPaint) {
+      if (piece.kind === "road") {
+        appendLatLngDeduped(flattened, piece.points);
+      } else {
+        appendLatLngDeduped(flattened, [piece.roadEnd, piece.target]);
+      }
+    }
+    return flattened.map(([lat, lng]) => [lat, lng] as [number, number]);
+  }
+
+  const source = route.dashed.length > 0 ? route.dashed : route.solid;
+  for (const segment of source) {
+    if (flattened.length === 0) {
+      appendLatLngDeduped(flattened, segment);
+      continue;
+    }
+    if (segment.length === 0) continue;
+    const [firstLat, firstLng] = segment[0];
+    const last = flattened[flattened.length - 1];
+    if (last[0] === firstLat && last[1] === firstLng) {
+      appendLatLngDeduped(flattened, segment.slice(1));
+    } else {
+      appendLatLngDeduped(flattened, segment);
+    }
+  }
+  return flattened.map(([lat, lng]) => [lat, lng] as [number, number]);
 }
 
 function buildIntegratedRouteOneSegment(
@@ -379,33 +544,43 @@ async function buildGoogleLegWithRetries(
 async function buildGoogleDashedSegments(
   dashedSegments: LatLng[][],
   computeRoute: (waypoints: LatLng[]) => Promise<LatLng[]>
-): Promise<{ dashed: LatLng[][]; degradedDashedSegments: number }> {
-  const routedDashed: LatLng[][] = [];
+): Promise<{ detourPaint: DetourPaintPiece[]; degradedDashedSegments: number }> {
+  const detourPaint: DetourPaintPiece[] = [];
 
   for (const segment of dashedSegments) {
-    if (segment.length < 2) {
-      routedDashed.push(segment);
-      continue;
-    }
+    if (segment.length < 2) continue;
 
-    const mergedLegPoints: LatLng[] = [];
+    let bucket: LatLng[] = [];
+
+    const flushBucket = () => {
+      if (bucket.length >= 2) {
+        detourPaint.push({ kind: "road", points: [...bucket] });
+      }
+      bucket = [];
+    };
 
     for (let i = 0; i < segment.length - 1; i++) {
       const start = segment[i];
       const end = segment[i + 1];
       const leg = await buildGoogleLegWithRetries(start, end, i, computeRoute);
 
-      if (mergedLegPoints.length === 0) {
-        mergedLegPoints.push(...leg);
+      if (bucket.length === 0) {
+        bucket.push(...leg);
       } else {
-        mergedLegPoints.push(...leg.slice(1));
+        bucket.push(...leg.slice(1));
+      }
+
+      const roadEnd = leg[leg.length - 1];
+      if (haversineMeters(roadEnd, end) > OFFICIAL_NETWORK_GAP_METERS) {
+        flushBucket();
+        detourPaint.push({ kind: "offroad", roadEnd, target: end });
       }
     }
 
-    routedDashed.push(mergedLegPoints);
+    flushBucket();
   }
 
-  return { dashed: routedDashed, degradedDashedSegments: 0 };
+  return { detourPaint, degradedDashedSegments: 0 };
 }
 
 export async function buildIntegratedRouteWithGoogleDetours(
@@ -420,14 +595,13 @@ export async function buildIntegratedRouteWithGoogleDetours(
   const base = buildIntegratedRoute(basePaths, userPoints);
   if (base.dashed.length === 0) return base;
 
-  const routed = await buildGoogleDashedSegments(
-    base.dashed,
-    options.computeRoute
-  );
+  const routed = await buildGoogleDashedSegments(base.dashed, options.computeRoute);
+  const detourPaint = mergeDetourPaintNearHeritage(routed.detourPaint, base.solid);
   return {
     solid: base.solid,
     removed: base.removed,
-    dashed: routed.dashed,
+    dashed: [],
+    detourPaint,
     degradedDashedSegments: routed.degradedDashedSegments,
   };
 }

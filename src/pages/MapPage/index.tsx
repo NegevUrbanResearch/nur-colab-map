@@ -11,8 +11,11 @@ import { optimizeRoute } from "../../utils/routeOptimizer";
 import {
   buildIntegratedRouteWithGoogleDetours,
   IntegratedRoute,
+  flattenIntegratedRouteForPersistence,
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
+import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
+import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -47,30 +50,14 @@ interface PendingPinkNode {
 }
 
 function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
-  const source = route.dashed.length > 0 ? route.dashed : route.solid;
-  const flattened: Array<[number, number]> = [];
-  for (const segment of source) {
-    if (flattened.length === 0) {
-      flattened.push(...segment);
-      continue;
-    }
-    if (segment.length === 0) continue;
-    const [lastLat, lastLng] = flattened[flattened.length - 1];
-    const [firstLat, firstLng] = segment[0];
-    if (lastLat === firstLat && lastLng === firstLng) {
-      flattened.push(...segment.slice(1));
-    } else {
-      flattened.push(...segment);
-    }
-  }
-  return flattened;
+  return flattenIntegratedRouteForPersistence(route);
 }
 
 const MapPage = () => {
   const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
-  const routeLayersRef = useRef<L.Polyline[]>([]);
+  const routeLayersRef = useRef<L.Layer[]>([]);
   const activeProjectRef = useRef<ActiveProject>("pink");
   const activeMemorialTypeRef = useRef<"central" | "local">("local");
 
@@ -379,12 +366,7 @@ const MapPage = () => {
     if (integratedPinkRoute) {
       const { solid, dashed, removed } = integratedPinkRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
-      const dashedStyle: L.PolylineOptions = {
-        color: "#FF69B4",
-        weight: 5,
-        opacity: 0.9,
-        dashArray: "10, 10",
-      };
+      const dashedStyle = pinkDetourGoogleDashedStyle;
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
       const showPinkDetours = pinkNodes.length > 0;
 
@@ -397,8 +379,12 @@ const MapPage = () => {
         routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
       }
       if (showPinkDetours) {
-        for (const points of dashed) {
-          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+        if (integratedPinkRoute.detourPaint && integratedPinkRoute.detourPaint.length > 0) {
+          addDetourPaintToMap(map, integratedPinkRoute.detourPaint, dashedStyle, routeLayersRef.current);
+        } else {
+          for (const points of dashed) {
+            routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+          }
         }
       }
     }

@@ -128,17 +128,11 @@ Deno.serve(async (req) => {
     origin: toWaypoint(origin),
     destination: toWaypoint(destination),
     intermediates,
-    travelMode: "DRIVE",
-    routingPreference: "TRAFFIC_UNAWARE",
+    travelMode: "WALK",
     computeAlternativeRoutes: false,
     optimizeWaypointOrder: false,
     polylineQuality: "OVERVIEW",
     polylineEncoding: "ENCODED_POLYLINE",
-    routeModifiers: {
-      avoidTolls: false,
-      avoidHighways: false,
-      avoidFerries: false,
-    },
     units: "METRIC",
     languageCode: "en-US",
   };

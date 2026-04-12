@@ -167,7 +167,7 @@ async function insertPinkRouteLineIfNeeded(
     project_id: pinkProjectId,
     submission_id: submissionId,
     name: "Pink Line Route",
-    description: "Computed route using Google Routes API",
+    description: "Computed walking route (Google Routes API)",
     geom: routeGeoJSON,
     feature_type: "pink_line_route",
   });

@@ -92,7 +92,7 @@ export async function submitPinkLineRoute(
     const { error: routeError } = await supabase.from("geo_features").insert([
       {
         name: "Pink Line Route",
-        description: "Computed route using Google Routes API",
+        description: "Computed walking route (Google Routes API)",
         geom: routeGeoJSON,
         project_id: projectId,
         submission_id: submissionId,

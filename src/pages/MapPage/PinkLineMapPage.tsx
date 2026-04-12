@@ -14,7 +14,10 @@ import {
   parseDefaultLinePaths,
   buildIntegratedRouteWithGoogleDetours,
   IntegratedRoute,
+  flattenIntegratedRouteForPersistence,
 } from "../../utils/pinkLineRoute";
+import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
+import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
@@ -36,23 +39,7 @@ interface PinkLineNode {
 }
 
 function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
-  const source = route.dashed.length > 0 ? route.dashed : route.solid;
-  const flattened: Array<[number, number]> = [];
-  for (const segment of source) {
-    if (flattened.length === 0) {
-      flattened.push(...segment);
-      continue;
-    }
-    if (segment.length === 0) continue;
-    const [lastLat, lastLng] = flattened[flattened.length - 1];
-    const [firstLat, firstLng] = segment[0];
-    if (lastLat === firstLat && lastLng === firstLng) {
-      flattened.push(...segment.slice(1));
-    } else {
-      flattened.push(...segment);
-    }
-  }
-  return flattened;
+  return flattenIntegratedRouteForPersistence(route);
 }
 
 const PinkLineMapPage = () => {
@@ -63,7 +50,7 @@ const PinkLineMapPage = () => {
   const routeLineRef = useRef<L.Polyline | null>(null);
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   // Single list of all route polylines on the map (solid + dashed)
-  const routeLayersRef = useRef<L.Polyline[]>([]);
+  const routeLayersRef = useRef<L.Layer[]>([]);
   const [nodes, setNodes] = useState<PinkLineNode[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pendingNode, setPendingNode] = useState<{ lat: number; lng: number } | null>(null);
@@ -84,7 +71,11 @@ const PinkLineMapPage = () => {
   // Nuke every route polyline from the map. Called before every re-render.
   const clearAllRouteLayers = (map: L.Map) => {
     for (const layer of routeLayersRef.current) {
-      try { map.removeLayer(layer); } catch (_) { /* already gone */ }
+      try {
+        map.removeLayer(layer);
+      } catch (_) {
+        /* already gone */
+      }
     }
     routeLayersRef.current = [];
     if (routeLineRef.current) {
@@ -288,7 +279,7 @@ const PinkLineMapPage = () => {
     if (integratedRoute) {
       const { solid, dashed, removed } = integratedRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
-      const dashedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9, dashArray: "10, 10" };
+      const dashedStyle = pinkDetourGoogleDashedStyle;
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
       const showUserDetours = nodes.length > 0;
 
@@ -303,31 +294,26 @@ const PinkLineMapPage = () => {
         routeLayersRef.current.push(layer);
       }
       if (showUserDetours) {
-        for (const pts of dashed) {
-          const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
-          routeLayersRef.current.push(layer);
+        if (integratedRoute.detourPaint && integratedRoute.detourPaint.length > 0) {
+          addDetourPaintToMap(map, integratedRoute.detourPaint, dashedStyle, routeLayersRef.current);
+        } else {
+          for (const pts of dashed) {
+            const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
+            routeLayersRef.current.push(layer);
+          }
         }
       }
     }
 
-    // Step 4: Double-check — count pink layers actually on the map
-    let pinkLayerCount = 0;
+    const refSet = new Set(routeLayersRef.current);
+    let attached = 0;
     map.eachLayer((layer) => {
-      if (layer instanceof L.Polyline && !(layer instanceof L.Polygon)) {
-        pinkLayerCount++;
-      }
+      if (refSet.has(layer)) attached++;
     });
-    const expectedCount = routeLayersRef.current.length + (routeLineRef.current ? 1 : 0);
-    if (pinkLayerCount !== expectedCount) {
-      console.warn(`[PinkLine] LAYER MISMATCH: ${pinkLayerCount} polylines on map, expected ${expectedCount}. Forcing cleanup.`);
-      map.eachLayer((layer) => {
-        if (layer instanceof L.Polyline && !(layer instanceof L.Polygon) &&
-            !routeLayersRef.current.includes(layer as L.Polyline) &&
-            layer !== routeLineRef.current) {
-          map.removeLayer(layer);
-          console.warn(`[PinkLine] Removed orphan polyline layer`);
-        }
-      });
+    if (attached !== refSet.size) {
+      console.warn(
+        `[PinkLine] LAYER MISMATCH: ${attached} managed layers still on map, expected ${refSet.size}.`
+      );
     }
 
     if (nodes.length === 0) return;

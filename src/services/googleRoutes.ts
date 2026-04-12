@@ -51,6 +51,7 @@ export function decodePolyline(encoded: string): LatLng[] {
   return coordinates;
 }
 
+/** Walking directions via the `routes-compute` function (Google Routes API, `WALK`). */
 export async function computeRouteViaEdgeFunction(waypoints: LatLng[]): Promise<ComputedRoute> {
   const { data, error } = await supabase.functions.invoke<ComputeRouteResponse>(
     "routes-compute",
