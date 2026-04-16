@@ -475,6 +475,7 @@ a:hover {
   align-items: stretch;
   align-self: stretch;
   direction: rtl;
+  width: 100%;
   min-width: 0;
   border-radius: 10px;
   overflow: hidden;
@@ -488,7 +489,8 @@ a:hover {
   justify-content: center !important;
   gap: 6px !important;
   flex: 1 1 0;
-  min-width: 0;
+  min-width: 0 !important;
+  min-height: 36px;
   width: auto !important;
   max-width: none !important;
   margin-top: 0 !important;
@@ -512,6 +514,7 @@ a:hover {
   font-size: 16px;
   font-weight: 700;
   line-height: 1;
+  flex-shrink: 0;
   opacity: 0.95;
 }
 
@@ -555,17 +558,28 @@ a:hover {
   .pink-toolbar-actions .map-history-actions,
   .memorial-toolbar-actions .map-history-actions {
     flex: 1 1 100%;
-    width: auto;
-    min-width: min(100%, 220px);
+    align-self: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-direction: column;
   }
 
   .map-history-actions .map-history-btn {
-    padding: 8px 8px !important;
+    flex: 1 1 auto;
+    width: 100% !important;
+    padding: 7px 9px !important;
     font-size: 12px !important;
+    min-height: 36px;
   }
 
   .map-history-actions .map-history-btn .map-history-btn-icon {
-    font-size: 15px;
+    font-size: 13px;
+  }
+
+  .map-history-actions .map-history-btn + .map-history-btn {
+    border-inline-start: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
   }
 }
 
@@ -2309,6 +2323,7 @@ input.unified-submit-name-input,
   .pink-toolbar-actions {
     flex: 1 1 100%;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 6px;
     padding: 2px 0 0;
@@ -2362,6 +2377,7 @@ input.unified-submit-name-input,
   .memorial-toolbar-actions {
     flex: 1 1 100%;
     flex-direction: row;
+    flex-wrap: wrap;
     justify-content: flex-start;
     gap: 6px;
     padding: 2px 0 0;
