@@ -16,6 +16,7 @@ import {
 } from "../../utils/pinkLineRoute";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
 import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
+import { oldLineStyle, solidLineStyle } from "./mapLineStyles";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -407,9 +408,9 @@ const MapPage = () => {
 
     if (integratedPinkRoute) {
       const { solid, dashed, removed } = integratedPinkRoute;
-      const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
+      const solidStyle = solidLineStyle;
       const dashedStyle = pinkDetourGoogleDashedStyle;
-      const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
+      const removedStyle = oldLineStyle;
       const showPinkDetours = pinkNodes.length > 0;
 
       if (showPinkDetours) {

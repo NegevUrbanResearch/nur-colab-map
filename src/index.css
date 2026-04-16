@@ -1478,10 +1478,12 @@ a:hover {
 }
 
 .unified-submit-segment-btn--active {
-  border-color: rgba(255, 90, 168, 0.65) !important;
-  background: rgba(255, 90, 168, 0.14) !important;
+  border-color: rgba(100, 200, 255, 0.55) !important;
+  background: rgba(80, 160, 255, 0.12) !important;
   color: rgba(255, 255, 255, 1) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  box-shadow:
+    0 0 0 1px rgba(100, 200, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
 }
 
 .unified-submit-segment-title {
@@ -1498,7 +1500,7 @@ a:hover {
 }
 
 .unified-submit-segment-btn--active .unified-submit-segment-meta {
-  color: rgba(255, 220, 235, 0.85);
+  color: rgba(200, 230, 255, 0.88);
 }
 
 .unified-submit-actions {
