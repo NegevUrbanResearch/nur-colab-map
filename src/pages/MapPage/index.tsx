@@ -27,6 +27,16 @@ import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
+import {
+  applyEditAction,
+  canRedo,
+  canUndo,
+  createEmptyEditHistory,
+  redoOne,
+  undoOne,
+  type EditAction,
+  type PendingPinkNode,
+} from "./editHistory";
 
 const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
@@ -37,17 +47,12 @@ const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
 const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
+/** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
+const MARKER_REPOSITION_EPSILON_METERS = 2;
+
 type ActiveProject = "pink" | "memorial";
 type SubmitScope = "pink" | "memorial" | "everything";
 type SubmitEditDisposition = "overwrite" | "saveAsNew";
-
-interface PendingPinkNode {
-  tempId: string;
-  name: string | null;
-  description: string | null;
-  lat: number;
-  lng: number;
-}
 
 function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
   return flattenIntegratedRouteForPersistence(route);
@@ -79,6 +84,7 @@ const MapPage = () => {
   const [pinkNodes, setPinkNodes] = useState<PendingPinkNode[]>([]);
   const [centralSite, setCentralSite] = useState<PendingSite | null>(null);
   const [localSites, setLocalSites] = useState<PendingSite[]>([]);
+  const [editHistory, setEditHistory] = useState(createEmptyEditHistory);
 
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitScope, setSubmitScope] = useState<SubmitScope>("everything");
@@ -141,6 +147,38 @@ const MapPage = () => {
   useLayoutEffect(() => {
     submissionNameInputRef.current = submissionNameInput;
   }, [submissionNameInput]);
+
+  const applyLocalAction = useCallback((action: EditAction) => {
+    const state = { pinkNodes, centralSite, localSites };
+    const applied = applyEditAction(state, editHistory, action);
+    setPinkNodes(applied.state.pinkNodes);
+    setCentralSite(applied.state.centralSite);
+    setLocalSites(applied.state.localSites);
+    setEditHistory(applied.history);
+  }, [pinkNodes, centralSite, localSites, editHistory]);
+
+  const handleUndo = useCallback(() => {
+    const state = { pinkNodes, centralSite, localSites };
+    const undone = undoOne(state, editHistory);
+    setPinkNodes(undone.state.pinkNodes);
+    setCentralSite(undone.state.centralSite);
+    setLocalSites(undone.state.localSites);
+    setEditHistory(undone.history);
+  }, [pinkNodes, centralSite, localSites, editHistory]);
+
+  const handleRedo = useCallback(() => {
+    const state = { pinkNodes, centralSite, localSites };
+    const redone = redoOne(state, editHistory);
+    setPinkNodes(redone.state.pinkNodes);
+    setCentralSite(redone.state.centralSite);
+    setLocalSites(redone.state.localSites);
+    setEditHistory(redone.history);
+  }, [pinkNodes, centralSite, localSites, editHistory]);
+
+  const applyLocalActionRef = useRef<(action: EditAction) => void>(() => {});
+  useLayoutEffect(() => {
+    applyLocalActionRef.current = applyLocalAction;
+  }, [applyLocalAction]);
 
   useEffect(() => {
     const bootstrap = async () => {
@@ -235,9 +273,12 @@ const MapPage = () => {
     markersRef.current.clear();
     routeLayersRef.current = [];
 
+    const markersRegistry = markersRef.current;
+
     const mapContainer = document.getElementById("map");
     if (!mapContainer) return;
-    if ((mapContainer as any)._leaflet_id) delete (mapContainer as any)._leaflet_id;
+    const mapEl = mapContainer as HTMLElement & { _leaflet_id?: number };
+    if (mapEl._leaflet_id != null) delete mapEl._leaflet_id;
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
@@ -257,7 +298,8 @@ const MapPage = () => {
         if (!confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) {
           return;
         }
-        setCentralSite(null);
+        const prev = centralSiteRef.current;
+        applyLocalActionRef.current({ kind: "memorial:removeCentral", previous: prev });
       }
       setPendingMemorialTarget({
         lat: e.latlng.lat,
@@ -289,8 +331,8 @@ const MapPage = () => {
         mapRef.current.remove();
         mapRef.current = null;
       }
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current.clear();
+      markersRegistry.forEach((marker) => marker.remove());
+      markersRegistry.clear();
       routeLayersRef.current = [];
     };
   }, [isBootstrapping, bootError]);
@@ -403,6 +445,7 @@ const MapPage = () => {
 
       pinkNodes.forEach((node) => {
         const marker = L.marker([node.lat, node.lng], {
+          draggable: true,
           icon: L.divIcon({
             className: "pink-line-node-marker",
             html: `<div class="pink-line-node">${nodeOrder.get(node.tempId) || 1}</div>`,
@@ -411,10 +454,44 @@ const MapPage = () => {
           }),
         }).addTo(map);
 
-        marker.on("click", () => {
-          if (confirm("Remove this pink line point?")) {
-            setPinkNodes((prev) => prev.filter((n) => n.tempId !== node.tempId));
+        let dragStartLatLng: L.LatLng | null = null;
+        let suppressNextDeleteClick = false;
+        marker.on("dragstart", () => {
+          dragStartLatLng = marker.getLatLng();
+        });
+        marker.on("dragend", () => {
+          const end = marker.getLatLng();
+          const origin = dragStartLatLng ?? L.latLng(node.lat, node.lng);
+          dragStartLatLng = null;
+          const distM = origin.distanceTo(end);
+          if (distM >= MARKER_REPOSITION_EPSILON_METERS) {
+            suppressNextDeleteClick = true;
+            applyLocalActionRef.current({
+              kind: "pink:move",
+              tempId: node.tempId,
+              from: { lat: origin.lat, lng: origin.lng },
+              to: { lat: end.lat, lng: end.lng },
+            });
+          } else {
+            marker.setLatLng(origin);
           }
+        });
+
+        marker.on("click", () => {
+          if (suppressNextDeleteClick) {
+            suppressNextDeleteClick = false;
+            return;
+          }
+          if (!window.confirm("למחוק נקודה זו?")) return;
+          const index = pinkNodes.findIndex((n) => n.tempId === node.tempId);
+          if (index < 0) return;
+          const current = pinkNodes[index];
+          if (!current) return;
+          applyLocalActionRef.current({
+            kind: "pink:remove",
+            node: { ...current },
+            index,
+          });
         });
 
         markersRef.current.set(node.tempId, marker);
@@ -428,14 +505,60 @@ const MapPage = () => {
         iconAnchor: [20, 20],
         popupAnchor: [0, -20],
       });
-      const marker = L.marker([site.lat, site.lng], { icon }).addTo(map);
+      const marker = L.marker([site.lat, site.lng], { icon, draggable: true }).addTo(map);
+      let dragStartLatLng: L.LatLng | null = null;
+      let suppressNextDeleteClick = false;
+      marker.on("dragstart", () => {
+        dragStartLatLng = marker.getLatLng();
+      });
+      marker.on("dragend", () => {
+        const end = marker.getLatLng();
+        const origin = dragStartLatLng ?? L.latLng(site.lat, site.lng);
+        dragStartLatLng = null;
+        const distM = origin.distanceTo(end);
+        if (distM < MARKER_REPOSITION_EPSILON_METERS) {
+          marker.setLatLng(origin);
+          return;
+        }
+        suppressNextDeleteClick = true;
+        if (isCentral) {
+          applyLocalActionRef.current({
+            kind: "memorial:setCentral",
+            site: { ...site, lat: end.lat, lng: end.lng },
+            previous: { ...site },
+          });
+        } else {
+          applyLocalActionRef.current({
+            kind: "memorial:moveLocal",
+            tempId: site.tempId,
+            from: { lat: origin.lat, lng: origin.lng },
+            to: { lat: end.lat, lng: end.lng },
+          });
+        }
+      });
       marker.on("click", () => {
-        if (confirm(isCentral ? "למחוק אנדרטה מרכזית?" : "למחוק אנדרטה מקומית?")) {
-          if (isCentral) {
-            setCentralSite(null);
-          } else {
-            setLocalSites((prev) => prev.filter((s) => s.tempId !== site.tempId));
-          }
+        if (suppressNextDeleteClick) {
+          suppressNextDeleteClick = false;
+          return;
+        }
+        if (!window.confirm(isCentral ? "למחוק אנדרטה מרכזית?" : "למחוק אנדרטה מקומית?")) return;
+        if (isCentral) {
+          const current = centralSite;
+          if (!current || current.tempId !== site.tempId) return;
+          applyLocalActionRef.current({
+            kind: "memorial:removeCentral",
+            previous: { ...current },
+          });
+        } else {
+          const index = localSites.findIndex((s) => s.tempId === site.tempId);
+          if (index < 0) return;
+          const current = localSites[index];
+          if (!current) return;
+          applyLocalActionRef.current({
+            kind: "memorial:removeLocal",
+            site: { ...current },
+            index,
+          });
         }
       });
       markersRef.current.set(site.tempId, marker);
@@ -448,7 +571,11 @@ const MapPage = () => {
   useEffect(() => {
     if (!mapRef.current) return;
     if (pendingPinkMarkerRef.current) {
-      try { mapRef.current.removeLayer(pendingPinkMarkerRef.current); } catch (_) {}
+      try {
+        mapRef.current.removeLayer(pendingPinkMarkerRef.current);
+      } catch {
+        void 0;
+      }
       pendingPinkMarkerRef.current = null;
     }
     if (pendingPinkTarget) {
@@ -466,7 +593,11 @@ const MapPage = () => {
   useEffect(() => {
     if (!mapRef.current) return;
     if (pendingMemorialMarkerRef.current) {
-      try { mapRef.current.removeLayer(pendingMemorialMarkerRef.current); } catch (_) {}
+      try {
+        mapRef.current.removeLayer(pendingMemorialMarkerRef.current);
+      } catch {
+        void 0;
+      }
       pendingMemorialMarkerRef.current = null;
     }
     if (pendingMemorialTarget) {
@@ -557,6 +688,7 @@ const MapPage = () => {
       setPinkNodes([]);
       setCentralSite(null);
       setLocalSites([]);
+      setEditHistory(createEmptyEditHistory());
       closeAllForms();
       return;
     }
@@ -576,6 +708,7 @@ const MapPage = () => {
     setPinkNodes([]);
     setCentralSite(null);
     setLocalSites([]);
+    setEditHistory(createEmptyEditHistory());
     closeAllForms();
 
     try {
@@ -612,6 +745,7 @@ const MapPage = () => {
       setPinkNodes(revertPinkNodes);
       setCentralSite(revertCentralSite);
       setLocalSites(revertLocalSites);
+      setEditHistory(createEmptyEditHistory());
     } finally {
       if (seq === submissionDetailLoadSeqRef.current) {
         setLoadingSubmissionDetail(false);
@@ -676,7 +810,8 @@ const MapPage = () => {
 
       if (type === "central" && centralSiteRef.current) {
         if (!confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) return;
-        setCentralSite(null);
+        const prev = centralSiteRef.current;
+        applyLocalActionRef.current({ kind: "memorial:removeCentral", previous: prev });
       }
 
       setPendingMemorialTarget({ lat: latlng.lat, lng: latlng.lng, type });
@@ -689,15 +824,21 @@ const MapPage = () => {
   const handleClearPink = () => {
     if (pinkNodes.length === 0) return;
     if (!confirm("למחוק את כל נקודות הקו הוורוד?")) return;
-    setPinkNodes([]);
+    applyLocalAction({
+      kind: "pink:clear",
+      before: pinkNodes.map((n) => ({ ...n })),
+    });
   };
 
   const handleClearMemorial = () => {
     const hasAnyMemorial = Boolean(centralSite) || localSites.length > 0;
     if (!hasAnyMemorial) return;
     if (!confirm("למחוק את כל אתרי ההנצחה שסומנו?")) return;
-    setCentralSite(null);
-    setLocalSites([]);
+    applyLocalAction({
+      kind: "memorial:clear",
+      beforeCentral: centralSite ? { ...centralSite } : null,
+      beforeLocal: localSites.map((s) => ({ ...s })),
+    });
   };
 
   const submitSelection = async () => {
@@ -780,6 +921,7 @@ const MapPage = () => {
             );
             setCentralSite(detail.centralSite);
             setLocalSites(detail.localSites);
+            setEditHistory(createEmptyEditHistory());
             submissionNameInputRef.current = detail.name;
             setSubmissionNameInput(detail.name);
             selectedSubmissionIdRef.current = detail.submissionId;
@@ -796,6 +938,7 @@ const MapPage = () => {
               setCentralSite(null);
               setLocalSites([]);
             }
+            setEditHistory(createEmptyEditHistory());
           }
         }
       } else {
@@ -803,6 +946,9 @@ const MapPage = () => {
         if (includeMemorial) {
           setCentralSite(null);
           setLocalSites([]);
+        }
+        if (includePink || includeMemorial) {
+          setEditHistory(createEmptyEditHistory());
         }
       }
 
@@ -866,16 +1012,16 @@ const MapPage = () => {
       {pendingPinkTarget && (
         <PinkLineNodeForm
           onSubmit={(name, description) => {
-            setPinkNodes((prev) => [
-              ...prev,
-              {
+            applyLocalAction({
+              kind: "pink:add",
+              node: {
                 tempId: crypto.randomUUID(),
                 name: name || null,
                 description: description || null,
                 lat: pendingPinkTarget.lat,
                 lng: pendingPinkTarget.lng,
               },
-            ]);
+            });
             setPendingPinkTarget(null);
           }}
           onCancel={() => setPendingPinkTarget(null)}
@@ -900,9 +1046,13 @@ const MapPage = () => {
               feature_type: pendingMemorialTarget.type,
             };
             if (pendingMemorialTarget.type === "central") {
-              setCentralSite(site);
+              applyLocalAction({
+                kind: "memorial:setCentral",
+                site,
+                previous: centralSite,
+              });
             } else {
-              setLocalSites((prev) => [...prev, site]);
+              applyLocalAction({ kind: "memorial:addLocal", site });
             }
             setPendingMemorialTarget(null);
           }}
@@ -944,6 +1094,28 @@ const MapPage = () => {
             >
               נקה הכל
             </button>
+            <div className="map-history-actions" dir="rtl">
+              <button
+                type="button"
+                className="pink-toolbar-action pink-toolbar-action-secondary map-history-btn map-history-btn-undo"
+                onClick={handleUndo}
+                disabled={!canUndo(editHistory)}
+                aria-label="בטל"
+              >
+                <span aria-hidden="true">↶</span>
+                <span>בטל</span>
+              </button>
+              <button
+                type="button"
+                className="pink-toolbar-action pink-toolbar-action-secondary map-history-btn map-history-btn-redo"
+                onClick={handleRedo}
+                disabled={!canRedo(editHistory)}
+                aria-label="בצע שוב"
+              >
+                <span aria-hidden="true">↷</span>
+                <span>בצע שוב</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1017,6 +1189,28 @@ const MapPage = () => {
             >
               נקה הכל
             </button>
+            <div className="map-history-actions" dir="rtl">
+              <button
+                type="button"
+                className="memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary map-history-btn map-history-btn-undo"
+                onClick={handleUndo}
+                disabled={!canUndo(editHistory)}
+                aria-label="בטל"
+              >
+                <span aria-hidden="true">↶</span>
+                <span>בטל</span>
+              </button>
+              <button
+                type="button"
+                className="memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary map-history-btn map-history-btn-redo"
+                onClick={handleRedo}
+                disabled={!canRedo(editHistory)}
+                aria-label="בצע שוב"
+              >
+                <span aria-hidden="true">↷</span>
+                <span>בצע שוב</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

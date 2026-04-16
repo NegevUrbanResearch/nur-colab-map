@@ -261,4 +261,66 @@ describe('editHistory', () => {
     expect(canRedo(history)).toBe(false)
     expect(state.pinkNodes.map((n) => n.tempId)).toEqual(['y'])
   })
+
+  it('mixed local edits: add pink -> move pink -> remove local memorial, then undo x3 and redo x3', () => {
+    const loc = localSite('loc1', 1, 1)
+    let state: EditableMapState = {
+      pinkNodes: [],
+      centralSite: null,
+      localSites: [loc],
+    }
+    let history = createEmptyEditHistory()
+
+    const p1 = pink('p1', 10, 10)
+    ;({ state, history } = applyEditAction(state, history, { kind: 'pink:add', node: p1 }))
+    expect(state.pinkNodes).toEqual([p1])
+    expect(state.localSites.map((s) => s.tempId)).toEqual(['loc1'])
+
+    ;({ state, history } = applyEditAction(state, history, {
+      kind: 'pink:move',
+      tempId: 'p1',
+      from: { lat: 10, lng: 10 },
+      to: { lat: 11, lng: 12 },
+    }))
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 11, lng: 12 })
+
+    ;({ state, history } = applyEditAction(state, history, {
+      kind: 'memorial:removeLocal',
+      site: loc,
+      index: 0,
+    }))
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 11, lng: 12 })
+    expect(state.localSites).toHaveLength(0)
+    expect(state.centralSite).toBeNull()
+    expect(canUndo(history)).toBe(true)
+    expect(canRedo(history)).toBe(false)
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.localSites).toHaveLength(1)
+    expect(state.localSites[0]).toMatchObject({ tempId: 'loc1', lat: 1, lng: 1, feature_type: 'local' })
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 11, lng: 12 })
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 10, lng: 10 })
+    expect(state.localSites.map((s) => s.tempId)).toEqual(['loc1'])
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.pinkNodes).toHaveLength(0)
+    expect(state.localSites.map((s) => s.tempId)).toEqual(['loc1'])
+    expect(canRedo(history)).toBe(true)
+
+    ;({ state, history } = redoOne(state, history))
+    expect(state.pinkNodes).toEqual([p1])
+    expect(state.localSites.map((s) => s.tempId)).toEqual(['loc1'])
+
+    ;({ state, history } = redoOne(state, history))
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 11, lng: 12 })
+    expect(state.localSites.map((s) => s.tempId)).toEqual(['loc1'])
+
+    ;({ state, history } = redoOne(state, history))
+    expect(state.pinkNodes[0]).toMatchObject({ tempId: 'p1', lat: 11, lng: 12 })
+    expect(state.localSites).toHaveLength(0)
+    expect(canRedo(history)).toBe(false)
+    expect(canUndo(history)).toBe(true)
+  })
 })
