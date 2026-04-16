@@ -1095,25 +1095,34 @@ const MapPage = () => {
             >
               נקה הכל
             </button>
-            <div className="map-history-actions" dir="rtl">
+            <div
+              className="map-history-actions"
+              dir="rtl"
+              role="group"
+              aria-label="היסטוריית עריכה"
+            >
               <button
                 type="button"
-                className="pink-toolbar-action pink-toolbar-action-secondary map-history-btn map-history-btn-undo"
+                className="map-history-btn map-history-btn-undo"
                 onClick={handleUndo}
                 disabled={!canUndo(editHistory)}
-                aria-label="בטל"
+                title="בטל"
               >
-                <span aria-hidden="true">↶</span>
+                <span className="map-history-btn-icon" aria-hidden="true">
+                  ↶
+                </span>
                 <span>בטל</span>
               </button>
               <button
                 type="button"
-                className="pink-toolbar-action pink-toolbar-action-secondary map-history-btn map-history-btn-redo"
+                className="map-history-btn map-history-btn-redo"
                 onClick={handleRedo}
                 disabled={!canRedo(editHistory)}
-                aria-label="בצע שוב"
+                title="בצע שוב"
               >
-                <span aria-hidden="true">↷</span>
+                <span className="map-history-btn-icon" aria-hidden="true">
+                  ↷
+                </span>
                 <span>בצע שוב</span>
               </button>
             </div>
@@ -1190,25 +1199,34 @@ const MapPage = () => {
             >
               נקה הכל
             </button>
-            <div className="map-history-actions" dir="rtl">
+            <div
+              className="map-history-actions"
+              dir="rtl"
+              role="group"
+              aria-label="היסטוריית עריכה"
+            >
               <button
                 type="button"
-                className="memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary map-history-btn map-history-btn-undo"
+                className="map-history-btn map-history-btn-undo"
                 onClick={handleUndo}
                 disabled={!canUndo(editHistory)}
-                aria-label="בטל"
+                title="בטל"
               >
-                <span aria-hidden="true">↶</span>
+                <span className="map-history-btn-icon" aria-hidden="true">
+                  ↶
+                </span>
                 <span>בטל</span>
               </button>
               <button
                 type="button"
-                className="memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary map-history-btn map-history-btn-redo"
+                className="map-history-btn map-history-btn-redo"
                 onClick={handleRedo}
                 disabled={!canRedo(editHistory)}
-                aria-label="בצע שוב"
+                title="בצע שוב"
               >
-                <span aria-hidden="true">↷</span>
+                <span className="map-history-btn-icon" aria-hidden="true">
+                  ↷
+                </span>
                 <span>בצע שוב</span>
               </button>
             </div>

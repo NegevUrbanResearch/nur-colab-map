@@ -89,7 +89,9 @@ button:not(.base-map-control-btn):not(.shape-name-input-btn):not(
     .memorial-info-close
   ):not(.unified-map-chip):not(.unified-map-submit-btn):not(
     .unified-submit-action
-  ):not(.unified-submit-choice-card):not(.unified-submit-segment-btn) {
+  ):not(.unified-submit-choice-card):not(.unified-submit-segment-btn):not(
+    .map-history-btn
+  ) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -464,6 +466,107 @@ a:hover {
 .pink-toolbar-action:disabled {
   opacity: 0.5;
   cursor: not-allowed !important;
+}
+
+/* Connected undo / redo (pink + memorial toolbars; RTL labels, LTR control chrome) */
+.map-history-actions {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: stretch;
+  align-self: stretch;
+  direction: rtl;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
+}
+
+.map-history-actions .map-history-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto !important;
+  max-width: none !important;
+  margin-top: 0 !important;
+  border-radius: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
+  font-size: 13px !important;
+  line-height: 1.1 !important;
+  font-weight: 600 !important;
+  padding: 8px 10px !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.map-history-actions .map-history-btn .map-history-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.95;
+}
+
+.map-history-actions .map-history-btn + .map-history-btn {
+  border-inline-start: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
+.map-history-actions .map-history-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 1) !important;
+}
+
+.map-history-actions .map-history-btn:focus {
+  outline: none !important;
+}
+
+.map-history-actions .map-history-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.55) !important;
+  outline-offset: -2px !important;
+  position: relative;
+  z-index: 1;
+}
+
+.map-history-actions .map-history-btn:disabled,
+.map-history-actions .map-history-btn:disabled:hover {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.pink-toolbar-actions .map-history-actions {
+  width: 100%;
+}
+
+.memorial-toolbar-actions .map-history-actions {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .pink-toolbar-actions .map-history-actions,
+  .memorial-toolbar-actions .map-history-actions {
+    flex: 1 1 100%;
+    width: auto;
+    min-width: min(100%, 220px);
+  }
+
+  .map-history-actions .map-history-btn {
+    padding: 8px 8px !important;
+    font-size: 12px !important;
+  }
+
+  .map-history-actions .map-history-btn .map-history-btn-icon {
+    font-size: 15px;
+  }
 }
 
 .toolbar-action-blocked {
