@@ -48,6 +48,19 @@ export type EditAction =
       centralSite: PendingSite | null
       localSites: PendingSite[]
     }
+  | {
+      kind: 'pink:updateMeta'
+      tempId: string
+      before: { name: string | null; description: string | null }
+      after: { name: string | null; description: string | null }
+    }
+  | {
+      kind: 'memorial:updateMeta'
+      scope: 'central' | 'local'
+      tempId: string
+      before: { name: string | null; description: string | null }
+      after: { name: string | null; description: string | null }
+    }
 
 export interface EditHistory {
   undoStack: EditAction[]
@@ -147,6 +160,42 @@ function applyForward(state: EditableMapState, action: EditAction): EditableMapS
         centralSite: action.centralSite ? { ...action.centralSite } : null,
         localSites: action.localSites.map((s) => ({ ...s })),
       }
+    case 'pink:updateMeta': {
+      const i = findPinkIndex(state.pinkNodes, action.tempId)
+      if (i < 0) throw new Error(`pink:updateMeta unknown tempId ${action.tempId}`)
+      const next = [...state.pinkNodes]
+      next[i] = {
+        ...next[i],
+        name: action.after.name,
+        description: action.after.description,
+      }
+      return { ...state, pinkNodes: next }
+    }
+    case 'memorial:updateMeta': {
+      if (action.scope === 'central') {
+        const s = state.centralSite
+        if (!s || s.tempId !== action.tempId) {
+          throw new Error(`memorial:updateMeta central tempId mismatch ${action.tempId}`)
+        }
+        return {
+          ...state,
+          centralSite: {
+            ...s,
+            name: action.after.name,
+            description: action.after.description,
+          },
+        }
+      }
+      const i = findLocalIndex(state.localSites, action.tempId)
+      if (i < 0) throw new Error(`memorial:updateMeta unknown local tempId ${action.tempId}`)
+      const next = [...state.localSites]
+      next[i] = {
+        ...next[i],
+        name: action.after.name,
+        description: action.after.description,
+      }
+      return { ...state, localSites: next }
+    }
     default: {
       const _exhaustive: never = action
       return _exhaustive
@@ -229,6 +278,21 @@ function invertAction(before: EditableMapState, action: EditAction): EditAction 
         kind: 'memorial:clear',
         beforeCentral: action.centralSite ? { ...action.centralSite } : null,
         beforeLocal: action.localSites.map((s) => ({ ...s })),
+      }
+    case 'pink:updateMeta':
+      return {
+        kind: 'pink:updateMeta',
+        tempId: action.tempId,
+        before: { ...action.after },
+        after: { ...action.before },
+      }
+    case 'memorial:updateMeta':
+      return {
+        kind: 'memorial:updateMeta',
+        scope: action.scope,
+        tempId: action.tempId,
+        before: { ...action.after },
+        after: { ...action.before },
       }
     default: {
       const _exhaustive: never = action

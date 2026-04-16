@@ -323,4 +323,64 @@ describe('editHistory', () => {
     expect(canRedo(history)).toBe(false)
     expect(canUndo(history)).toBe(true)
   })
+
+  it('undoes and redoes pink:updateMeta and memorial:updateMeta', () => {
+    let state = emptyState()
+    let history = createEmptyEditHistory()
+
+    const p = { ...pink('p1', 1, 1), name: 'A', description: 'B' }
+    ;({ state, history } = applyEditAction(state, history, { kind: 'pink:add', node: p }))
+
+    const pinkMeta: EditAction = {
+      kind: 'pink:updateMeta',
+      tempId: 'p1',
+      before: { name: 'A', description: 'B' },
+      after: { name: 'C', description: 'D' },
+    }
+    ;({ state, history } = applyEditAction(state, history, pinkMeta))
+    expect(state.pinkNodes[0]).toMatchObject({ name: 'C', description: 'D', lat: 1, lng: 1 })
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.pinkNodes[0]).toMatchObject({ name: 'A', description: 'B' })
+    ;({ state, history } = redoOne(state, history))
+    expect(state.pinkNodes[0]).toMatchObject({ name: 'C', description: 'D' })
+
+    const cen = { ...centralSite('c1', 2, 2), name: 'x', description: 'y' }
+    ;({ state, history } = applyEditAction(state, history, {
+      kind: 'memorial:setCentral',
+      site: cen,
+      previous: null,
+    }))
+
+    const memMeta: EditAction = {
+      kind: 'memorial:updateMeta',
+      scope: 'central',
+      tempId: 'c1',
+      before: { name: 'x', description: 'y' },
+      after: { name: 'n', description: 'm' },
+    }
+    ;({ state, history } = applyEditAction(state, history, memMeta))
+    expect(state.centralSite).toMatchObject({ name: 'n', description: 'm', tempId: 'c1' })
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.centralSite).toMatchObject({ name: 'x', description: 'y' })
+    ;({ state, history } = redoOne(state, history))
+    expect(state.centralSite).toMatchObject({ name: 'n', description: 'm' })
+
+    const loc = { ...localSite('l1', 3, 3), name: 'p', description: 'q' }
+    ;({ state, history } = applyEditAction(state, history, { kind: 'memorial:addLocal', site: loc }))
+
+    const locMeta: EditAction = {
+      kind: 'memorial:updateMeta',
+      scope: 'local',
+      tempId: 'l1',
+      before: { name: 'p', description: 'q' },
+      after: { name: 'r', description: 's' },
+    }
+    ;({ state, history } = applyEditAction(state, history, locMeta))
+    expect(state.localSites[0]).toMatchObject({ name: 'r', description: 's' })
+
+    ;({ state, history } = undoOne(state, history))
+    expect(state.localSites[0]).toMatchObject({ name: 'p', description: 'q' })
+  })
 })

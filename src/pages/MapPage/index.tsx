@@ -5,6 +5,7 @@ import "leaflet/dist/leaflet.css";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
 import MemorialSiteForm from "./MemorialSiteForm";
+import MarkerActionPopover, { type MarkerActionPopoverTarget } from "./MarkerActionPopover";
 import localMemorialIconUrl from "../../assets/memorial-sites/local-memorial-site.png";
 import regionalMemorialIconUrl from "../../assets/memorial-sites/regional-memorial-site.png";
 import { optimizeRoute } from "../../utils/routeOptimizer";
@@ -86,6 +87,13 @@ const MapPage = () => {
   const [centralSite, setCentralSite] = useState<PendingSite | null>(null);
   const [localSites, setLocalSites] = useState<PendingSite[]>([]);
   const [editHistory, setEditHistory] = useState(createEmptyEditHistory);
+
+  const [markerActionPopover, setMarkerActionPopover] = useState<MarkerActionPopoverTarget | null>(null);
+  const [editingPinkTempId, setEditingPinkTempId] = useState<string | null>(null);
+  const [editingMemorial, setEditingMemorial] = useState<{
+    tempId: string;
+    scope: "central" | "local";
+  } | null>(null);
 
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitScope, setSubmitScope] = useState<SubmitScope>("everything");
@@ -483,16 +491,7 @@ const MapPage = () => {
             suppressNextDeleteClick = false;
             return;
           }
-          if (!window.confirm("למחוק נקודה זו?")) return;
-          const index = pinkNodes.findIndex((n) => n.tempId === node.tempId);
-          if (index < 0) return;
-          const current = pinkNodes[index];
-          if (!current) return;
-          applyLocalActionRef.current({
-            kind: "pink:remove",
-            node: { ...current },
-            index,
-          });
+          setMarkerActionPopover({ kind: "pink", tempId: node.tempId });
         });
 
         markersRef.current.set(node.tempId, marker);
@@ -542,25 +541,11 @@ const MapPage = () => {
           suppressNextDeleteClick = false;
           return;
         }
-        if (!window.confirm(isCentral ? "למחוק אנדרטה מרכזית?" : "למחוק אנדרטה מקומית?")) return;
-        if (isCentral) {
-          const current = centralSite;
-          if (!current || current.tempId !== site.tempId) return;
-          applyLocalActionRef.current({
-            kind: "memorial:removeCentral",
-            previous: { ...current },
-          });
-        } else {
-          const index = localSites.findIndex((s) => s.tempId === site.tempId);
-          if (index < 0) return;
-          const current = localSites[index];
-          if (!current) return;
-          applyLocalActionRef.current({
-            kind: "memorial:removeLocal",
-            site: { ...current },
-            index,
-          });
-        }
+        setMarkerActionPopover({
+          kind: "memorial",
+          tempId: site.tempId,
+          memorialScope: isCentral ? "central" : "local",
+        });
       });
       markersRef.current.set(site.tempId, marker);
     };
@@ -674,8 +659,128 @@ const MapPage = () => {
   const closeAllForms = () => {
     setPendingPinkTarget(null);
     setPendingMemorialTarget(null);
+    setMarkerActionPopover(null);
+    setEditingPinkTempId(null);
+    setEditingMemorial(null);
   };
-  const isEntryModalOpen = Boolean(pendingPinkTarget || pendingMemorialTarget);
+  const isEntryModalOpen = Boolean(
+    pendingPinkTarget ||
+      pendingMemorialTarget ||
+      editingPinkTempId ||
+      editingMemorial
+  );
+
+  const markerPopoverAnchor = useMemo(() => {
+    if (!markerActionPopover) return null;
+    if (markerActionPopover.kind === "pink") {
+      const n = pinkNodes.find((x) => x.tempId === markerActionPopover.tempId);
+      return n ? { lat: n.lat, lng: n.lng } : null;
+    }
+    if (markerActionPopover.memorialScope === "central") {
+      const s = centralSite;
+      if (!s || s.tempId !== markerActionPopover.tempId) return null;
+      return { lat: s.lat, lng: s.lng };
+    }
+    const s = localSites.find((x) => x.tempId === markerActionPopover.tempId);
+    return s ? { lat: s.lat, lng: s.lng } : null;
+  }, [markerActionPopover, pinkNodes, centralSite, localSites]);
+
+  const editingMemorialSite: PendingSite | null = useMemo(() => {
+    if (!editingMemorial) return null;
+    if (editingMemorial.scope === "central") {
+      return centralSite?.tempId === editingMemorial.tempId ? centralSite : null;
+    }
+    return localSites.find((s) => s.tempId === editingMemorial.tempId) ?? null;
+  }, [editingMemorial, centralSite, localSites]);
+
+  useEffect(() => {
+    if (markerActionPopover && !markerPopoverAnchor) {
+      setMarkerActionPopover(null);
+    }
+  }, [markerActionPopover, markerPopoverAnchor]);
+
+  useEffect(() => {
+    if (editingPinkTempId && !pinkNodes.some((n) => n.tempId === editingPinkTempId)) {
+      setEditingPinkTempId(null);
+    }
+  }, [editingPinkTempId, pinkNodes]);
+
+  useEffect(() => {
+    if (editingMemorial && !editingMemorialSite) {
+      setEditingMemorial(null);
+    }
+  }, [editingMemorial, editingMemorialSite]);
+
+  const pinkNodeEditForm = useMemo(() => {
+    if (!editingPinkTempId) return null;
+    const node = pinkNodes.find((n) => n.tempId === editingPinkTempId);
+    if (!node) return null;
+    return (
+      <PinkLineNodeForm
+        key={node.tempId}
+        mode="edit"
+        initialName={node.name ?? ""}
+        initialDescription={node.description ?? ""}
+        onSubmit={(name, description) => {
+          const afterName = name.trim() ? name.trim() : null;
+          const afterDesc = description.trim() ? description.trim() : null;
+          const before = { name: node.name, description: node.description };
+          const after = { name: afterName, description: afterDesc };
+          if (before.name === after.name && before.description === after.description) {
+            setEditingPinkTempId(null);
+            return;
+          }
+          applyLocalAction({
+            kind: "pink:updateMeta",
+            tempId: node.tempId,
+            before,
+            after,
+          });
+          setEditingPinkTempId(null);
+        }}
+        onCancel={() => setEditingPinkTempId(null)}
+      />
+    );
+  }, [editingPinkTempId, pinkNodes, applyLocalAction]);
+
+  const memorialSiteEditForm = useMemo(() => {
+    if (!editingMemorial || !editingMemorialSite) return null;
+    const site = editingMemorialSite;
+    const isCentralEdit = editingMemorial.scope === "central";
+    return (
+      <MemorialSiteForm
+        key={`${site.tempId}-edit`}
+        mode="edit"
+        initialName={site.name ?? ""}
+        initialDescription={site.description ?? ""}
+        nameQuestion={isCentralEdit ? "מה שם האתר?" : "מה שם האתר?"}
+        descriptionQuestion={
+          isCentralEdit
+            ? "למה לדעתך אנדרטה מרכזית אזורית צריכה להיות כאן?"
+            : "למה צריכה להיות כאן אנדרטה?"
+        }
+        onSubmit={(name, description) => {
+          const afterName = name.trim() ? name.trim() : null;
+          const afterDesc = description.trim() ? description.trim() : null;
+          const before = { name: site.name, description: site.description };
+          const after = { name: afterName, description: afterDesc };
+          if (before.name === after.name && before.description === after.description) {
+            setEditingMemorial(null);
+            return;
+          }
+          applyLocalAction({
+            kind: "memorial:updateMeta",
+            scope: editingMemorial.scope,
+            tempId: site.tempId,
+            before,
+            after,
+          });
+          setEditingMemorial(null);
+        }}
+        onCancel={() => setEditingMemorial(null)}
+      />
+    );
+  }, [editingMemorial, editingMemorialSite, applyLocalAction]);
 
   const handleSubmissionSelectChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
@@ -1006,6 +1111,8 @@ const MapPage = () => {
 
       {!pendingPinkTarget &&
         !pendingMemorialTarget &&
+        !editingPinkTempId &&
+        !editingMemorial &&
         (submitting || isFetchingPinkRoute) && (
           <PinkRouteFetchingBanner variant={submitting ? "submit" : "route"} />
         )}
@@ -1060,6 +1167,62 @@ const MapPage = () => {
           onCancel={() => setPendingMemorialTarget(null)}
         />
       )}
+
+      {markerActionPopover && markerPopoverAnchor && (
+        <MarkerActionPopover
+          map={mapRef.current}
+          anchor={markerPopoverAnchor}
+          target={markerActionPopover}
+          onClose={() => setMarkerActionPopover(null)}
+          onEdit={() => {
+            const t = markerActionPopover;
+            setMarkerActionPopover(null);
+            if (t.kind === "pink") {
+              setEditingPinkTempId(t.tempId);
+              return;
+            }
+            setEditingMemorial({ tempId: t.tempId, scope: t.memorialScope });
+          }}
+          onDelete={() => {
+            const t = markerActionPopover;
+            setMarkerActionPopover(null);
+            if (t.kind === "pink") {
+              const index = pinkNodes.findIndex((n) => n.tempId === t.tempId);
+              if (index < 0) return;
+              const current = pinkNodes[index];
+              if (!current) return;
+              applyLocalAction({
+                kind: "pink:remove",
+                node: { ...current },
+                index,
+              });
+              return;
+            }
+            if (t.memorialScope === "central") {
+              const current = centralSite;
+              if (!current || current.tempId !== t.tempId) return;
+              applyLocalAction({
+                kind: "memorial:removeCentral",
+                previous: { ...current },
+              });
+              return;
+            }
+            const index = localSites.findIndex((s) => s.tempId === t.tempId);
+            if (index < 0) return;
+            const current = localSites[index];
+            if (!current) return;
+            applyLocalAction({
+              kind: "memorial:removeLocal",
+              site: { ...current },
+              index,
+            });
+          }}
+        />
+      )}
+
+      {pinkNodeEditForm}
+
+      {memorialSiteEditForm}
 
       {activeProject === "pink" && !isEntryModalOpen && (
         <div className="pink-toolbar" dir="rtl">
