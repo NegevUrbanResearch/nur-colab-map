@@ -11,10 +11,10 @@ export const solidLineStyle: PolylineOptions = {
 
 /** Portions replaced by a detour — visually de-emphasized vs proposed. */
 export const oldLineStyle: PolylineOptions = {
-  color: "#7E8A9A",
-  weight: 4,
-  opacity: 0.5,
-  dashArray: "3 8",
+  color: "#6D7887",
+  weight: 4.5,
+  opacity: 0.68,
+  dashArray: "2 7",
   lineCap: "round",
   lineJoin: "round",
 };

@@ -413,13 +413,13 @@ const MapPage = () => {
       const removedStyle = oldLineStyle;
       const showPinkDetours = pinkNodes.length > 0;
 
+      for (const points of solid) {
+        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
+      }
       if (showPinkDetours) {
         for (const points of removed) {
           routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
         }
-      }
-      for (const points of solid) {
-        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
       }
       if (showPinkDetours) {
         if (integratedPinkRoute.detourPaint && integratedPinkRoute.detourPaint.length > 0) {
