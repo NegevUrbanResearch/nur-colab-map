@@ -29,10 +29,19 @@ export const oldLineHaloStyle: PolylineOptions = {
 
 /** New / proposed detour alignment — stronger than old segments. */
 export const proposedLineStyle: PolylineOptions = {
-  color: "#FF4FA3",
+  color: "#ff587b",
   weight: 6,
   opacity: 0.95,
-  dashArray: "4 7",
+  dashArray: "3 7",
+  lineCap: "round",
+  lineJoin: "round",
+};
+
+/** Drawn beneath `proposedLineStyle` polylines for a white halo (solid stroke; dashed line on top). */
+export const proposedLineHaloStyle: PolylineOptions = {
+  color: "#ffffff",
+  weight: 7,
+  opacity: 0.22,
   lineCap: "round",
   lineJoin: "round",
 };

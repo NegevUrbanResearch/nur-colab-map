@@ -18,6 +18,7 @@ import {
 } from "../../utils/pinkLineRoute";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
 import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
+import { proposedLineHaloStyle } from "./mapLineStyles";
 import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
@@ -280,6 +281,7 @@ const PinkLineMapPage = () => {
       const { solid, dashed, removed } = integratedRoute;
       const solidStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.9 };
       const dashedStyle = pinkDetourGoogleDashedStyle;
+      const dashedHaloStyle = proposedLineHaloStyle;
       const removedStyle: L.PolylineOptions = { color: "#FF69B4", weight: 5, opacity: 0.6 };
       const showUserDetours = nodes.length > 0;
 
@@ -295,11 +297,17 @@ const PinkLineMapPage = () => {
       }
       if (showUserDetours) {
         if (integratedRoute.detourPaint && integratedRoute.detourPaint.length > 0) {
-          addDetourPaintToMap(map, integratedRoute.detourPaint, dashedStyle, routeLayersRef.current);
+          addDetourPaintToMap(
+            map,
+            integratedRoute.detourPaint,
+            dashedStyle,
+            routeLayersRef.current,
+            dashedHaloStyle
+          );
         } else {
           for (const pts of dashed) {
-            const layer = L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map);
-            routeLayersRef.current.push(layer);
+            routeLayersRef.current.push(L.polyline(pts as L.LatLngExpression[], dashedHaloStyle).addTo(map));
+            routeLayersRef.current.push(L.polyline(pts as L.LatLngExpression[], dashedStyle).addTo(map));
           }
         }
       }
