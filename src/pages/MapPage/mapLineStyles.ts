@@ -9,12 +9,20 @@ export const solidLineStyle: PolylineOptions = {
   lineJoin: "round",
 };
 
-/** Portions replaced by a detour — visually de-emphasized vs proposed. */
+/** Portions replaced by a detour — solid gray, full opacity (no dash; weaker than proposed via weight). */
 export const oldLineStyle: PolylineOptions = {
   color: "#6D7887",
   weight: 4.5,
-  opacity: 0.68,
-  dashArray: "2 7",
+  opacity: 1,
+  lineCap: "round",
+  lineJoin: "round",
+};
+
+/** Drawn beneath `oldLineStyle` polylines for a white halo without changing gray stroke semantics. */
+export const oldLineHaloStyle: PolylineOptions = {
+  color: "#ffffff",
+  weight: 22,
+  opacity: 0.22,
   lineCap: "round",
   lineJoin: "round",
 };

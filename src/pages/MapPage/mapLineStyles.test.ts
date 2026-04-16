@@ -1,11 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { oldLineStyle, proposedLineStyle } from "./mapLineStyles";
+import { oldLineHaloStyle, oldLineStyle, proposedLineStyle } from "./mapLineStyles";
 
 describe("map line styles", () => {
-  it("keeps old segment visible while still weaker than proposed", () => {
-    expect(oldLineStyle.opacity ?? 0).toBeGreaterThanOrEqual(0.62);
+  it("keeps old segment solid gray at full opacity while still weaker than proposed", () => {
+    expect(oldLineStyle.dashArray).toBeUndefined();
+    expect(oldLineStyle.opacity).toBe(1);
+    expect(oldLineStyle.color).toBe("#6D7887");
     expect(oldLineStyle.weight ?? 0).toBeGreaterThanOrEqual(4);
-    expect(oldLineStyle.opacity ?? 1).toBeLessThan(proposedLineStyle.opacity ?? 1);
     expect(oldLineStyle.weight ?? 0).toBeLessThan(proposedLineStyle.weight ?? 99);
+    expect(proposedLineStyle.dashArray).toBeDefined();
+  });
+
+  it("uses a white halo underlay wider than the gray old line", () => {
+    expect(oldLineHaloStyle.color?.toLowerCase()).toBe("#ffffff");
+    expect(oldLineHaloStyle.dashArray).toBeUndefined();
+    expect(oldLineHaloStyle.weight ?? 0).toBeGreaterThan(oldLineStyle.weight ?? 0);
   });
 });

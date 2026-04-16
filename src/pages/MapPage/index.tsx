@@ -17,7 +17,7 @@ import {
 } from "../../utils/pinkLineRoute";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
 import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
-import { oldLineStyle, solidLineStyle } from "./mapLineStyles";
+import { oldLineHaloStyle, oldLineStyle, solidLineStyle } from "./mapLineStyles";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -37,6 +37,7 @@ import {
   redoOne,
   undoOne,
   type EditAction,
+  type EditableMapState,
   type PendingPinkNode,
 } from "./editHistory";
 
@@ -136,6 +137,18 @@ const MapPage = () => {
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
   const parkingLayerRef = useRef<L.LayerGroup | null>(null);
   const centralSiteRef = useRef<PendingSite | null>(null);
+  /** One-shot: outside dismiss used pointerdown on the map; ignore the subsequent Leaflet map `click` for placement. */
+  const suppressNextMapClickPlacementRef = useRef(false);
+  const popoverDismissSuppressTimerRef = useRef<number | null>(null);
+  const markerActionPopoverRef = useRef<MarkerActionPopoverTarget | null>(null);
+  const pinkNodesRef = useRef<PendingPinkNode[]>(pinkNodes);
+  const localSitesRef = useRef<PendingSite[]>(localSites);
+
+  useLayoutEffect(() => {
+    markerActionPopoverRef.current = markerActionPopover;
+    pinkNodesRef.current = pinkNodes;
+    localSitesRef.current = localSites;
+  }, [markerActionPopover, pinkNodes, localSites]);
 
   useEffect(() => {
     activeProjectRef.current = activeProject;
@@ -189,6 +202,70 @@ const MapPage = () => {
     applyLocalActionRef.current = applyLocalAction;
   }, [applyLocalAction]);
 
+  const handleMarkerActionPopoverClose = useCallback((ev: PointerEvent) => {
+    const map = mapRef.current;
+    if (map?.getContainer().contains(ev.target as Node)) {
+      suppressNextMapClickPlacementRef.current = true;
+      if (popoverDismissSuppressTimerRef.current != null) {
+        window.clearTimeout(popoverDismissSuppressTimerRef.current);
+      }
+      popoverDismissSuppressTimerRef.current = window.setTimeout(() => {
+        popoverDismissSuppressTimerRef.current = null;
+        suppressNextMapClickPlacementRef.current = false;
+      }, 550);
+    }
+    setMarkerActionPopover(null);
+  }, []);
+
+  const handleMarkerActionPopoverEdit = useCallback(() => {
+    const t = markerActionPopoverRef.current;
+    if (!t) return;
+    setMarkerActionPopover(null);
+    if (t.kind === "pink") {
+      setEditingPinkTempId(t.tempId);
+      return;
+    }
+    setEditingMemorial({ tempId: t.tempId, scope: t.memorialScope });
+  }, []);
+
+  const handleMarkerActionPopoverDelete = useCallback(() => {
+    const t = markerActionPopoverRef.current;
+    if (!t) return;
+    setMarkerActionPopover(null);
+    if (t.kind === "pink") {
+      const nodes = pinkNodesRef.current;
+      const index = nodes.findIndex((n) => n.tempId === t.tempId);
+      if (index < 0) return;
+      const current = nodes[index];
+      if (!current) return;
+      applyLocalActionRef.current({
+        kind: "pink:remove",
+        node: { ...current },
+        index,
+      });
+      return;
+    }
+    if (t.memorialScope === "central") {
+      const current = centralSiteRef.current;
+      if (!current || current.tempId !== t.tempId) return;
+      applyLocalActionRef.current({
+        kind: "memorial:removeCentral",
+        previous: { ...current },
+      });
+      return;
+    }
+    const sites = localSitesRef.current;
+    const index = sites.findIndex((s) => s.tempId === t.tempId);
+    if (index < 0) return;
+    const current = sites[index];
+    if (!current) return;
+    applyLocalActionRef.current({
+      kind: "memorial:removeLocal",
+      site: { ...current },
+      index,
+    });
+  }, []);
+
   useEffect(() => {
     const bootstrap = async () => {
       try {
@@ -212,7 +289,7 @@ const MapPage = () => {
         setMemorialProjectId(memorialProject?.id ?? null);
 
         if (!pinkProject) {
-          setBootError("Pink Line project is not available for your user.");
+          setBootError("פרויקט ציר המורשת אינו זמין למשתמש שלך.");
         }
       } catch (error) {
         console.error("Failed to bootstrap unified map:", error);
@@ -299,6 +376,14 @@ const MapPage = () => {
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
 
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
+      if (suppressNextMapClickPlacementRef.current) {
+        suppressNextMapClickPlacementRef.current = false;
+        if (popoverDismissSuppressTimerRef.current != null) {
+          window.clearTimeout(popoverDismissSuppressTimerRef.current);
+          popoverDismissSuppressTimerRef.current = null;
+        }
+        return;
+      }
       if (activeProjectRef.current === "pink") {
         setPendingPinkTarget({ lat: e.latlng.lat, lng: e.latlng.lng });
         return;
@@ -335,6 +420,10 @@ const MapPage = () => {
       .catch((err) => console.error("Failed to load parking lots:", err));
 
     return () => {
+      if (popoverDismissSuppressTimerRef.current != null) {
+        window.clearTimeout(popoverDismissSuppressTimerRef.current);
+        popoverDismissSuppressTimerRef.current = null;
+      }
       parkingLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
@@ -419,6 +508,7 @@ const MapPage = () => {
       const solidStyle = solidLineStyle;
       const dashedStyle = pinkDetourGoogleDashedStyle;
       const removedStyle = oldLineStyle;
+      const removedHaloStyle = oldLineHaloStyle;
       const showPinkDetours = pinkNodes.length > 0;
 
       for (const points of solid) {
@@ -426,6 +516,7 @@ const MapPage = () => {
       }
       if (showPinkDetours) {
         for (const points of removed) {
+          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedHaloStyle).addTo(map));
           routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
         }
       }
@@ -685,6 +776,45 @@ const MapPage = () => {
     return s ? { lat: s.lat, lng: s.lng } : null;
   }, [markerActionPopover, pinkNodes, centralSite, localSites]);
 
+  const markerPopoverDetails = useMemo(() => {
+    if (!markerActionPopover) return null;
+    const nameFallback = "ללא שם";
+    const descriptionFallback = "אין תיאור";
+    const resolvedName = (v: string | null | undefined) => {
+      const t = v?.trim();
+      return t ? t : nameFallback;
+    };
+    const resolvedDescription = (v: string | null | undefined) => {
+      const t = v?.trim();
+      return t ? t : descriptionFallback;
+    };
+    if (markerActionPopover.kind === "pink") {
+      const n = pinkNodes.find((x) => x.tempId === markerActionPopover.tempId);
+      if (!n) return null;
+      return {
+        kindLabel: "ציר מורשת",
+        displayName: resolvedName(n.name),
+        displayDescription: resolvedDescription(n.description),
+      };
+    }
+    if (markerActionPopover.memorialScope === "central") {
+      const s = centralSite;
+      if (!s || s.tempId !== markerActionPopover.tempId) return null;
+      return {
+        kindLabel: "אנדרטה מרכזית",
+        displayName: resolvedName(s.name),
+        displayDescription: resolvedDescription(s.description),
+      };
+    }
+    const s = localSites.find((x) => x.tempId === markerActionPopover.tempId);
+    if (!s) return null;
+    return {
+      kindLabel: "אנדרטה מקומית",
+      displayName: resolvedName(s.name),
+      displayDescription: resolvedDescription(s.description),
+    };
+  }, [markerActionPopover, pinkNodes, centralSite, localSites]);
+
   const editingMemorialSite: PendingSite | null = useMemo(() => {
     if (!editingMemorial) return null;
     if (editingMemorial.scope === "central") {
@@ -694,10 +824,10 @@ const MapPage = () => {
   }, [editingMemorial, centralSite, localSites]);
 
   useEffect(() => {
-    if (markerActionPopover && !markerPopoverAnchor) {
+    if (markerActionPopover && (!markerPopoverAnchor || !markerPopoverDetails)) {
       setMarkerActionPopover(null);
     }
-  }, [markerActionPopover, markerPopoverAnchor]);
+  }, [markerActionPopover, markerPopoverAnchor, markerPopoverDetails]);
 
   useEffect(() => {
     if (editingPinkTempId && !pinkNodes.some((n) => n.tempId === editingPinkTempId)) {
@@ -927,25 +1057,47 @@ const MapPage = () => {
     document.addEventListener("pointerup", onUp);
   };
 
-  const handleClearPink = () => {
-    if (pinkNodes.length === 0) return;
-    if (!confirm("למחוק את כל נקודות הקו הוורוד?")) return;
-    applyLocalAction({
-      kind: "pink:clear",
-      before: pinkNodes.map((n) => ({ ...n })),
-    });
-  };
+  /** Clears pink nodes and/or memorial sites in one event (chains applyEditAction so state stays consistent). */
+  const handleClearAllWorkspace = useCallback(() => {
+    const beforePink = pinkNodes.map((n) => ({ ...n }));
+    const beforeCentral = centralSite ? { ...centralSite } : null;
+    const beforeLocal = localSites.map((s) => ({ ...s }));
+    const hasP = beforePink.length > 0;
+    const hasM = Boolean(beforeCentral) || beforeLocal.length > 0;
+    if (!hasP && !hasM) return;
 
-  const handleClearMemorial = () => {
-    const hasAnyMemorial = Boolean(centralSite) || localSites.length > 0;
-    if (!hasAnyMemorial) return;
-    if (!confirm("למחוק את כל אתרי ההנצחה שסומנו?")) return;
-    applyLocalAction({
-      kind: "memorial:clear",
-      beforeCentral: centralSite ? { ...centralSite } : null,
-      beforeLocal: localSites.map((s) => ({ ...s })),
-    });
-  };
+    let message: string;
+    if (hasP && hasM) {
+      message = "למחוק את כל נקודות ציר המורשת ואת כל אתרי ההנצחה שסומנו?";
+    } else if (hasP) {
+      message = "למחוק את כל נקודות ציר המורשת?";
+    } else {
+      message = "למחוק את כל אתרי ההנצחה שסומנו?";
+    }
+    if (!window.confirm(message)) return;
+
+    const actions: EditAction[] = [];
+    if (hasP) actions.push({ kind: "pink:clear", before: beforePink });
+    if (hasM) {
+      actions.push({
+        kind: "memorial:clear",
+        beforeCentral,
+        beforeLocal,
+      });
+    }
+
+    let state: EditableMapState = { pinkNodes, centralSite, localSites };
+    let history = editHistory;
+    for (const action of actions) {
+      const applied = applyEditAction(state, history, action);
+      state = applied.state;
+      history = applied.history;
+    }
+    setPinkNodes(state.pinkNodes);
+    setCentralSite(state.centralSite);
+    setLocalSites(state.localSites);
+    setEditHistory(history);
+  }, [pinkNodes, centralSite, localSites, editHistory]);
 
   const submitSelection = async () => {
     let includePink = submitScope === "pink" || submitScope === "everything";
@@ -1061,7 +1213,7 @@ const MapPage = () => {
       setShowSubmitModal(false);
 
       const submittedParts = [
-        includePink ? `${pinkNodes.length} נקודות שביל` : null,
+        includePink ? `${pinkNodes.length} נקודות ציר מורשת` : null,
         includeMemorial ? `${memorialRows.length} אתרי הנצחה` : null,
       ]
         .filter(Boolean)
@@ -1168,55 +1320,16 @@ const MapPage = () => {
         />
       )}
 
-      {markerActionPopover && markerPopoverAnchor && (
+      {markerActionPopover && markerPopoverAnchor && markerPopoverDetails && (
         <MarkerActionPopover
           map={mapRef.current}
           anchor={markerPopoverAnchor}
-          target={markerActionPopover}
-          onClose={() => setMarkerActionPopover(null)}
-          onEdit={() => {
-            const t = markerActionPopover;
-            setMarkerActionPopover(null);
-            if (t.kind === "pink") {
-              setEditingPinkTempId(t.tempId);
-              return;
-            }
-            setEditingMemorial({ tempId: t.tempId, scope: t.memorialScope });
-          }}
-          onDelete={() => {
-            const t = markerActionPopover;
-            setMarkerActionPopover(null);
-            if (t.kind === "pink") {
-              const index = pinkNodes.findIndex((n) => n.tempId === t.tempId);
-              if (index < 0) return;
-              const current = pinkNodes[index];
-              if (!current) return;
-              applyLocalAction({
-                kind: "pink:remove",
-                node: { ...current },
-                index,
-              });
-              return;
-            }
-            if (t.memorialScope === "central") {
-              const current = centralSite;
-              if (!current || current.tempId !== t.tempId) return;
-              applyLocalAction({
-                kind: "memorial:removeCentral",
-                previous: { ...current },
-              });
-              return;
-            }
-            const index = localSites.findIndex((s) => s.tempId === t.tempId);
-            if (index < 0) return;
-            const current = localSites[index];
-            if (!current) return;
-            applyLocalAction({
-              kind: "memorial:removeLocal",
-              site: { ...current },
-              index,
-            });
-          }}
+          kindLabel={markerPopoverDetails.kindLabel}
+          displayName={markerPopoverDetails.displayName}
+          displayDescription={markerPopoverDetails.displayDescription}
+          onClose={handleMarkerActionPopoverClose}
+          onEdit={handleMarkerActionPopoverEdit}
+          onDelete={handleMarkerActionPopoverDelete}
         />
       )}
 
@@ -1226,68 +1339,70 @@ const MapPage = () => {
 
       {activeProject === "pink" && !isEntryModalOpen && (
         <div className="pink-toolbar" dir="rtl">
-          <div className="pink-toolbar-section">
-            <div className="pink-toolbar-item-text">
-              <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
-              <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
-              {pinkRouteError && (
-                <span className="pink-toolbar-count" style={{ color: "#b00020", fontWeight: 600 }}>
-                  {pinkRouteError}
-                </span>
-              )}
+          <div className="map-toolbar-body map-toolbar-body--pink" dir="ltr">
+            <div className="map-toolbar-row map-toolbar-row--history">
+              <div className="map-history-actions" dir="rtl" role="group" aria-label="היסטוריית עריכה">
+                <button
+                  type="button"
+                  className="map-history-btn map-history-btn-undo"
+                  onClick={handleUndo}
+                  disabled={!canUndo(editHistory)}
+                  title="בטל"
+                >
+                  <span className="map-history-btn-icon" aria-hidden="true">
+                    ↶
+                  </span>
+                  <span>בטל</span>
+                </button>
+                <button
+                  type="button"
+                  className="map-history-btn map-history-btn-redo"
+                  onClick={handleRedo}
+                  disabled={!canRedo(editHistory)}
+                  title="בצע שוב"
+                >
+                  <span className="map-history-btn-icon" aria-hidden="true">
+                    ↷
+                  </span>
+                  <span>בצע שוב</span>
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="pink-toolbar-divider" />
-          <div className="pink-toolbar-actions">
-            <button
-              type="button"
-              dir="rtl"
-              onClick={() => {
-                if (!hasPink && !hasMemorial) return;
-                setShowSubmitModal(true);
-              }}
-              className={`pink-toolbar-action pink-toolbar-action-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
-            >
-              הגשה
-            </button>
-            <button
-              type="button"
-              dir="rtl"
-              onClick={handleClearPink}
-              className={`pink-toolbar-action pink-toolbar-action-secondary ${pinkNodes.length === 0 ? "toolbar-action-blocked" : ""}`}
-            >
-              נקה הכל
-            </button>
-            <div
-              className="map-history-actions"
-              dir="rtl"
-              role="group"
-              aria-label="היסטוריית עריכה"
-            >
-              <button
-                type="button"
-                className="map-history-btn map-history-btn-undo"
-                onClick={handleUndo}
-                disabled={!canUndo(editHistory)}
-                title="בטל"
-              >
-                <span className="map-history-btn-icon" aria-hidden="true">
-                  ↶
-                </span>
-                <span>בטל</span>
-              </button>
-              <button
-                type="button"
-                className="map-history-btn map-history-btn-redo"
-                onClick={handleRedo}
-                disabled={!canRedo(editHistory)}
-                title="בצע שוב"
-              >
-                <span className="map-history-btn-icon" aria-hidden="true">
-                  ↷
-                </span>
-                <span>בצע שוב</span>
-              </button>
+            <div className="map-toolbar-row map-toolbar-row--main" dir="rtl">
+              <div className="pink-toolbar-section">
+                <div className="pink-toolbar-item-text">
+                  <span className="pink-toolbar-title">לחץ על המפה כדי להוסיף נקודות</span>
+                  <span className="pink-toolbar-count">{pinkNodes.length} נקודות</span>
+                  {pinkRouteError && (
+                    <span className="pink-toolbar-count" style={{ color: "#b00020", fontWeight: 600 }}>
+                      {pinkRouteError}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="map-toolbar-row map-toolbar-row--submit">
+              <div className="map-toolbar-submit-stack" role="group" aria-label="הגשה וניקוי" dir="rtl">
+                <button
+                  type="button"
+                  dir="rtl"
+                  onClick={() => {
+                    if (!hasPink && !hasMemorial) return;
+                    setShowSubmitModal(true);
+                  }}
+                  className={`pink-toolbar-action pink-toolbar-action-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+                >
+                  הגשה
+                </button>
+                <button
+                  type="button"
+                  dir="rtl"
+                  onClick={handleClearAllWorkspace}
+                  className={`pink-toolbar-action pink-toolbar-action-secondary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+                >
+                  נקה הכל
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1298,100 +1413,100 @@ const MapPage = () => {
           className={`memorial-toolbar${memorialDragPlacementEnabled ? "" : " memorial-toolbar--tap-only"}`}
           dir="rtl"
         >
-          <button
-            type="button"
-            className={`memorial-toolbar-section ${activeMemorialType === "central" ? "memorial-toolbar-active" : ""}`}
-            onClick={() => setActiveMemorialType("central")}
-            onPointerDown={
-              memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "central") : undefined
-            }
-          >
-            <div className="memorial-toolbar-drag-item">
-              <img src={regionalMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
+          <div className="map-toolbar-body map-toolbar-body--memorial" dir="ltr">
+            <div className="map-toolbar-row map-toolbar-row--history">
+              <div className="map-history-actions" dir="rtl" role="group" aria-label="היסטוריית עריכה">
+                <button
+                  type="button"
+                  className="map-history-btn map-history-btn-undo"
+                  onClick={handleUndo}
+                  disabled={!canUndo(editHistory)}
+                  title="בטל"
+                >
+                  <span className="map-history-btn-icon" aria-hidden="true">
+                    ↶
+                  </span>
+                  <span>בטל</span>
+                </button>
+                <button
+                  type="button"
+                  className="map-history-btn map-history-btn-redo"
+                  onClick={handleRedo}
+                  disabled={!canRedo(editHistory)}
+                  title="בצע שוב"
+                >
+                  <span className="map-history-btn-icon" aria-hidden="true">
+                    ↷
+                  </span>
+                  <span>בצע שוב</span>
+                </button>
+              </div>
             </div>
-            <div className="memorial-toolbar-item-text">
-              <span className="memorial-toolbar-item-label">אנדרטה מרכזית אזורית</span>
-              <span className="memorial-toolbar-item-value">
-                {centralSite
-                  ? centralSite.name || "—"
-                  : memorialDragPlacementEnabled
-                    ? "גררו למפה או לחצו"
-                    : "לחצו על המפה"}
-              </span>
-            </div>
-          </button>
-
-          <div className="memorial-toolbar-divider" />
-
-          <button
-            type="button"
-            className={`memorial-toolbar-section ${activeMemorialType === "local" ? "memorial-toolbar-active" : ""}`}
-            onClick={() => setActiveMemorialType("local")}
-            onPointerDown={memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "local") : undefined}
-          >
-            <div className="memorial-toolbar-drag-item">
-              <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
-            </div>
-            <div className="memorial-toolbar-item-text">
-              <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({localSites.length})</span>
-              <span className="memorial-toolbar-item-value">
-                {memorialDragPlacementEnabled ? "גררו למפה או לחצו" : "לחצו על המפה"}
-              </span>
-            </div>
-          </button>
-
-          <div className="memorial-toolbar-divider" />
-
-          <div className="memorial-toolbar-actions">
-            <button
-              type="button"
-              dir="rtl"
-              className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
-              onClick={() => {
-                if (!hasPink && !hasMemorial) return;
-                setShowSubmitModal(true);
-              }}
-            >
-              הגשה
-            </button>
-            <button
-              type="button"
-              dir="rtl"
-              className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary ${!hasMemorial ? "toolbar-action-blocked" : ""}`}
-              onClick={handleClearMemorial}
-            >
-              נקה הכל
-            </button>
-            <div
-              className="map-history-actions"
-              dir="rtl"
-              role="group"
-              aria-label="היסטוריית עריכה"
-            >
+            <div className="map-toolbar-row map-toolbar-row--main map-toolbar-memorial-selectors" dir="rtl">
               <button
                 type="button"
-                className="map-history-btn map-history-btn-undo"
-                onClick={handleUndo}
-                disabled={!canUndo(editHistory)}
-                title="בטל"
+                className={`memorial-toolbar-section ${activeMemorialType === "central" ? "memorial-toolbar-active" : ""}`}
+                onClick={() => setActiveMemorialType("central")}
+                onPointerDown={
+                  memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "central") : undefined
+                }
               >
-                <span className="map-history-btn-icon" aria-hidden="true">
-                  ↶
-                </span>
-                <span>בטל</span>
+                <div className="memorial-toolbar-drag-item">
+                  <img src={regionalMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
+                </div>
+                <div className="memorial-toolbar-item-text">
+                  <span className="memorial-toolbar-item-label">אנדרטה מרכזית אזורית</span>
+                  <span className="memorial-toolbar-item-value">
+                    {centralSite
+                      ? centralSite.name || "—"
+                      : memorialDragPlacementEnabled
+                        ? "גררו למפה או לחצו"
+                        : "לחצו על המפה"}
+                  </span>
+                </div>
               </button>
+
+              <div className="memorial-toolbar-divider memorial-toolbar-divider--inline" />
+
               <button
                 type="button"
-                className="map-history-btn map-history-btn-redo"
-                onClick={handleRedo}
-                disabled={!canRedo(editHistory)}
-                title="בצע שוב"
+                className={`memorial-toolbar-section ${activeMemorialType === "local" ? "memorial-toolbar-active" : ""}`}
+                onClick={() => setActiveMemorialType("local")}
+                onPointerDown={memorialDragPlacementEnabled ? (ev) => handleToolbarDragStart(ev, "local") : undefined}
               >
-                <span className="map-history-btn-icon" aria-hidden="true">
-                  ↷
-                </span>
-                <span>בצע שוב</span>
+                <div className="memorial-toolbar-drag-item">
+                  <img src={localMemorialIconUrl} alt="" className="memorial-toolbar-icon" draggable={false} />
+                </div>
+                <div className="memorial-toolbar-item-text">
+                  <span className="memorial-toolbar-item-label">אנדרטות מקומיות ({localSites.length})</span>
+                  <span className="memorial-toolbar-item-value">
+                    {memorialDragPlacementEnabled ? "גררו למפה או לחצו" : "לחצו על המפה"}
+                  </span>
+                </div>
               </button>
+            </div>
+            <div className="map-toolbar-row map-toolbar-row--submit">
+              <div className="map-toolbar-submit-stack" role="group" aria-label="הגשה וניקוי" dir="rtl">
+                <button
+                  type="button"
+                  dir="rtl"
+                  className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+                  onClick={() => {
+                    if (!hasPink && !hasMemorial) return;
+                    setShowSubmitModal(true);
+                  }}
+                >
+                  הגשה
+                </button>
+                <button
+                  type="button"
+                  dir="rtl"
+                  className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-secondary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
+                  onClick={handleClearAllWorkspace}
+                >
+                  נקה הכל
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1442,9 +1557,9 @@ const MapPage = () => {
                 closeAllForms();
                 setActiveProject("pink");
               }}
-              title="שביל תקומה"
+              title="ציר מורשת"
             >
-              שביל תקומה
+              ציר מורשת
             </button>
             <button
               className={`base-map-control-btn project-switch-btn ${activeProject === "memorial" ? "project-switch-btn-active" : ""}`}
@@ -1550,7 +1665,7 @@ const MapPage = () => {
                       onClick={() => setSubmitScope("pink")}
                       aria-pressed={submitScope === "pink"}
                     >
-                      <span className="unified-submit-segment-title">שביל תקומה</span>
+                      <span className="unified-submit-segment-title">ציר מורשת</span>
                       <span className="unified-submit-segment-meta">{pinkNodes.length} נקודות</span>
                     </button>
                     <button
@@ -1572,7 +1687,7 @@ const MapPage = () => {
                       onClick={() => setSubmitScope("everything")}
                       aria-pressed={submitScope === "everything"}
                     >
-                      <span className="unified-submit-segment-title">שביל + אתרים</span>
+                      <span className="unified-submit-segment-title">ציר מורשת + אתרים</span>
                       <span className="unified-submit-segment-meta">אותה הגשה</span>
                     </button>
                   </div>

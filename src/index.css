@@ -83,6 +83,8 @@ ul {
   margin: 0;
 }
 
+/* Generic form-style buttons only. Map toolbar controls opt out via :not(…) so adding a new
+   map control class requires listing it here (or styling under .map-toolbar-body only). */
 button:not(.base-map-control-btn):not(.shape-name-input-btn):not(
     .memorial-toolbar-drag-item
   ):not(.memorial-toolbar-section):not(.memorial-toolbar-text-btn):not(
@@ -91,7 +93,9 @@ button:not(.base-map-control-btn):not(.shape-name-input-btn):not(
     .unified-submit-action
   ):not(.unified-submit-choice-card):not(.unified-submit-segment-btn):not(
     .map-history-btn
-  ):not(.marker-action-popover__btn) {
+  ):not(.marker-action-popover__btn):not(.pink-toolbar-action):not(
+    .memorial-toolbar-action-btn
+  ) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(5px);
@@ -417,6 +421,173 @@ a:hover {
   gap: 2px;
   padding: 2px 4px;
   justify-content: center;
+  min-width: 0;
+}
+
+/* Unified MapPage toolbar: LTR row submit | main | history; desktop undo/redo stack is vertical */
+.map-toolbar-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.map-toolbar-row {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.map-toolbar-row--history {
+  width: 100%;
+}
+
+.map-toolbar-row--history .map-history-actions {
+  width: 100%;
+}
+
+.map-toolbar-row--main {
+  flex: 1 1 auto;
+}
+
+.map-toolbar-memorial-selectors {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  min-width: 0;
+}
+
+.map-toolbar-memorial-selectors .memorial-toolbar-section {
+  flex: 1 1 calc(50% - 4px);
+  min-width: 0;
+}
+
+.memorial-toolbar-divider--inline {
+  width: 1px;
+  align-self: stretch;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 901px) {
+  .map-toolbar-body {
+    flex-direction: row;
+    align-items: stretch;
+    direction: ltr;
+    flex: 1 1 auto;
+    min-width: 0;
+    gap: 10px;
+  }
+
+  .map-toolbar-body .map-toolbar-row--submit {
+    order: 1;
+    flex: 0 0 auto;
+    align-self: stretch;
+  }
+
+  .map-toolbar-body .map-toolbar-row--main {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .map-toolbar-body .map-toolbar-row--history {
+    order: 3;
+    flex: 0 0 auto;
+    align-self: stretch;
+    width: auto;
+  }
+
+  .map-toolbar-body .map-toolbar-row--history .map-history-actions {
+    flex-direction: column;
+    width: 100%;
+    min-width: min(112px, 22vw);
+    max-width: min(112px, 22vw);
+    min-height: 72px;
+    height: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+  }
+
+  .map-toolbar-body
+    .map-toolbar-row--history
+    .map-history-actions
+    .map-history-btn
+    + .map-history-btn {
+    border-inline-start: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  }
+
+  .map-toolbar-body .map-toolbar-row--submit .map-toolbar-submit-stack {
+    flex-direction: column;
+    width: 100%;
+    min-width: min(112px, 22vw);
+    max-width: min(112px, 22vw);
+    height: 100%;
+    min-height: 72px;
+    box-sizing: border-box;
+  }
+
+  /* Equal-width memorial toggles: hover uses only fill so the bar width stays stable */
+  .memorial-toolbar .map-toolbar-memorial-selectors .memorial-toolbar-section {
+    flex: 1 1 0;
+    min-width: 0;
+    box-sizing: border-box;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
+  }
+
+  .memorial-toolbar
+    .map-toolbar-memorial-selectors
+    .memorial-toolbar-section:hover:not(.memorial-toolbar-active) {
+    border-color: transparent;
+    box-shadow: none;
+  }
+}
+
+/* Legacy grid (unused by unified toolbar; kept harmless for any stray markup) */
+.map-toolbar-action-grid {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.map-toolbar-submit-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  align-self: stretch;
+  min-width: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-sizing: border-box;
+}
+
+.map-toolbar-submit-stack > .pink-toolbar-action,
+.map-toolbar-submit-stack > .memorial-toolbar-action-btn {
+  border-radius: 0 !important;
+  border: none !important;
+  flex: 1 1 0;
+  min-height: 36px;
+  box-shadow: none !important;
+}
+
+.map-toolbar-submit-stack > .pink-toolbar-action + .pink-toolbar-action,
+.map-toolbar-submit-stack > .memorial-toolbar-action-btn + .memorial-toolbar-action-btn {
+  border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
 }
 
 .pink-toolbar-action {
@@ -522,6 +693,21 @@ a:hover {
   border-inline-start: 1px solid rgba(255, 255, 255, 0.16) !important;
 }
 
+.map-toolbar-action-grid .map-history-actions {
+  flex-direction: column;
+  align-self: stretch;
+  height: auto;
+}
+
+.map-toolbar-action-grid .map-history-actions .map-history-btn {
+  flex: 1 1 0;
+}
+
+.map-toolbar-action-grid .map-history-actions .map-history-btn + .map-history-btn {
+  border-inline-start: none !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+}
+
 .map-history-actions .map-history-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.12) !important;
   color: rgba(255, 255, 255, 1) !important;
@@ -546,9 +732,15 @@ a:hover {
   color: rgba(255, 255, 255, 0.55) !important;
 }
 
+/* Match publish/clear padding to undo/redo so paired rails read as one control size */
+.map-toolbar-body .map-toolbar-submit-stack > .pink-toolbar-action,
+.map-toolbar-body .map-toolbar-submit-stack > .memorial-toolbar-action-btn {
+  padding: 8px 10px !important;
+}
+
 .marker-action-popover {
-  min-width: 168px;
-  max-width: min(260px, calc(100vw - 24px));
+  min-width: 180px;
+  max-width: min(300px, calc(100vw - 24px));
   padding: 10px 12px;
   background: rgba(20, 20, 20, 0.55);
   backdrop-filter: blur(12px);
@@ -560,11 +752,53 @@ a:hover {
   text-align: right;
 }
 
-.marker-action-popover__title {
-  font-size: 13px;
+.marker-action-popover__content {
+  margin-bottom: 10px;
+}
+
+.marker-action-popover__kind {
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 8px;
-  color: rgba(255, 255, 255, 0.95);
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+@media (max-width: 640px) {
+  .marker-action-popover__kind {
+    font-size: 13px;
+  }
+}
+
+.marker-action-popover__name {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  color: rgba(255, 255, 255, 0.98);
+  word-break: break-word;
+}
+
+.marker-action-popover__description {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.78);
+  max-height: 7.25em;
+  overflow-y: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding-inline-start: 1px;
+}
+
+.marker-action-popover__description::-webkit-scrollbar {
+  width: 5px;
+}
+
+.marker-action-popover__description::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
 }
 
 .marker-action-popover__actions {
@@ -572,6 +806,7 @@ a:hover {
   flex-direction: row;
   gap: 8px;
   justify-content: flex-start;
+  margin-top: 2px;
 }
 
 .marker-action-popover__btn {
@@ -607,41 +842,8 @@ a:hover {
   background: rgba(200, 50, 60, 0.45) !important;
 }
 
-.pink-toolbar-actions .map-history-actions {
+.map-toolbar-row--history .map-history-actions {
   width: 100%;
-}
-
-.memorial-toolbar-actions .map-history-actions {
-  width: 100%;
-}
-
-@media (max-width: 640px) {
-  .pink-toolbar-actions .map-history-actions,
-  .memorial-toolbar-actions .map-history-actions {
-    flex: 1 1 100%;
-    align-self: stretch;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    flex-direction: column;
-  }
-
-  .map-history-actions .map-history-btn {
-    flex: 1 1 auto;
-    width: 100% !important;
-    padding: 7px 9px !important;
-    font-size: 12px !important;
-    min-height: 36px;
-  }
-
-  .map-history-actions .map-history-btn .map-history-btn-icon {
-    font-size: 13px;
-  }
-
-  .map-history-actions .map-history-btn + .map-history-btn {
-    border-inline-start: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
-  }
 }
 
 .toolbar-action-blocked {
@@ -779,7 +981,10 @@ a:hover {
   padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   background: transparent;
   border: 2px solid transparent;
   color: inherit;
@@ -844,8 +1049,8 @@ a:hover {
 }
 
 .memorial-toolbar-item-value {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
   white-space: nowrap;
 }
 
@@ -863,13 +1068,14 @@ a:hover {
   gap: 2px;
   padding: 2px 4px;
   justify-content: center;
+  min-width: 0;
 }
 
 .memorial-toolbar-text-btn {
   background: transparent !important;
   border: none !important;
   color: rgba(255, 255, 255, 0.7) !important;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 500 !important;
   padding: 5px 10px !important;
   cursor: pointer !important;
@@ -2245,13 +2451,14 @@ input.unified-submit-name-input,
   }
 
   .memorial-toolbar-item-value {
-    font-size: 11px;
+    font-size: 12px;
     color: rgba(255, 255, 255, 0.55);
   }
 
   .memorial-toolbar-text-btn {
     flex: 1 1 auto;
     min-width: 110px !important;
+    font-size: 12px !important;
   }
 
   .shape-name-input-container {
@@ -2310,6 +2517,104 @@ input.unified-submit-name-input,
     );
     box-sizing: border-box;
   }
+
+  /* Unified toolbar ≤900px: [publish/clear] | main | [undo/redo], vertical button stacks on the sides */
+  .map-toolbar-body {
+    flex-direction: row;
+    align-items: stretch;
+    direction: ltr;
+    flex-wrap: nowrap;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .map-toolbar-body .map-toolbar-row--submit {
+    order: 1;
+    flex: 0 0 auto;
+    align-self: stretch;
+    width: auto;
+    max-width: min(104px, 27vw);
+  }
+
+  .map-toolbar-body .map-toolbar-row--main {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .map-toolbar-body .map-toolbar-row--history {
+    order: 3;
+    flex: 0 0 auto;
+    align-self: stretch;
+    width: auto;
+    max-width: min(104px, 27vw);
+  }
+
+  .map-toolbar-body .map-toolbar-row--history .map-history-actions {
+    flex-direction: column;
+    width: 100%;
+    min-width: min(104px, 27vw);
+    max-width: min(104px, 27vw);
+    min-height: 72px;
+    height: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+  }
+
+  .map-toolbar-body
+    .map-toolbar-row--history
+    .map-history-actions
+    .map-history-btn
+    + .map-history-btn {
+    border-inline-start: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  }
+
+  /* Unified toolbar tablet/small: publish + clean stacked in the left rail; comfortable rail width */
+  .map-toolbar-body .map-toolbar-row--submit .map-toolbar-submit-stack {
+    flex-direction: column;
+    width: 100%;
+    min-width: min(104px, 27vw);
+    max-width: min(104px, 27vw);
+    height: 100%;
+    min-height: 72px;
+    box-sizing: border-box;
+  }
+
+  /* Center labels in side rails (padding/font from shared .map-toolbar-body rules + defaults) */
+  .map-toolbar-body .map-toolbar-submit-stack > .pink-toolbar-action,
+  .map-toolbar-body .map-toolbar-submit-stack > .memorial-toolbar-action-btn,
+  .map-toolbar-body .map-history-actions .map-history-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .map-toolbar-body .map-history-actions .map-history-btn {
+    direction: rtl !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .map-toolbar-body
+    .map-toolbar-row--submit
+    .map-toolbar-submit-stack
+    > .pink-toolbar-action
+    + .pink-toolbar-action,
+  .map-toolbar-body
+    .map-toolbar-row--submit
+    .map-toolbar-submit-stack
+    > .memorial-toolbar-action-btn
+    + .memorial-toolbar-action-btn {
+    border-inline-start: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.16) !important;
+  }
+
+  .memorial-toolbar-divider--inline {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2332,7 +2637,7 @@ input.unified-submit-name-input,
   .project-switch-btn {
     min-width: 86px !important;
     padding: 0 6px !important;
-    font-size: 10px !important;
+    font-size: 12px !important;
   }
 
   .base-map-controls .project-switch-btn {
@@ -2424,7 +2729,7 @@ input.unified-submit-name-input,
   }
 
   .memorial-toolbar-item-value {
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.3;
     color: rgba(255, 255, 255, 0.55);
   }
@@ -2449,6 +2754,59 @@ input.unified-submit-name-input,
     min-width: 110px !important;
     padding: 8px 10px !important;
     font-size: 13px !important;
+  }
+
+  /* Unified toolbar (≤640px): narrow side rails + compact controls — single definition for submit + history rails */
+  .map-toolbar-body .map-toolbar-row--submit,
+  .map-toolbar-body .map-toolbar-row--history {
+    max-width: min(86px, 21vw);
+  }
+
+  .map-toolbar-body .map-toolbar-row--history .map-history-actions {
+    min-width: min(86px, 21vw);
+    max-width: min(86px, 21vw);
+    min-height: 58px;
+  }
+
+  .map-toolbar-body .map-toolbar-row--submit .map-toolbar-submit-stack {
+    min-width: min(86px, 21vw);
+    max-width: min(86px, 21vw);
+    min-height: 58px;
+  }
+
+  .map-toolbar-body .map-toolbar-submit-stack > .pink-toolbar-action,
+  .map-toolbar-body .map-toolbar-submit-stack > .memorial-toolbar-action-btn {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 6px 5px !important;
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+  }
+
+  .map-toolbar-body .map-history-actions .map-history-btn {
+    display: flex !important;
+    flex: 1 1 0 !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    direction: rtl !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 6px 5px !important;
+    font-size: 12px !important;
+    line-height: 1.05 !important;
+    gap: 4px !important;
+  }
+
+  .map-toolbar-body .map-history-actions .map-history-btn .map-history-btn-icon {
+    font-size: 14px;
   }
 
   .memorial-toolbar-text-btn {
@@ -2509,7 +2867,7 @@ input.unified-submit-name-input,
   }
 
   .unified-submit-name-hint {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .base-map-submissions-group,
@@ -2518,7 +2876,7 @@ input.unified-submit-name-input,
   }
 
   .base-map-submissions-label {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .base-map-submission-select {
@@ -2533,7 +2891,7 @@ input.unified-submit-name-input,
   .base-map-submissions-status,
   .base-map-submissions-status--error,
   .base-map-submissions-error {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .unified-map-toast {

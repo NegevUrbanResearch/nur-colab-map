@@ -10,7 +10,7 @@ interface PinkLineNodeFormProps {
 
 const NAME_QUESTION = "מה השם של נקודת עניין הזו?";
 const DESCRIPTION_QUESTION =
-  "הסבר מה קרה כאן ב-7 באוקטובר ולמה הקו צריך לעבור כאן?";
+  "הסבר מה קרה כאן ב-7 באוקטובר ולמה ציר המורשת צריך לעבור כאן?";
 
 const PinkLineNodeForm = ({
   onSubmit,
@@ -69,7 +69,7 @@ const PinkLineNodeForm = ({
         >
           <div className="shape-name-input-fields">
             <span className="shape-name-input-label" style={{ fontWeight: 600 }}>
-              עריכת נקודה
+              עריכת נקודת ציר מורשת
             </span>
             <label className="shape-name-input-label">{NAME_QUESTION}</label>
             <input

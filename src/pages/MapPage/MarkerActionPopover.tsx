@@ -8,10 +8,16 @@ export type MarkerActionPopoverTarget =
 export interface MarkerActionPopoverProps {
   map: L.Map | null;
   anchor: { lat: number; lng: number } | null;
-  target: MarkerActionPopoverTarget;
+  /** Marker type label (pink node vs memorial scope). */
+  kindLabel: string;
+  /** Resolved display name with caller-provided fallback when empty. */
+  displayName: string;
+  /** Resolved description with caller-provided fallback when empty. */
+  displayDescription: string;
   onEdit: () => void;
   onDelete: () => void;
-  onClose: () => void;
+  /** Called after an outside pointerdown dismiss; passes the event for host-side gesture coordination. */
+  onClose: (ev: PointerEvent) => void;
 }
 
 const computeFixedPosition = (map: L.Map, lat: number, lng: number) => {
@@ -27,7 +33,9 @@ const computeFixedPosition = (map: L.Map, lat: number, lng: number) => {
 const MarkerActionPopover = ({
   map,
   anchor,
-  target,
+  kindLabel,
+  displayName,
+  displayDescription,
   onEdit,
   onDelete,
   onClose,
@@ -65,18 +73,13 @@ const MarkerActionPopover = ({
       const el = panelRef.current;
       if (!el) return;
       if (ev.target instanceof Node && el.contains(ev.target)) return;
-      onClose();
+      onClose(ev);
     };
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
   }, [onClose]);
 
-  const title =
-    target.kind === "pink"
-      ? "נקודת קו ורוד"
-      : target.memorialScope === "central"
-        ? "אנדרטה מרכזית"
-        : "אנדרטה מקומית";
+  const ariaLabel = `${displayName}, ${kindLabel}`;
 
   if (!pos) return null;
 
@@ -86,7 +89,7 @@ const MarkerActionPopover = ({
       className="marker-action-popover"
       dir="rtl"
       role="dialog"
-      aria-label={title}
+      aria-label={ariaLabel}
       style={{
         position: "fixed",
         left: pos.left,
@@ -97,7 +100,11 @@ const MarkerActionPopover = ({
       onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      <div className="marker-action-popover__title">{title}</div>
+      <div className="marker-action-popover__content">
+        <div className="marker-action-popover__kind">{kindLabel}</div>
+        <div className="marker-action-popover__name">{displayName}</div>
+        <div className="marker-action-popover__description">{displayDescription}</div>
+      </div>
       <div className="marker-action-popover__actions">
         <button type="button" className="marker-action-popover__btn marker-action-popover__btn--primary" onClick={onEdit}>
           עריכה
