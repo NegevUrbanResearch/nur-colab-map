@@ -16,13 +16,11 @@ import {
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
-import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
+import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
-  oldLineHaloStyle,
-  oldLineStyle,
-  proposedLineHaloStyle,
-  solidLineStyle,
-} from "./mapLineStyles";
+  isAllowedSubmissionDisplayColor,
+  normalizeSubmissionDisplayColorHex,
+} from "../../submission/submissionDisplayColor";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -510,13 +508,17 @@ const MapPage = () => {
     });
     routeLayersRef.current = [];
 
+    const trimmedDisplayColor = submissionDisplayColor?.trim() ?? "";
+    const validDisplayHex =
+      trimmedDisplayColor && isAllowedSubmissionDisplayColor(trimmedDisplayColor)
+        ? normalizeSubmissionDisplayColorHex(trimmedDisplayColor)!
+        : null;
+    const pinkNodeFill = validDisplayHex ?? "#ff69b4";
+
     if (integratedPinkRoute) {
       const { solid, dashed, removed } = integratedPinkRoute;
-      const solidStyle = solidLineStyle;
-      const dashedStyle = pinkDetourGoogleDashedStyle;
-      const dashedHaloStyle = proposedLineHaloStyle;
-      const removedStyle = oldLineStyle;
-      const removedHaloStyle = oldLineHaloStyle;
+      const { solid: solidStyle, old: removedStyle, proposed: dashedStyle, oldHalo: removedHaloStyle, proposedHalo: dashedHaloStyle } =
+        routeLineStylesForDisplayColor(submissionDisplayColor);
       const showPinkDetours = pinkNodes.length > 0;
 
       for (const points of solid) {
@@ -563,7 +565,7 @@ const MapPage = () => {
           draggable: true,
           icon: L.divIcon({
             className: "pink-line-node-marker",
-            html: `<div class="pink-line-node">${nodeOrder.get(node.tempId) || 1}</div>`,
+            html: `<div class="pink-line-node" style="background-color: ${pinkNodeFill}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.45);">${nodeOrder.get(node.tempId) || 1}</div>`,
             iconSize: [30, 30],
             iconAnchor: [15, 15],
           }),
@@ -605,6 +607,18 @@ const MapPage = () => {
     }
 
     const placeMemorial = (site: PendingSite, isCentral: boolean) => {
+      if (validDisplayHex) {
+        const accent = L.circleMarker([site.lat, site.lng], {
+          radius: 8,
+          color: validDisplayHex,
+          weight: 1,
+          opacity: 0.45,
+          fillColor: validDisplayHex,
+          fillOpacity: 0.25,
+          interactive: false,
+        }).addTo(map);
+        routeLayersRef.current.push(accent);
+      }
       const icon = L.icon({
         iconUrl: isCentral ? regionalMemorialIconUrl : localMemorialIconUrl,
         iconSize: [40, 40],
@@ -658,7 +672,7 @@ const MapPage = () => {
 
     if (centralSite) placeMemorial(centralSite, true);
     localSites.forEach((site) => placeMemorial(site, false));
-  }, [pinkNodes, centralSite, localSites, defaultLineLoaded, integratedPinkRoute]);
+  }, [pinkNodes, centralSite, localSites, defaultLineLoaded, integratedPinkRoute, submissionDisplayColor]);
 
   useEffect(() => {
     if (!mapRef.current) return;

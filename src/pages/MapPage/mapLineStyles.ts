@@ -1,4 +1,8 @@
 import type { PolylineOptions } from "leaflet";
+import {
+  isAllowedSubmissionDisplayColor,
+  normalizeSubmissionDisplayColorHex,
+} from "../../submission/submissionDisplayColor";
 
 /** Confirmed / persisted pink route segments on the map. */
 export const solidLineStyle: PolylineOptions = {
@@ -45,3 +49,55 @@ export const proposedLineHaloStyle: PolylineOptions = {
   lineCap: "round",
   lineJoin: "round",
 };
+
+export type RouteLineStylesForDisplay = {
+  solid: PolylineOptions;
+  old: PolylineOptions;
+  proposed: PolylineOptions;
+  oldHalo: PolylineOptions;
+  proposedHalo: PolylineOptions;
+};
+
+/**
+ * Route stroke styles for the submission display color, or default pink styles when
+ * `hex` is missing or not in the submission palette.
+ */
+export function routeLineStylesForDisplayColor(hex: string | null): RouteLineStylesForDisplay {
+  const raw = hex?.trim() ?? "";
+  if (!raw || !isAllowedSubmissionDisplayColor(raw)) {
+    return {
+      solid: solidLineStyle,
+      old: oldLineStyle,
+      proposed: proposedLineStyle,
+      oldHalo: oldLineHaloStyle,
+      proposedHalo: proposedLineHaloStyle,
+    };
+  }
+  const c = normalizeSubmissionDisplayColorHex(raw)!;
+  return {
+    solid: {
+      color: c,
+      weight: solidLineStyle.weight,
+      opacity: solidLineStyle.opacity,
+      lineCap: "round",
+      lineJoin: "round",
+    },
+    old: {
+      color: c,
+      weight: oldLineStyle.weight,
+      opacity: oldLineStyle.opacity,
+      lineCap: "round",
+      lineJoin: "round",
+    },
+    proposed: {
+      color: c,
+      weight: proposedLineStyle.weight,
+      opacity: proposedLineStyle.opacity,
+      dashArray: proposedLineStyle.dashArray,
+      lineCap: "round",
+      lineJoin: "round",
+    },
+    oldHalo: oldLineHaloStyle,
+    proposedHalo: proposedLineHaloStyle,
+  };
+}
