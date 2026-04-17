@@ -123,6 +123,7 @@ const MapPage = () => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [submissionNameInput, setSubmissionNameInput] = useState("");
   const [loadingSubmissionDetail, setLoadingSubmissionDetail] = useState(false);
+  const [submissionDisplayColor, setSubmissionDisplayColor] = useState<string | null>(null);
   const [submitEditDisposition, setSubmitEditDisposition] = useState<SubmitEditDisposition>("overwrite");
 
   const submissionDetailLoadSeqRef = useRef(0);
@@ -939,6 +940,7 @@ const MapPage = () => {
       setCentralSite(null);
       setLocalSites([]);
       setEditHistory(createEmptyEditHistory());
+      setSubmissionDisplayColor(null);
       closeAllForms();
       return;
     }
@@ -983,6 +985,7 @@ const MapPage = () => {
       submissionNameInputRef.current = detail.name;
       setSelectedSubmissionId(detail.submissionId);
       setSubmissionNameInput(detail.name);
+      setSubmissionDisplayColor(detail.displayColor);
       closeAllForms();
     } catch (err) {
       if (seq !== submissionDetailLoadSeqRef.current) return;
@@ -1203,6 +1206,7 @@ const MapPage = () => {
             setSubmissionNameInput(detail.name);
             selectedSubmissionIdRef.current = detail.submissionId;
             setSelectedSubmissionId(detail.submissionId);
+            setSubmissionDisplayColor(detail.displayColor);
           }
         } catch (reloadErr) {
           if (
@@ -1278,7 +1282,11 @@ const MapPage = () => {
 
   return (
     <>
-      <div id="map" style={{ height: "100vh", width: "100%" }} />
+      <div
+        id="map"
+        style={{ height: "100vh", width: "100%" }}
+        data-submission-display-color={submissionDisplayColor ?? ""}
+      />
 
       {!pendingPinkTarget &&
         !pendingMemorialTarget &&
