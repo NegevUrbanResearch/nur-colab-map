@@ -59,8 +59,13 @@ export type RouteLineStylesForDisplay = {
 };
 
 /**
- * Route stroke styles for the submission display color, or default pink styles when
+ * Route stroke styles derived from a submission `displayColor`, or default pink styles when
  * `hex` is missing or not in the submission palette.
+ *
+ * Product rule: a valid palette color applies **only** to **proposed** diff geometry (dashed
+ * detour / proposed alignment). The original heritage axis (`solid`) and removed / ghosted
+ * segments (`old`, with `oldHalo`) keep the fixed default pink styles for every submission.
+ * `proposedHalo` stays the default white halo under the dashed proposed stroke.
  */
 export function routeLineStylesForDisplayColor(hex: string | null): RouteLineStylesForDisplay {
   const raw = hex?.trim() ?? "";
@@ -75,20 +80,8 @@ export function routeLineStylesForDisplayColor(hex: string | null): RouteLineSty
   }
   const c = normalizeSubmissionDisplayColorHex(raw)!;
   return {
-    solid: {
-      color: c,
-      weight: solidLineStyle.weight,
-      opacity: solidLineStyle.opacity,
-      lineCap: "round",
-      lineJoin: "round",
-    },
-    old: {
-      color: c,
-      weight: oldLineStyle.weight,
-      opacity: oldLineStyle.opacity,
-      lineCap: "round",
-      lineJoin: "round",
-    },
+    solid: solidLineStyle,
+    old: oldLineStyle,
     proposed: {
       color: c,
       weight: proposedLineStyle.weight,

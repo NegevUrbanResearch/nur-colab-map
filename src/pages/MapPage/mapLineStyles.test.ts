@@ -24,18 +24,13 @@ describe("routeLineStylesForDisplayColor", () => {
     expect(s.proposedHalo).toBe(proposedLineHaloStyle);
   });
 
-  it("returns palette-colored strokes and default halos for an allowed hex", () => {
-    const s = routeLineStylesForDisplayColor("#c1121f");
-    expect(s.solid).not.toBe(solidLineStyle);
-    expect(s.solid.color).toBe("#C1121F");
-    expect(s.solid.weight).toBe(solidLineStyle.weight);
-    expect(s.solid.opacity).toBe(solidLineStyle.opacity);
+  it("tints only proposed geometry for an allowed hex; solid and old stay default refs", () => {
+    const s = routeLineStylesForDisplayColor("#e11d48");
+    expect(s.solid).toBe(solidLineStyle);
+    expect(s.old).toBe(oldLineStyle);
 
-    expect(s.old.color).toBe("#C1121F");
-    expect(s.old.weight).toBe(oldLineStyle.weight);
-    expect(s.old.opacity).toBe(oldLineStyle.opacity);
-
-    expect(s.proposed.color).toBe("#C1121F");
+    expect(s.proposed).not.toBe(proposedLineStyle);
+    expect(s.proposed.color).toBe("#E11D48");
     expect(s.proposed.weight).toBe(proposedLineStyle.weight);
     expect(s.proposed.opacity).toBe(proposedLineStyle.opacity);
     expect(s.proposed.dashArray).toBe(proposedLineStyle.dashArray);

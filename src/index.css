@@ -95,6 +95,8 @@ button:not(.base-map-control-btn):not(.shape-name-input-btn):not(
     .map-history-btn
   ):not(.marker-action-popover__btn):not(.pink-toolbar-action):not(
     .memorial-toolbar-action-btn
+  ):not(.base-map-submission-color-trigger):not(
+    .submission-color-swatch-btn
   ) {
   padding: 1rem;
   background-color: rgba(255, 255, 255, 0.1);
@@ -2031,6 +2033,218 @@ a:hover {
   direction: rtl;
 }
 
+.base-map-submission-color-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.base-map-submission-color-trigger {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: none;
+  background: transparent !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s ease;
+}
+
+.base-map-submission-color-trigger-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.22);
+  box-sizing: border-box;
+  flex-shrink: 0;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+@media (hover: hover) {
+  .base-map-submission-color-trigger:hover .base-map-submission-color-trigger-dot {
+    border-color: #ffffff;
+    box-shadow:
+      0 0 0 1px rgba(0, 0, 0, 0.1),
+      0 3px 12px rgba(0, 0, 0, 0.28);
+    transform: scale(1.06);
+  }
+}
+
+@media (hover: hover) {
+  .base-map-submission-color-trigger:hover {
+    transform: scale(1.02);
+  }
+}
+
+.base-map-submission-color-trigger:active {
+  transform: scale(0.96);
+}
+
+.base-map-submission-color-trigger:active .base-map-submission-color-trigger-dot {
+  transform: scale(0.94);
+}
+
+.base-map-submission-color-trigger:focus {
+  outline: none;
+}
+
+.base-map-submission-color-trigger:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.55);
+  outline-offset: 2px;
+}
+
+.base-map-submission-color-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-start: 0;
+  z-index: 1210;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(22, 24, 30, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.48);
+  max-width: min(380px, min(94vw, calc(100vw - 16px)));
+  width: max-content;
+  box-sizing: border-box;
+}
+
+button.base-map-submission-color-trigger:hover {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+.submission-color-swatch-grid {
+  --submission-swatch-target: 48px;
+  --submission-swatch-dot: 32px;
+  --submission-swatch-gap: 12px;
+  display: grid;
+  gap: var(--submission-swatch-gap);
+  width: 100%;
+  max-width: min(420px, min(92vw, calc(100vw - 24px)));
+  grid-template-columns: repeat(4, minmax(var(--submission-swatch-target), 1fr));
+  box-sizing: border-box;
+  justify-items: center;
+  align-items: center;
+}
+
+.submission-color-swatch-grid--compact {
+  --submission-swatch-target: 48px;
+  --submission-swatch-dot: 32px;
+  --submission-swatch-gap: 12px;
+  max-width: min(380px, min(94vw, calc(100vw - 16px)));
+}
+
+.submission-color-swatch-btn {
+  width: var(--submission-swatch-target) !important;
+  height: var(--submission-swatch-target) !important;
+  min-width: var(--submission-swatch-target) !important;
+  min-height: var(--submission-swatch-target) !important;
+  max-width: var(--submission-swatch-target) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  box-sizing: border-box !important;
+  box-shadow: none !important;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease !important;
+}
+
+.submission-color-swatch-dot {
+  width: var(--submission-swatch-dot);
+  height: var(--submission-swatch-dot);
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+.submission-color-swatch-btn:active {
+  transform: scale(0.94);
+}
+
+.submission-color-swatch-btn:active .submission-color-swatch-dot {
+  transform: scale(0.96);
+}
+
+@media (hover: hover) {
+  .submission-color-swatch-btn:hover .submission-color-swatch-dot {
+    box-shadow:
+      0 0 0 1px rgba(255, 255, 255, 0.35),
+      0 3px 10px rgba(0, 0, 0, 0.22);
+  }
+}
+
+.submission-color-swatch-btn--selected {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 0 4px rgba(0, 0, 0, 0.35) !important;
+}
+
+.submission-color-swatch-btn:focus {
+  outline: none !important;
+}
+
+.submission-color-swatch-btn:focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 0 0 5px rgba(59, 130, 246, 0.45) !important;
+}
+
+.submission-color-swatch-btn--selected:focus-visible {
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.95),
+    0 0 0 4px rgba(0, 0, 0, 0.35),
+    0 0 0 7px rgba(59, 130, 246, 0.45) !important;
+}
+
+.memorial-marker-accent-icon.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.memorial-marker-accent-shell {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 0 0 2px var(--mem-accent),
+    0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.memorial-marker-accent-img {
+  display: block;
+  border-radius: 999px;
+  object-fit: contain;
+}
+
 .unified-submit-name-group,
 .unified-submit-name-field {
   display: flex;
@@ -2293,7 +2507,7 @@ input.unified-submit-name-input,
     padding-bottom: calc(var(--map-safe-bottom) + var(--map-bottom-chrome));
   }
 
-  /* Top bar: RTL stack (submissions → project row) + sign-out on physical right */
+  /* Top bar: LTR flex row; sign-out uses order:-1 for physical left; stack stays RTL for text */
   .base-map-controls {
     top: var(--map-safe-top);
     bottom: auto;
@@ -2355,9 +2569,19 @@ input.unified-submit-name-input,
     min-width: 0;
   }
 
-  .project-signout-btn {
+  .base-map-controls > .project-signout-btn {
+    order: -1;
     flex: 0 0 auto;
     align-self: center;
+    margin-inline-end: 6px;
+    padding: 5px 8px !important;
+    min-width: 0 !important;
+    width: auto !important;
+    min-height: 30px !important;
+    max-height: none !important;
+    height: auto !important;
+    font-size: 10px !important;
+    line-height: 1.2 !important;
   }
 
   /* Contextual toolbars anchored to bottom; RTL text stays correct via dir="rtl" on bars. */
