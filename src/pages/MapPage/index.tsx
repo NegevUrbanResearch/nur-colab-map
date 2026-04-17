@@ -1359,6 +1359,11 @@ const MapPage = () => {
         null
       : null;
 
+  const sourceBatchDisplayUpper =
+    selectedSubmissionId != null
+      ? submissionBatches.find((b) => b.submissionId === selectedSubmissionId)?.displayColor.toUpperCase() ?? null
+      : null;
+
   if (isBootstrapping) {
     return (
       <div className="main-page-loader" role="status" aria-live="polite" aria-label="Loading map workspace">
@@ -1791,7 +1796,9 @@ const MapPage = () => {
               >
                 {SUBMISSION_DISPLAY_COLOR_PALETTE.map((hex) => {
                   const upper = hex.toUpperCase();
-                  const isSelf = loadedOverwriteDisplayColorUpper === upper;
+                  const isSelf =
+                    (loadedOverwriteDisplayColorUpper != null && loadedOverwriteDisplayColorUpper === upper) ||
+                    (sourceBatchDisplayUpper != null && sourceBatchDisplayUpper === upper);
                   const isUsedElsewhere = usedDisplayColors.includes(upper);
                   const disabled = isUsedElsewhere && !isSelf;
                   const selectedNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
