@@ -20,6 +20,7 @@ import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
   isAllowedSubmissionDisplayColor,
   normalizeSubmissionDisplayColorHex,
+  SUBMISSION_DISPLAY_COLOR_PALETTE,
 } from "../../submission/submissionDisplayColor";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
@@ -56,6 +57,14 @@ const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
 const MARKER_REPOSITION_EPSILON_METERS = 2;
+
+function normalizedAllowedSubmissionDisplayColor(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const t = raw.trim();
+  if (!t) return null;
+  if (!isAllowedSubmissionDisplayColor(t)) return null;
+  return normalizeSubmissionDisplayColorHex(t)!;
+}
 
 type ActiveProject = "pink" | "memorial";
 type SubmitScope = "pink" | "memorial" | "everything";
@@ -127,6 +136,8 @@ const MapPage = () => {
   const submissionDetailLoadSeqRef = useRef(0);
   const selectedSubmissionIdRef = useRef<string | null>(null);
   const submissionNameInputRef = useRef("");
+  const submissionColorAtLoadRef = useRef<string | null>(null);
+  const submitModalWasOpenRef = useRef(false);
 
   const [memorialDragPlacementEnabled, setMemorialDragPlacementEnabled] = useState(true);
   useEffect(() => {
@@ -347,11 +358,6 @@ const MapPage = () => {
       cancelled = true;
     };
   }, [isBootstrapping, bootError, pinkProjectId, memorialProjectId]);
-
-  useEffect(() => {
-    if (!showSubmitModal) return;
-    if (selectedSubmissionId) setSubmitEditDisposition("overwrite");
-  }, [showSubmitModal, selectedSubmissionId]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -722,8 +728,25 @@ const MapPage = () => {
   const hasPink = pinkNodes.length > 0;
   const hasMemorial = useMemo(() => Boolean(centralSite) || localSites.length > 0, [centralSite, localSites.length]);
 
-  const submissionSelectRows = useMemo(() => {
-    const rows = submissionBatches.map((b) => ({ id: b.submissionId, label: b.name }));
+  const usedDisplayColors = useMemo(
+    () => submissionBatches.map((b) => b.displayColor.toUpperCase()),
+    [submissionBatches]
+  );
+
+  const firstUnusedPaletteColor = useMemo(() => {
+    const usedSet = new Set(usedDisplayColors);
+    const firstFree = SUBMISSION_DISPLAY_COLOR_PALETTE.find((h) => !usedSet.has(h.toUpperCase()));
+    return firstFree ?? SUBMISSION_DISPLAY_COLOR_PALETTE[0];
+  }, [usedDisplayColors]);
+
+  type SubmissionSelectRow = { id: string; label: string; displayColor?: string };
+
+  const submissionSelectRows = useMemo((): SubmissionSelectRow[] => {
+    const rows: SubmissionSelectRow[] = submissionBatches.map((b) => ({
+      id: b.submissionId,
+      label: b.name,
+      displayColor: b.displayColor,
+    }));
     if (selectedSubmissionId && !rows.some((r) => r.id === selectedSubmissionId)) {
       return [
         {
@@ -737,6 +760,16 @@ const MapPage = () => {
   }, [submissionBatches, selectedSubmissionId, submissionNameInput]);
 
   const isEditingExistingSubmission = selectedSubmissionId !== null;
+
+  const selectedSubmissionStripHex = useMemo(() => {
+    const fromState = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+    if (fromState) return fromState;
+    if (selectedSubmissionId) {
+      const batch = submissionBatches.find((b) => b.submissionId === selectedSubmissionId);
+      if (batch) return normalizedAllowedSubmissionDisplayColor(batch.displayColor);
+    }
+    return null;
+  }, [submissionDisplayColor, selectedSubmissionId, submissionBatches]);
 
   /** Overwrite RPC deletes all workspace rows for this submission; partial scope would wipe the other domain. */
   const lockFullWorkspaceOverwrite =
@@ -774,6 +807,26 @@ const MapPage = () => {
     isEditingExistingSubmission,
     submitEditDisposition,
     lockFullWorkspaceOverwrite,
+  ]);
+
+  useEffect(() => {
+    if (!showSubmitModal) {
+      submitModalWasOpenRef.current = false;
+      return;
+    }
+    const justOpened = !submitModalWasOpenRef.current;
+    submitModalWasOpenRef.current = true;
+    if (!justOpened) return;
+    const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
+    if (useOverwrite) return;
+    if (submissionDisplayColor !== null) return;
+    setSubmissionDisplayColor(firstUnusedPaletteColor);
+  }, [
+    showSubmitModal,
+    isEditingExistingSubmission,
+    submitEditDisposition,
+    submissionDisplayColor,
+    firstUnusedPaletteColor,
   ]);
 
   const closeAllForms = () => {
@@ -955,6 +1008,7 @@ const MapPage = () => {
       setLocalSites([]);
       setEditHistory(createEmptyEditHistory());
       setSubmissionDisplayColor(null);
+      submissionColorAtLoadRef.current = null;
       closeAllForms();
       return;
     }
@@ -999,7 +1053,9 @@ const MapPage = () => {
       submissionNameInputRef.current = detail.name;
       setSelectedSubmissionId(detail.submissionId);
       setSubmissionNameInput(detail.name);
-      setSubmissionDisplayColor(detail.displayColor);
+      const loadedColor = normalizedAllowedSubmissionDisplayColor(detail.displayColor);
+      setSubmissionDisplayColor(loadedColor);
+      submissionColorAtLoadRef.current = loadedColor;
       closeAllForms();
     } catch (err) {
       if (seq !== submissionDetailLoadSeqRef.current) return;
@@ -1013,6 +1069,10 @@ const MapPage = () => {
       setCentralSite(revertCentralSite);
       setLocalSites(revertLocalSites);
       setEditHistory(createEmptyEditHistory());
+      const revertBatch = revertId ? submissionBatches.find((b) => b.submissionId === revertId) : undefined;
+      const revertColor = normalizedAllowedSubmissionDisplayColor(revertBatch?.displayColor) ?? null;
+      setSubmissionDisplayColor(revertColor);
+      submissionColorAtLoadRef.current = revertColor;
     } finally {
       if (seq === submissionDetailLoadSeqRef.current) {
         setLoadingSubmissionDetail(false);
@@ -1130,6 +1190,12 @@ const MapPage = () => {
     setEditHistory(history);
   }, [pinkNodes, centralSite, localSites, editHistory]);
 
+  const openSubmitModal = useCallback(() => {
+    if (!hasPink && !hasMemorial) return;
+    if (selectedSubmissionId) setSubmitEditDisposition("overwrite");
+    setShowSubmitModal(true);
+  }, [hasPink, hasMemorial, selectedSubmissionId]);
+
   const submitSelection = async () => {
     let includePink = submitScope === "pink" || submitScope === "everything";
     let includeMemorial = submitScope === "memorial" || submitScope === "everything";
@@ -1154,6 +1220,12 @@ const MapPage = () => {
       const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
 
       if (useOverwrite) {
+        const currentNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+        const loadNorm = submissionColorAtLoadRef.current;
+        const colorChanged =
+          (currentNorm ?? null) !== (loadNorm ?? null);
+        const overwriteColorPayload =
+          colorChanged && currentNorm != null ? { submissionDisplayColor: currentNorm } : {};
         await submitUnifiedFeatures({
           mode: "overwrite",
           targetSubmissionId: selectedSubmissionId!,
@@ -1166,9 +1238,13 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          ...overwriteColorPayload,
         });
       } else {
         const submissionId = crypto.randomUUID();
+        const newColorNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+        const newColorPayload =
+          newColorNorm != null ? { submissionDisplayColor: newColorNorm } : {};
         await submitUnifiedFeatures({
           submissionId,
           submissionName: submissionDisplayName,
@@ -1179,6 +1255,7 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          ...newColorPayload,
         });
         selectedSubmissionIdRef.current = submissionId;
         setSelectedSubmissionId(submissionId);
@@ -1220,7 +1297,9 @@ const MapPage = () => {
             setSubmissionNameInput(detail.name);
             selectedSubmissionIdRef.current = detail.submissionId;
             setSelectedSubmissionId(detail.submissionId);
-            setSubmissionDisplayColor(detail.displayColor);
+            const reloadedColor = normalizedAllowedSubmissionDisplayColor(detail.displayColor);
+            setSubmissionDisplayColor(reloadedColor);
+            submissionColorAtLoadRef.current = reloadedColor;
           }
         } catch (reloadErr) {
           if (
@@ -1234,6 +1313,8 @@ const MapPage = () => {
               setLocalSites([]);
             }
             setEditHistory(createEmptyEditHistory());
+            setSubmissionDisplayColor(null);
+            submissionColorAtLoadRef.current = null;
           }
         }
       } else {
@@ -1268,6 +1349,15 @@ const MapPage = () => {
       setSubmitting(false);
     }
   };
+
+  const loadedOverwriteDisplayColorUpper =
+    isEditingExistingSubmission &&
+    submitEditDisposition === "overwrite" &&
+    selectedSubmissionId
+      ? submissionBatches.find((b) => b.submissionId === selectedSubmissionId)?.displayColor.toUpperCase() ??
+        submissionColorAtLoadRef.current?.toUpperCase() ??
+        null
+      : null;
 
   if (isBootstrapping) {
     return (
@@ -1427,10 +1517,7 @@ const MapPage = () => {
                 <button
                   type="button"
                   dir="rtl"
-                  onClick={() => {
-                    if (!hasPink && !hasMemorial) return;
-                    setShowSubmitModal(true);
-                  }}
+                  onClick={openSubmitModal}
                   className={`pink-toolbar-action pink-toolbar-action-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
                 >
                   הגשה
@@ -1532,10 +1619,7 @@ const MapPage = () => {
                   type="button"
                   dir="rtl"
                   className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
-                  onClick={() => {
-                    if (!hasPink && !hasMemorial) return;
-                    setShowSubmitModal(true);
-                  }}
+                  onClick={openSubmitModal}
                 >
                   הגשה
                 </button>
@@ -1559,21 +1643,41 @@ const MapPage = () => {
             <label className="base-map-submissions-label" htmlFor="map-submission-select">
               הגשות
             </label>
-            <select
-              id="map-submission-select"
-              className="base-map-submission-select base-map-control-btn project-switch-btn"
-              value={selectedSubmissionId ?? ""}
-              onChange={(e) => void handleSubmissionSelectChange(e)}
-              disabled={submissionBatchesLoading || loadingSubmissionDetail}
-              aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+            <div
+              className="base-map-submission-select-row"
+              dir="rtl"
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              <option value="">הגשה חדשה</option>
-              {submissionSelectRows.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+              <span
+                className="base-map-submission-current-swatch"
+                title="צבע ההגשה הנבחרת במפה"
+                aria-hidden
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  flexShrink: 0,
+                  backgroundColor: selectedSubmissionStripHex ?? "#ff69b4",
+                  boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.2)",
+                }}
+              />
+              <select
+                id="map-submission-select"
+                className="base-map-submission-select base-map-control-btn project-switch-btn"
+                style={{ flex: 1, minWidth: 0 }}
+                value={selectedSubmissionId ?? ""}
+                onChange={(e) => void handleSubmissionSelectChange(e)}
+                disabled={submissionBatchesLoading || loadingSubmissionDetail}
+                aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+              >
+                <option value="">הגשה חדשה</option>
+                {submissionSelectRows.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             {submissionBatchesLoading && (
               <span className="base-map-submissions-status" aria-live="polite">
                 טוען רשימה…
@@ -1650,6 +1754,86 @@ const MapPage = () => {
               {!submissionNameInput.trim() && (
                 <p className="unified-submit-name-hint">יש להזין שם לפני השליחה</p>
               )}
+            </div>
+
+            <div className="unified-submit-color-field" dir="rtl">
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  marginBottom: 8,
+                }}
+              >
+                <span className="unified-submit-panel-label" style={{ marginBottom: 0 }}>
+                  צבע במפה
+                </span>
+                <button
+                  type="button"
+                  className="unified-submit-action"
+                  style={{ fontSize: "0.85rem", padding: "4px 10px" }}
+                  onClick={() => setSubmissionDisplayColor(null)}
+                >
+                  צבע אוטומטי
+                </button>
+              </div>
+              <div
+                role="list"
+                aria-label="בחירת צבע להגשה"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(8, minmax(0, 1fr))",
+                  gap: 6,
+                  maxWidth: 280,
+                }}
+              >
+                {SUBMISSION_DISPLAY_COLOR_PALETTE.map((hex) => {
+                  const upper = hex.toUpperCase();
+                  const isSelf = loadedOverwriteDisplayColorUpper === upper;
+                  const isUsedElsewhere = usedDisplayColors.includes(upper);
+                  const disabled = isUsedElsewhere && !isSelf;
+                  const selectedNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+                  const isSelected = selectedNorm === upper;
+                  return (
+                    <button
+                      key={hex}
+                      type="button"
+                      role="listitem"
+                      disabled={disabled}
+                      title={
+                        disabled
+                          ? "צבע זה כבר בשימוש בהגשה אחרת"
+                          : `${hex}${isSelected ? " (נבחר)" : ""}`
+                      }
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        const n = normalizeSubmissionDisplayColorHex(hex);
+                        if (n) setSubmissionDisplayColor(n);
+                      }}
+                      style={{
+                        width: "100%",
+                        aspectRatio: "1",
+                        borderRadius: 6,
+                        border: isSelected ? "2px solid #111" : "1px solid rgba(0,0,0,0.25)",
+                        backgroundColor: hex,
+                        padding: 0,
+                        cursor: disabled ? "not-allowed" : "pointer",
+                        opacity: disabled ? 0.35 : 1,
+                        boxSizing: "border-box",
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              <p
+                className="unified-submit-name-hint"
+                style={{ marginTop: 8, textAlign: "start", maxWidth: 320 }}
+              >
+                הצבע משמש להדגשת המסלול והנקודות במפה וב־Cityscope. צבעים שכבר נתפסו על־ידי הגשה אחרת אינם
+                זמינים לבחירה (מותר לשמור את הצבע של ההגשה הנוכחית בעת עדכון).
+              </p>
             </div>
 
             {isEditingExistingSubmission && (
