@@ -14,6 +14,7 @@ export interface SubmissionBatchPinkNodeState {
 export interface SubmissionBatchSummary {
   submissionId: string;
   name: string;
+  displayColor: string;
   createdAt: string;
   updatedAt: string;
   pinkNodeCount: number;
@@ -24,6 +25,7 @@ export interface SubmissionBatchSummary {
 export interface SubmissionBatchDetail {
   submissionId: string;
   name: string;
+  displayColor: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +48,7 @@ export type MapWorkspaceProjectIds = {
 type SubmissionBatchListRow = {
   submission_id: string;
   submission_name: string;
+  display_color: string;
   created_at: string;
   updated_at: string;
 };
@@ -137,7 +140,9 @@ export async function listSubmissionBatchSummariesForMapContext(
 
   const { data: batchRows, error: batchErr } = await supabase
     .from("submission_batches")
-    .select("submission_id, submission_name, created_at, updated_at")
+    .select(
+      "submission_id, submission_name, display_color, created_at, updated_at"
+    )
     .in("submission_id", submissionIds)
     .order("updated_at", { ascending: false });
 
@@ -183,6 +188,7 @@ export async function listSubmissionBatchSummariesForMapContext(
     return {
       submissionId: raw.submission_id,
       name: raw.submission_name,
+      displayColor: raw.display_color,
       createdAt: raw.created_at,
       updatedAt: raw.updated_at,
       pinkNodeCount: counts.pinkNodeCount,
@@ -230,7 +236,9 @@ export async function listSubmissionBatchSummariesForWorkspace(
 
   const { data: batchRows, error: batchErr } = await supabase
     .from("submission_batches")
-    .select("submission_id, submission_name, created_at, updated_at")
+    .select(
+      "submission_id, submission_name, display_color, created_at, updated_at"
+    )
     .in("submission_id", submissionIds)
     .order("updated_at", { ascending: false });
 
@@ -275,6 +283,7 @@ export async function listSubmissionBatchSummariesForWorkspace(
     return {
       submissionId: raw.submission_id,
       name: raw.submission_name,
+      displayColor: raw.display_color,
       createdAt: raw.created_at,
       updatedAt: raw.updated_at,
       pinkNodeCount: counts.pinkNodeCount,
@@ -304,7 +313,7 @@ export async function loadSubmissionBatchMapDetail(
   const { data: batch, error: batchErr } = await supabase
     .from("submission_batches")
     .select(
-      "submission_id, submission_name, created_by, created_at, updated_at"
+      "submission_id, submission_name, display_color, created_by, created_at, updated_at"
     )
     .eq("submission_id", submissionId)
     .maybeSingle();
@@ -405,6 +414,7 @@ export async function loadSubmissionBatchMapDetail(
   return {
     submissionId: b.submission_id,
     name: b.submission_name,
+    displayColor: b.display_color,
     createdBy: b.created_by,
     createdAt: b.created_at,
     updatedAt: b.updated_at,
@@ -412,27 +422,6 @@ export async function loadSubmissionBatchMapDetail(
     centralSite,
     localSites,
   };
-}
-
-export async function createSubmissionBatch(params: {
-  submissionId: string;
-  submissionName: string;
-}): Promise<void> {
-  const name = params.submissionName.trim();
-  if (!name) throw new Error("Submission name is required.");
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not authenticated.");
-
-  const { error } = await supabase.from("submission_batches").insert({
-    submission_id: params.submissionId,
-    submission_name: name,
-    created_by: user.id,
-  });
-
-  if (error) throw error;
 }
 
 export async function updateSubmissionBatchNameAndTimestamp(

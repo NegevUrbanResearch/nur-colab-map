@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .supabase_readme
 .cursor
+.tmp-*.sql
+docs/superpowers/plans/

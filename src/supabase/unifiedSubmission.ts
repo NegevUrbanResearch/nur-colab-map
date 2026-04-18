@@ -2,6 +2,7 @@ import { GeoJSON } from "geojson";
 import supabase from ".";
 import { MemorialFeatureType } from "./memorialSites";
 import type { MapWorkspaceProjectIds } from "./submissionBatches";
+import { isAllowedSubmissionDisplayColor } from "../submission/submissionDisplayColor";
 
 export interface PendingPinkNodeSubmission {
   name: string | null;
@@ -29,6 +30,7 @@ type SubmitUnifiedFeaturesParamsBase = {
   /** Lat/lng pairs; persisted as LineString after RPC (RPC accepts points only). */
   pinkRoutePoints?: Array<[number, number]>;
   memorialSites: PendingMemorialSubmission[];
+  submissionDisplayColor?: string | null;
 };
 
 /** Create a new submission batch row and insert features (default). */
@@ -181,6 +183,13 @@ async function insertPinkRouteLineIfNeeded(
 export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams): Promise<void> {
   const pinkRoutePoints = params.pinkRoutePoints;
 
+  if (params.submissionDisplayColor != null) {
+    const trimmed = params.submissionDisplayColor.trim();
+    if (trimmed !== "" && !isAllowedSubmissionDisplayColor(trimmed)) {
+      throw new Error("Invalid submission display color.");
+    }
+  }
+
   if (params.mode === "overwrite") {
     const { targetSubmissionId, submissionName } = params;
     const workspace: MapWorkspaceProjectIds =
@@ -197,6 +206,7 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
       p_pink_project_id: workspace.pinkProjectId,
       p_memorial_project_id: workspace.memorialProjectId,
       p_feature_rows: rowsToRpcPayload(rows),
+      p_submission_display_color: params.submissionDisplayColor ?? null,
     });
     if (error) throw error;
     await insertPinkRouteLineIfNeeded(
@@ -226,6 +236,7 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
     p_pink_project_id: params.pinkProjectId,
     p_memorial_project_id: params.memorialProjectId,
     p_feature_rows: rowsToRpcPayload(rows),
+    p_submission_display_color: params.submissionDisplayColor ?? null,
   });
   if (error) throw error;
   await insertPinkRouteLineIfNeeded(

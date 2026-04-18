@@ -1,4 +1,8 @@
 import type { PolylineOptions } from "leaflet";
+import {
+  isAllowedSubmissionDisplayColor,
+  normalizeSubmissionDisplayColorHex,
+} from "../../submission/submissionDisplayColor";
 
 /** Confirmed / persisted pink route segments on the map. */
 export const solidLineStyle: PolylineOptions = {
@@ -45,3 +49,48 @@ export const proposedLineHaloStyle: PolylineOptions = {
   lineCap: "round",
   lineJoin: "round",
 };
+
+export type RouteLineStylesForDisplay = {
+  solid: PolylineOptions;
+  old: PolylineOptions;
+  proposed: PolylineOptions;
+  oldHalo: PolylineOptions;
+  proposedHalo: PolylineOptions;
+};
+
+/**
+ * Route stroke styles derived from a submission `displayColor`, or default pink styles when
+ * `hex` is missing or not in the submission palette.
+ *
+ * Product rule: a valid palette color applies **only** to **proposed** diff geometry (dashed
+ * detour / proposed alignment). The original heritage axis (`solid`) and removed / ghosted
+ * segments (`old`, with `oldHalo`) keep the fixed default pink styles for every submission.
+ * `proposedHalo` stays the default white halo under the dashed proposed stroke.
+ */
+export function routeLineStylesForDisplayColor(hex: string | null): RouteLineStylesForDisplay {
+  const raw = hex?.trim() ?? "";
+  if (!raw || !isAllowedSubmissionDisplayColor(raw)) {
+    return {
+      solid: solidLineStyle,
+      old: oldLineStyle,
+      proposed: proposedLineStyle,
+      oldHalo: oldLineHaloStyle,
+      proposedHalo: proposedLineHaloStyle,
+    };
+  }
+  const c = normalizeSubmissionDisplayColorHex(raw)!;
+  return {
+    solid: solidLineStyle,
+    old: oldLineStyle,
+    proposed: {
+      color: c,
+      weight: proposedLineStyle.weight,
+      opacity: proposedLineStyle.opacity,
+      dashArray: proposedLineStyle.dashArray,
+      lineCap: "round",
+      lineJoin: "round",
+    },
+    oldHalo: oldLineHaloStyle,
+    proposedHalo: proposedLineHaloStyle,
+  };
+}

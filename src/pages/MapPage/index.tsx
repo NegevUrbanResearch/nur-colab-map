@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -16,13 +24,13 @@ import {
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
-import { pinkDetourGoogleDashedStyle } from "../../map/pinkDetourDashStyle";
+import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
-  oldLineHaloStyle,
-  oldLineStyle,
-  proposedLineHaloStyle,
-  solidLineStyle,
-} from "./mapLineStyles";
+  isAllowedSubmissionDisplayColor,
+  listPickableSubmissionDisplayColors,
+  normalizeSubmissionDisplayColorHex,
+  SUBMISSION_DISPLAY_COLOR_PALETTE,
+} from "../../submission/submissionDisplayColor";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
 import { PendingSite } from "../../supabase/memorialSites";
 import {
@@ -57,6 +65,14 @@ const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
 const MARKER_REPOSITION_EPSILON_METERS = 2;
+
+function normalizedAllowedSubmissionDisplayColor(raw: string | null | undefined): string | null {
+  if (raw == null) return null;
+  const t = raw.trim();
+  if (!t) return null;
+  if (!isAllowedSubmissionDisplayColor(t)) return null;
+  return normalizeSubmissionDisplayColorHex(t)!;
+}
 
 type ActiveProject = "pink" | "memorial";
 type SubmitScope = "pink" | "memorial" | "everything";
@@ -122,11 +138,15 @@ const MapPage = () => {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
   const [submissionNameInput, setSubmissionNameInput] = useState("");
   const [loadingSubmissionDetail, setLoadingSubmissionDetail] = useState(false);
+  const [submissionDisplayColor, setSubmissionDisplayColor] = useState<string | null>(null);
   const [submitEditDisposition, setSubmitEditDisposition] = useState<SubmitEditDisposition>("overwrite");
+  const [submissionColorPopoverOpen, setSubmissionColorPopoverOpen] = useState(false);
 
   const submissionDetailLoadSeqRef = useRef(0);
   const selectedSubmissionIdRef = useRef<string | null>(null);
   const submissionNameInputRef = useRef("");
+  const submissionColorAtLoadRef = useRef<string | null>(null);
+  const submitModalWasOpenRef = useRef(false);
 
   const [memorialDragPlacementEnabled, setMemorialDragPlacementEnabled] = useState(true);
   useEffect(() => {
@@ -145,6 +165,9 @@ const MapPage = () => {
   /** One-shot: outside dismiss used pointerdown on the map; ignore the subsequent Leaflet map `click` for placement. */
   const suppressNextMapClickPlacementRef = useRef(false);
   const popoverDismissSuppressTimerRef = useRef<number | null>(null);
+  const submissionColorPopoverRef = useRef<HTMLDivElement | null>(null);
+  const submissionColorSwatchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const submissionColorPopoverPanelId = useId();
   const markerActionPopoverRef = useRef<MarkerActionPopoverTarget | null>(null);
   const pinkNodesRef = useRef<PendingPinkNode[]>(pinkNodes);
   const localSitesRef = useRef<PendingSite[]>(localSites);
@@ -221,6 +244,29 @@ const MapPage = () => {
     }
     setMarkerActionPopover(null);
   }, []);
+
+  const suppressMapClickAfterPopoverDismiss = useCallback((ev: PointerEvent) => {
+    const map = mapRef.current;
+    if (map?.getContainer().contains(ev.target as Node)) {
+      suppressNextMapClickPlacementRef.current = true;
+      if (popoverDismissSuppressTimerRef.current != null) {
+        window.clearTimeout(popoverDismissSuppressTimerRef.current);
+      }
+      popoverDismissSuppressTimerRef.current = window.setTimeout(() => {
+        popoverDismissSuppressTimerRef.current = null;
+        suppressNextMapClickPlacementRef.current = false;
+      }, 550);
+    }
+  }, []);
+
+  const dismissSubmissionColorPopover = useCallback(
+    (ev: PointerEvent | null) => {
+      setSubmissionColorPopoverOpen(false);
+      if (ev) suppressMapClickAfterPopoverDismiss(ev);
+      queueMicrotask(() => submissionColorSwatchTriggerRef.current?.focus());
+    },
+    [suppressMapClickAfterPopoverDismiss]
+  );
 
   const handleMarkerActionPopoverEdit = useCallback(() => {
     const t = markerActionPopoverRef.current;
@@ -347,11 +393,6 @@ const MapPage = () => {
       cancelled = true;
     };
   }, [isBootstrapping, bootError, pinkProjectId, memorialProjectId]);
-
-  useEffect(() => {
-    if (!showSubmitModal) return;
-    if (selectedSubmissionId) setSubmitEditDisposition("overwrite");
-  }, [showSubmitModal, selectedSubmissionId]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -508,13 +549,17 @@ const MapPage = () => {
     });
     routeLayersRef.current = [];
 
+    const trimmedDisplayColor = submissionDisplayColor?.trim() ?? "";
+    const validDisplayHex =
+      trimmedDisplayColor && isAllowedSubmissionDisplayColor(trimmedDisplayColor)
+        ? normalizeSubmissionDisplayColorHex(trimmedDisplayColor)!
+        : null;
+    const pinkNodeFill = validDisplayHex ?? "#ff69b4";
+
     if (integratedPinkRoute) {
       const { solid, dashed, removed } = integratedPinkRoute;
-      const solidStyle = solidLineStyle;
-      const dashedStyle = pinkDetourGoogleDashedStyle;
-      const dashedHaloStyle = proposedLineHaloStyle;
-      const removedStyle = oldLineStyle;
-      const removedHaloStyle = oldLineHaloStyle;
+      const { solid: solidStyle, old: removedStyle, proposed: dashedStyle, oldHalo: removedHaloStyle, proposedHalo: dashedHaloStyle } =
+        routeLineStylesForDisplayColor(submissionDisplayColor);
       const showPinkDetours = pinkNodes.length > 0;
 
       for (const points of solid) {
@@ -561,7 +606,7 @@ const MapPage = () => {
           draggable: true,
           icon: L.divIcon({
             className: "pink-line-node-marker",
-            html: `<div class="pink-line-node">${nodeOrder.get(node.tempId) || 1}</div>`,
+            html: `<div class="pink-line-node" style="background-color: ${pinkNodeFill}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.45);">${nodeOrder.get(node.tempId) || 1}</div>`,
             iconSize: [30, 30],
             iconAnchor: [15, 15],
           }),
@@ -603,12 +648,22 @@ const MapPage = () => {
     }
 
     const placeMemorial = (site: PendingSite, isCentral: boolean) => {
-      const icon = L.icon({
-        iconUrl: isCentral ? regionalMemorialIconUrl : localMemorialIconUrl,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-        popupAnchor: [0, -20],
-      });
+      const iconUrl = isCentral ? regionalMemorialIconUrl : localMemorialIconUrl;
+      const icon =
+        validDisplayHex != null
+          ? L.divIcon({
+              className: "memorial-marker-accent-icon",
+              html: `<div class="memorial-marker-accent-shell" style="--mem-accent:${validDisplayHex}"><img src="${iconUrl}" alt="" width="36" height="36" class="memorial-marker-accent-img" draggable="false" /></div>`,
+              iconSize: [44, 44],
+              iconAnchor: [22, 22],
+              popupAnchor: [0, -20],
+            })
+          : L.icon({
+              iconUrl,
+              iconSize: [40, 40],
+              iconAnchor: [20, 20],
+              popupAnchor: [0, -20],
+            });
       const marker = L.marker([site.lat, site.lng], { icon, draggable: true }).addTo(map);
       let dragStartLatLng: L.LatLng | null = null;
       let suppressNextDeleteClick = false;
@@ -656,7 +711,7 @@ const MapPage = () => {
 
     if (centralSite) placeMemorial(centralSite, true);
     localSites.forEach((site) => placeMemorial(site, false));
-  }, [pinkNodes, centralSite, localSites, defaultLineLoaded, integratedPinkRoute]);
+  }, [pinkNodes, centralSite, localSites, defaultLineLoaded, integratedPinkRoute, submissionDisplayColor]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -706,8 +761,31 @@ const MapPage = () => {
   const hasPink = pinkNodes.length > 0;
   const hasMemorial = useMemo(() => Boolean(centralSite) || localSites.length > 0, [centralSite, localSites.length]);
 
-  const submissionSelectRows = useMemo(() => {
-    const rows = submissionBatches.map((b) => ({ id: b.submissionId, label: b.name }));
+  /** Globally assigned batch colors (deduped). Swatches disabled when in this set unless “self” (source / current overwrite batch). */
+  const usedDisplayColorSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const b of submissionBatches) {
+      const t = b.displayColor?.trim();
+      if (t) s.add(t.toUpperCase());
+    }
+    return s;
+  }, [submissionBatches]);
+
+  const firstUnusedPaletteColor = useMemo(() => {
+    for (const h of SUBMISSION_DISPLAY_COLOR_PALETTE) {
+      if (!usedDisplayColorSet.has(h.toUpperCase())) return h;
+    }
+    return SUBMISSION_DISPLAY_COLOR_PALETTE[0];
+  }, [usedDisplayColorSet]);
+
+  type SubmissionSelectRow = { id: string; label: string; displayColor?: string };
+
+  const submissionSelectRows = useMemo((): SubmissionSelectRow[] => {
+    const rows: SubmissionSelectRow[] = submissionBatches.map((b) => ({
+      id: b.submissionId,
+      label: b.name,
+      displayColor: b.displayColor,
+    }));
     if (selectedSubmissionId && !rows.some((r) => r.id === selectedSubmissionId)) {
       return [
         {
@@ -721,6 +799,32 @@ const MapPage = () => {
   }, [submissionBatches, selectedSubmissionId, submissionNameInput]);
 
   const isEditingExistingSubmission = selectedSubmissionId !== null;
+
+  const selectedSubmissionStripHex = useMemo(() => {
+    const fromState = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+    if (fromState) return fromState;
+    if (selectedSubmissionId) {
+      const batch = submissionBatches.find((b) => b.submissionId === selectedSubmissionId);
+      if (batch) return normalizedAllowedSubmissionDisplayColor(batch.displayColor);
+    }
+    return null;
+  }, [submissionDisplayColor, selectedSubmissionId, submissionBatches]);
+
+  const sourceBatchDisplayUpper = useMemo(() => {
+    if (selectedSubmissionId == null) return null;
+    const raw = submissionBatches.find((b) => b.submissionId === selectedSubmissionId)?.displayColor;
+    const t = raw?.trim();
+    return t ? t.toUpperCase() : null;
+  }, [selectedSubmissionId, submissionBatches]);
+
+  const loadedOverwriteDisplayColorUpper = useMemo(() => {
+    if (!isEditingExistingSubmission || submitEditDisposition !== "overwrite" || !selectedSubmissionId) {
+      return null;
+    }
+    const fromBatch = submissionBatches.find((b) => b.submissionId === selectedSubmissionId)?.displayColor?.trim();
+    if (fromBatch) return fromBatch.toUpperCase();
+    return submissionColorAtLoadRef.current?.toUpperCase() ?? null;
+  }, [isEditingExistingSubmission, submitEditDisposition, selectedSubmissionId, submissionBatches]);
 
   /** Overwrite RPC deletes all workspace rows for this submission; partial scope would wipe the other domain. */
   const lockFullWorkspaceOverwrite =
@@ -760,12 +864,148 @@ const MapPage = () => {
     lockFullWorkspaceOverwrite,
   ]);
 
+  useEffect(() => {
+    if (!showSubmitModal) {
+      submitModalWasOpenRef.current = false;
+      return;
+    }
+    const justOpened = !submitModalWasOpenRef.current;
+    submitModalWasOpenRef.current = true;
+    if (!justOpened) return;
+    const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
+    if (useOverwrite) return;
+    // Never auto-pick a pool color when an existing submission is selected; color comes from DB load (or user).
+    if (isEditingExistingSubmission) return;
+    if (submissionDisplayColor !== null) return;
+    setSubmissionDisplayColor(firstUnusedPaletteColor);
+  }, [
+    showSubmitModal,
+    isEditingExistingSubmission,
+    submitEditDisposition,
+    submissionDisplayColor,
+    firstUnusedPaletteColor,
+  ]);
+
+  /** Save-as-new: if the paint color is taken by another batch (not the source row), jump to a free palette slot. */
+  useEffect(() => {
+    if (!showSubmitModal) return;
+    if (!isEditingExistingSubmission || submitEditDisposition !== "saveAsNew") return;
+    const norm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+    if (norm == null) return;
+    const isSelf =
+      (sourceBatchDisplayUpper != null && sourceBatchDisplayUpper === norm) ||
+      (loadedOverwriteDisplayColorUpper != null && loadedOverwriteDisplayColorUpper === norm);
+    if (usedDisplayColorSet.has(norm) && !isSelf) {
+      setSubmissionDisplayColor(firstUnusedPaletteColor);
+    }
+  }, [
+    showSubmitModal,
+    isEditingExistingSubmission,
+    submitEditDisposition,
+    submissionDisplayColor,
+    usedDisplayColorSet,
+    firstUnusedPaletteColor,
+    sourceBatchDisplayUpper,
+    loadedOverwriteDisplayColorUpper,
+  ]);
+
+  useEffect(() => {
+    if (showSubmitModal) dismissSubmissionColorPopover(null);
+  }, [showSubmitModal, dismissSubmissionColorPopover]);
+
+  useEffect(() => {
+    if (!submissionColorPopoverOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismissSubmissionColorPopover(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [submissionColorPopoverOpen, dismissSubmissionColorPopover]);
+
+  useEffect(() => {
+    if (!submissionColorPopoverOpen) return;
+    const id = window.requestAnimationFrame(() => {
+      submissionColorPopoverRef.current
+        ?.querySelector<HTMLElement>(".submission-color-swatch-btn")
+        ?.focus();
+    });
+    return () => window.cancelAnimationFrame(id);
+  }, [submissionColorPopoverOpen]);
+
+  useEffect(() => {
+    if (!submissionColorPopoverOpen) return;
+    const onPointerDown = (ev: PointerEvent) => {
+      const panel = submissionColorPopoverRef.current;
+      const trigger = submissionColorSwatchTriggerRef.current;
+      if (!panel || !trigger) return;
+      const t = ev.target;
+      if (t instanceof Node && (panel.contains(t) || trigger.contains(t))) return;
+      dismissSubmissionColorPopover(ev);
+    };
+    document.addEventListener("pointerdown", onPointerDown, true);
+    return () => document.removeEventListener("pointerdown", onPointerDown, true);
+  }, [submissionColorPopoverOpen, dismissSubmissionColorPopover]);
+
+  const renderSubmissionColorSwatchGrid = useCallback(
+    (onPick: (normalizedHex: string) => void, opts?: { listAriaLabel?: string }) => {
+      const listAriaLabel = opts?.listAriaLabel ?? "בחירת צבע להגשה";
+      const selectedNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+      const pickable = listPickableSubmissionDisplayColors({
+        usedColorsUpper: usedDisplayColorSet,
+        selfColorUpper: sourceBatchDisplayUpper,
+        loadedOverwriteColorUpper: loadedOverwriteDisplayColorUpper,
+      });
+      return (
+        <div
+          role="list"
+          aria-label={listAriaLabel}
+          className="submission-color-swatch-grid submission-color-swatch-grid--compact"
+        >
+          {pickable.map((hex) => {
+            const isSelected = selectedNorm === hex.toUpperCase();
+            return (
+              <button
+                key={hex}
+                type="button"
+                className={
+                  isSelected
+                    ? "submission-color-swatch-btn submission-color-swatch-btn--selected"
+                    : "submission-color-swatch-btn"
+                }
+                role="listitem"
+                title={`${hex}${isSelected ? " (נבחר)" : ""}`}
+                aria-pressed={isSelected}
+                onClick={() => {
+                  const n = normalizeSubmissionDisplayColorHex(hex);
+                  if (n) onPick(n);
+                }}
+              >
+                <span
+                  className="submission-color-swatch-dot"
+                  style={{ backgroundColor: hex }}
+                  aria-hidden
+                />
+              </button>
+            );
+          })}
+        </div>
+      );
+    },
+    [
+      submissionDisplayColor,
+      usedDisplayColorSet,
+      loadedOverwriteDisplayColorUpper,
+      sourceBatchDisplayUpper,
+    ]
+  );
+
   const closeAllForms = () => {
     setPendingPinkTarget(null);
     setPendingMemorialTarget(null);
     setMarkerActionPopover(null);
     setEditingPinkTempId(null);
     setEditingMemorial(null);
+    dismissSubmissionColorPopover(null);
   };
   const isEntryModalOpen = Boolean(
     pendingPinkTarget ||
@@ -938,6 +1178,8 @@ const MapPage = () => {
       setCentralSite(null);
       setLocalSites([]);
       setEditHistory(createEmptyEditHistory());
+      setSubmissionDisplayColor(null);
+      submissionColorAtLoadRef.current = null;
       closeAllForms();
       return;
     }
@@ -982,6 +1224,9 @@ const MapPage = () => {
       submissionNameInputRef.current = detail.name;
       setSelectedSubmissionId(detail.submissionId);
       setSubmissionNameInput(detail.name);
+      const loadedColor = normalizedAllowedSubmissionDisplayColor(detail.displayColor);
+      setSubmissionDisplayColor(loadedColor);
+      submissionColorAtLoadRef.current = loadedColor;
       closeAllForms();
     } catch (err) {
       if (seq !== submissionDetailLoadSeqRef.current) return;
@@ -995,6 +1240,10 @@ const MapPage = () => {
       setCentralSite(revertCentralSite);
       setLocalSites(revertLocalSites);
       setEditHistory(createEmptyEditHistory());
+      const revertBatch = revertId ? submissionBatches.find((b) => b.submissionId === revertId) : undefined;
+      const revertColor = normalizedAllowedSubmissionDisplayColor(revertBatch?.displayColor) ?? null;
+      setSubmissionDisplayColor(revertColor);
+      submissionColorAtLoadRef.current = revertColor;
     } finally {
       if (seq === submissionDetailLoadSeqRef.current) {
         setLoadingSubmissionDetail(false);
@@ -1112,6 +1361,12 @@ const MapPage = () => {
     setEditHistory(history);
   }, [pinkNodes, centralSite, localSites, editHistory]);
 
+  const openSubmitModal = useCallback(() => {
+    if (!hasPink && !hasMemorial) return;
+    if (selectedSubmissionId) setSubmitEditDisposition("overwrite");
+    setShowSubmitModal(true);
+  }, [hasPink, hasMemorial, selectedSubmissionId]);
+
   const submitSelection = async () => {
     let includePink = submitScope === "pink" || submitScope === "everything";
     let includeMemorial = submitScope === "memorial" || submitScope === "everything";
@@ -1136,6 +1391,12 @@ const MapPage = () => {
       const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
 
       if (useOverwrite) {
+        const currentNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+        const loadNorm = submissionColorAtLoadRef.current;
+        const colorChanged =
+          (currentNorm ?? null) !== (loadNorm ?? null);
+        const overwriteColorPayload =
+          colorChanged && currentNorm != null ? { submissionDisplayColor: currentNorm } : {};
         await submitUnifiedFeatures({
           mode: "overwrite",
           targetSubmissionId: selectedSubmissionId!,
@@ -1148,9 +1409,13 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          ...overwriteColorPayload,
         });
       } else {
         const submissionId = crypto.randomUUID();
+        const newColorNorm = normalizedAllowedSubmissionDisplayColor(submissionDisplayColor);
+        const newColorPayload =
+          newColorNorm != null ? { submissionDisplayColor: newColorNorm } : {};
         await submitUnifiedFeatures({
           submissionId,
           submissionName: submissionDisplayName,
@@ -1161,6 +1426,7 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          ...newColorPayload,
         });
         selectedSubmissionIdRef.current = submissionId;
         setSelectedSubmissionId(submissionId);
@@ -1197,6 +1463,9 @@ const MapPage = () => {
             setSubmissionNameInput(detail.name);
             selectedSubmissionIdRef.current = detail.submissionId;
             setSelectedSubmissionId(detail.submissionId);
+            const reloadedColor = normalizedAllowedSubmissionDisplayColor(detail.displayColor);
+            setSubmissionDisplayColor(reloadedColor);
+            submissionColorAtLoadRef.current = reloadedColor;
           }
         } catch (reloadErr) {
           if (
@@ -1210,6 +1479,8 @@ const MapPage = () => {
               setLocalSites([]);
             }
             setEditHistory(createEmptyEditHistory());
+            setSubmissionDisplayColor(null);
+            submissionColorAtLoadRef.current = null;
           }
         }
       } else {
@@ -1272,7 +1543,11 @@ const MapPage = () => {
 
   return (
     <>
-      <div id="map" style={{ height: "100vh", width: "100%" }} />
+      <div
+        id="map"
+        style={{ height: "100vh", width: "100%" }}
+        data-submission-display-color={submissionDisplayColor ?? ""}
+      />
 
       {!pendingPinkTarget &&
         !pendingMemorialTarget &&
@@ -1399,10 +1674,7 @@ const MapPage = () => {
                 <button
                   type="button"
                   dir="rtl"
-                  onClick={() => {
-                    if (!hasPink && !hasMemorial) return;
-                    setShowSubmitModal(true);
-                  }}
+                  onClick={openSubmitModal}
                   className={`pink-toolbar-action pink-toolbar-action-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
                 >
                   הגשה
@@ -1504,10 +1776,7 @@ const MapPage = () => {
                   type="button"
                   dir="rtl"
                   className={`memorial-toolbar-action-btn memorial-toolbar-action-btn-primary ${!hasPink && !hasMemorial ? "toolbar-action-blocked" : ""}`}
-                  onClick={() => {
-                    if (!hasPink && !hasMemorial) return;
-                    setShowSubmitModal(true);
-                  }}
+                  onClick={openSubmitModal}
                 >
                   הגשה
                 </button>
@@ -1528,24 +1797,64 @@ const MapPage = () => {
       <div className="base-map-controls">
         <div className="base-map-controls-mobile-stack" dir="rtl">
           <div className="base-map-submissions-selector hook-base-map-submissions" dir="rtl">
-            <label className="base-map-submissions-label" htmlFor="map-submission-select">
-              הגשות
-            </label>
-            <select
-              id="map-submission-select"
-              className="base-map-submission-select base-map-control-btn project-switch-btn"
-              value={selectedSubmissionId ?? ""}
-              onChange={(e) => void handleSubmissionSelectChange(e)}
-              disabled={submissionBatchesLoading || loadingSubmissionDetail}
-              aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+            <div
+              className="base-map-submission-select-row"
+              dir="rtl"
+              style={{ display: "flex", alignItems: "center", gap: 8 }}
             >
-              <option value="">הגשה חדשה</option>
-              {submissionSelectRows.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+              <div className="base-map-submission-color-anchor">
+                <button
+                  ref={submissionColorSwatchTriggerRef}
+                  type="button"
+                  className="base-map-submission-color-trigger"
+                  title="בחירת צבע להגשה"
+                  aria-label="בחירת צבע להגשה"
+                  aria-haspopup="dialog"
+                  aria-expanded={submissionColorPopoverOpen}
+                  aria-controls={submissionColorPopoverOpen ? submissionColorPopoverPanelId : undefined}
+                  onClick={() => setSubmissionColorPopoverOpen((o) => !o)}
+                >
+                  <span
+                    className="base-map-submission-color-trigger-dot"
+                    style={{ backgroundColor: selectedSubmissionStripHex ?? "#ff69b4" }}
+                    aria-hidden="true"
+                  />
+                </button>
+                {submissionColorPopoverOpen && (
+                  <div
+                    ref={submissionColorPopoverRef}
+                    id={submissionColorPopoverPanelId}
+                    className="base-map-submission-color-popover"
+                    role="dialog"
+                    aria-label="בחירת צבע להגשה"
+                    dir="rtl"
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    {renderSubmissionColorSwatchGrid((hex) => {
+                      setSubmissionDisplayColor(hex);
+                      dismissSubmissionColorPopover(null);
+                    })}
+                  </div>
+                )}
+              </div>
+              <select
+                id="map-submission-select"
+                className="base-map-submission-select base-map-control-btn project-switch-btn"
+                style={{ flex: 1, minWidth: 0 }}
+                value={selectedSubmissionId ?? ""}
+                onChange={(e) => void handleSubmissionSelectChange(e)}
+                disabled={submissionBatchesLoading || loadingSubmissionDetail}
+                aria-label="בחירת הגשה מהרשימה"
+                aria-busy={loadingSubmissionDetail || submissionBatchesLoading}
+              >
+                <option value="">הגשה חדשה</option>
+                {submissionSelectRows.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
             {submissionBatchesLoading && (
               <span className="base-map-submissions-status" aria-live="polite">
                 טוען רשימה…

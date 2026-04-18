@@ -4,25 +4,38 @@ import {
   oldLineStyle,
   proposedLineHaloStyle,
   proposedLineStyle,
+  routeLineStylesForDisplayColor,
+  solidLineStyle,
 } from "./mapLineStyles";
 
-describe("map line styles", () => {
-  it("keeps replaced segments solid (no dash) and visually weaker than proposed", () => {
-    expect(oldLineStyle.dashArray).toBeUndefined();
-    expect(oldLineStyle.weight ?? 0).toBeGreaterThanOrEqual(4);
-    expect(oldLineStyle.weight ?? 0).toBeLessThan(proposedLineStyle.weight ?? 99);
-    expect(proposedLineStyle.dashArray).toBeDefined();
+describe("routeLineStylesForDisplayColor", () => {
+  it.each([
+    ["null", null],
+    ["empty", ""],
+    ["whitespace", "   "],
+    ["invalid hex", "#GGGGGG"],
+    ["non-palette hex", "#112233"],
+  ])("returns default style references for %s", (_label, hex) => {
+    const s = routeLineStylesForDisplayColor(hex);
+    expect(s.solid).toBe(solidLineStyle);
+    expect(s.old).toBe(oldLineStyle);
+    expect(s.proposed).toBe(proposedLineStyle);
+    expect(s.oldHalo).toBe(oldLineHaloStyle);
+    expect(s.proposedHalo).toBe(proposedLineHaloStyle);
   });
 
-  it("uses a white halo underlay wider than the gray old line", () => {
-    expect(oldLineHaloStyle.color?.toLowerCase()).toBe("#ffffff");
-    expect(oldLineHaloStyle.dashArray).toBeUndefined();
-    expect(oldLineHaloStyle.weight ?? 0).toBeGreaterThan(oldLineStyle.weight ?? 0);
-  });
+  it("tints only proposed geometry for an allowed hex; solid and old stay default refs", () => {
+    const s = routeLineStylesForDisplayColor("#e11d48");
+    expect(s.solid).toBe(solidLineStyle);
+    expect(s.old).toBe(oldLineStyle);
 
-  it("uses a solid white halo underlay wider than the dashed proposed line", () => {
-    expect(proposedLineHaloStyle.color?.toLowerCase()).toBe("#ffffff");
-    expect(proposedLineHaloStyle.dashArray).toBeUndefined();
-    expect(proposedLineHaloStyle.weight ?? 0).toBeGreaterThan(proposedLineStyle.weight ?? 0);
+    expect(s.proposed).not.toBe(proposedLineStyle);
+    expect(s.proposed.color).toBe("#E11D48");
+    expect(s.proposed.weight).toBe(proposedLineStyle.weight);
+    expect(s.proposed.opacity).toBe(proposedLineStyle.opacity);
+    expect(s.proposed.dashArray).toBe(proposedLineStyle.dashArray);
+
+    expect(s.oldHalo).toBe(oldLineHaloStyle);
+    expect(s.proposedHalo).toBe(proposedLineHaloStyle);
   });
 });
