@@ -53,7 +53,6 @@ import {
   type EditableMapState,
   type PendingPinkNode,
 } from "./editHistory";
-import { triggerCityscopeSyncAfterSubmissionSave } from "./postSubmissionCityscope";
 
 const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
@@ -1431,11 +1430,6 @@ const MapPage = () => {
         });
         selectedSubmissionIdRef.current = submissionId;
         setSelectedSubmissionId(submissionId);
-      }
-
-      const submissionIdForCityscope = selectedSubmissionIdRef.current;
-      if (submissionIdForCityscope) {
-        triggerCityscopeSyncAfterSubmissionSave(submissionIdForCityscope);
       }
 
       await refreshSubmissionBatchesList();
