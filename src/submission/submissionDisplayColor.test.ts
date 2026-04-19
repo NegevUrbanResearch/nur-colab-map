@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
   SUBMISSION_DISPLAY_COLOR_PALETTE,
+  SUBMISSION_DISPLAY_COLOR_SECONDARY,
   normalizeSubmissionDisplayColorHex,
   isAllowedSubmissionDisplayColor,
   listPickableSubmissionDisplayColors,
+  secondaryHexForPrimaryNormalized,
 } from "./submissionDisplayColor";
 
 describe("submissionDisplayColor", () => {
-  it("exports a fixed 16-color palette", () => {
-    expect(SUBMISSION_DISPLAY_COLOR_PALETTE).toHaveLength(16);
+  it("exports a fixed 24-color palette", () => {
+    expect(SUBMISSION_DISPLAY_COLOR_PALETTE).toHaveLength(24);
     expect(SUBMISSION_DISPLAY_COLOR_PALETTE[0]).toMatch(/^#[0-9A-F]{6}$/);
   });
 
   it("normalizeSubmissionDisplayColorHex uppercases and trims", () => {
-    expect(normalizeSubmissionDisplayColorHex("  #e11d48 ")).toBe("#E11D48");
+    expect(normalizeSubmissionDisplayColorHex("  #dc2626 ")).toBe("#DC2626");
   });
 
   it("normalizeSubmissionDisplayColorHex returns null for invalid", () => {
@@ -27,8 +29,8 @@ describe("submissionDisplayColor", () => {
   });
 
   it("isAllowedSubmissionDisplayColor accepts only palette members", () => {
-    expect(isAllowedSubmissionDisplayColor("#E11D48")).toBe(true);
-    expect(isAllowedSubmissionDisplayColor("#e11d48")).toBe(true);
+    expect(isAllowedSubmissionDisplayColor("#DC2626")).toBe(true);
+    expect(isAllowedSubmissionDisplayColor("#dc2626")).toBe(true);
     expect(isAllowedSubmissionDisplayColor("#112233")).toBe(false);
     expect(isAllowedSubmissionDisplayColor("")).toBe(false);
   });
@@ -53,7 +55,7 @@ describe("submissionDisplayColor", () => {
         usedColorsUpper: [blocked],
       });
       expect(got).not.toContain(normalizeSubmissionDisplayColorHex(SUBMISSION_DISPLAY_COLOR_PALETTE[0]!)!);
-      expect(got.length).toBe(15);
+      expect(got.length).toBe(23);
     });
 
     it("still includes self color when it appears in used set", () => {
@@ -84,5 +86,27 @@ describe("submissionDisplayColor", () => {
       });
       expect(got).not.toContain(normalizeSubmissionDisplayColorHex(hex)!);
     });
+  });
+});
+
+describe("palette v4 (24 + secondaries)", () => {
+  it("has 24 primaries and 24 matching secondaries", () => {
+    expect(SUBMISSION_DISPLAY_COLOR_PALETTE).toHaveLength(24);
+    expect(SUBMISSION_DISPLAY_COLOR_SECONDARY).toHaveLength(24);
+  });
+
+  it("returns secondary for each primary by index", () => {
+    for (let i = 0; i < 24; i++) {
+      const p = SUBMISSION_DISPLAY_COLOR_PALETTE[i]!;
+      expect(secondaryHexForPrimaryNormalized(`  ${p.toLowerCase()} `)).toBe(
+        SUBMISSION_DISPLAY_COLOR_SECONDARY[i]!.toUpperCase()
+      );
+    }
+  });
+
+  it("secondaryHexForPrimaryNormalized returns null for invalid or unknown primaries", () => {
+    expect(secondaryHexForPrimaryNormalized("#GGGGGG")).toBeNull();
+    expect(secondaryHexForPrimaryNormalized("")).toBeNull();
+    expect(secondaryHexForPrimaryNormalized("#112233")).toBeNull();
   });
 });

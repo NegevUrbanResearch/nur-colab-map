@@ -2057,6 +2057,7 @@ a:hover {
 }
 
 .base-map-submission-color-trigger-dot {
+  --submission-swatch-split-dir: right;
   width: 24px;
   height: 24px;
   border-radius: 999px;
@@ -2066,10 +2067,20 @@ a:hover {
     0 2px 8px rgba(0, 0, 0, 0.22);
   box-sizing: border-box;
   flex-shrink: 0;
+  background: linear-gradient(
+    to var(--submission-swatch-split-dir),
+    var(--swatch-primary) 50%,
+    var(--swatch-secondary) 50%
+  );
   transition:
     transform 0.12s ease,
     border-color 0.15s ease,
     box-shadow 0.15s ease;
+}
+
+/* Match popover swatches: primary on inline-start in RTL */
+[dir="rtl"] .base-map-submission-color-trigger-dot {
+  --submission-swatch-split-dir: left;
 }
 
 @media (hover: hover) {
@@ -2140,9 +2151,10 @@ button.base-map-submission-color-trigger:hover {
 }
 
 .submission-color-swatch-grid--compact {
-  --submission-swatch-target: 48px;
-  --submission-swatch-dot: 32px;
-  --submission-swatch-gap: 12px;
+  /* 24 palette slots: 4×6; slightly tighter for popover fit while staying tappable */
+  --submission-swatch-target: 46px;
+  --submission-swatch-dot: 30px;
+  --submission-swatch-gap: 10px;
   max-width: min(380px, min(94vw, calc(100vw - 16px)));
 }
 
@@ -2169,10 +2181,16 @@ button.base-map-submission-color-trigger:hover {
 }
 
 .submission-color-swatch-dot {
+  --submission-swatch-split-dir: right;
   width: var(--submission-swatch-dot);
   height: var(--submission-swatch-dot);
   border-radius: 50%;
   flex-shrink: 0;
+  background: linear-gradient(
+    to var(--submission-swatch-split-dir),
+    var(--swatch-primary) 50%,
+    var(--swatch-secondary) 50%
+  );
   box-shadow:
     0 0 0 1px rgba(0, 0, 0, 0.2),
     0 2px 6px rgba(0, 0, 0, 0.18);
@@ -2180,6 +2198,11 @@ button.base-map-submission-color-trigger:hover {
   transition:
     transform 0.12s ease,
     box-shadow 0.15s ease;
+}
+
+/* Inline-start = primary (matches reading order); physical left/right swap vs LTR */
+[dir="rtl"] .submission-color-swatch-dot {
+  --submission-swatch-split-dir: left;
 }
 
 .submission-color-swatch-btn:active {

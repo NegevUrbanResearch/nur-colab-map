@@ -34,9 +34,10 @@ const OFF_ROAD_TOOLTIP_HTML = `<div class="pink-offroad-route-tooltip-inner" dir
 export function addDetourPaintToMap(
   map: L.Map,
   pieces: DetourPaintPiece[],
-  dashedStyle: L.PolylineOptions,
+  proposedPrimary: L.PolylineOptions,
   layersOut: L.Layer[],
-  dashedHaloStyle?: L.PolylineOptions
+  proposedHalo?: L.PolylineOptions,
+  proposedSecondary?: L.PolylineOptions
 ): void {
   ensureOffroadLinePane(map);
 
@@ -44,10 +45,13 @@ export function addDetourPaintToMap(
 
   for (const piece of pieces) {
     if (piece.kind === "road") {
-      if (dashedHaloStyle) {
-        layersOut.push(L.polyline(piece.points as L.LatLngExpression[], dashedHaloStyle).addTo(map));
+      if (proposedHalo) {
+        layersOut.push(L.polyline(piece.points as L.LatLngExpression[], proposedHalo).addTo(map));
       }
-      const pl = L.polyline(piece.points as L.LatLngExpression[], dashedStyle).addTo(map);
+      if (proposedSecondary) {
+        layersOut.push(L.polyline(piece.points as L.LatLngExpression[], proposedSecondary).addTo(map));
+      }
+      const pl = L.polyline(piece.points as L.LatLngExpression[], proposedPrimary).addTo(map);
       layersOut.push(pl);
     } else {
       offroadPieces.push(piece);

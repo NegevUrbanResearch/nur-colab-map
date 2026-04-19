@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import L from "leaflet";
@@ -29,6 +30,7 @@ import {
   isAllowedSubmissionDisplayColor,
   listPickableSubmissionDisplayColors,
   normalizeSubmissionDisplayColorHex,
+  secondaryHexForPrimaryNormalized,
   SUBMISSION_DISPLAY_COLOR_PALETTE,
 } from "../../submission/submissionDisplayColor";
 import { ensureMemorialSitesProjectForUser, loadProjects } from "../../supabase/projects";
@@ -558,8 +560,14 @@ const MapPage = () => {
 
     if (integratedPinkRoute) {
       const { solid, dashed, removed } = integratedPinkRoute;
-      const { solid: solidStyle, old: removedStyle, proposed: dashedStyle, oldHalo: removedHaloStyle, proposedHalo: dashedHaloStyle } =
-        routeLineStylesForDisplayColor(submissionDisplayColor);
+      const {
+        solid: solidStyle,
+        old: removedStyle,
+        proposed: dashedStyle,
+        proposedSecondary: dashedSecondaryStyle,
+        oldHalo: removedHaloStyle,
+        proposedHalo: dashedHaloStyle,
+      } = routeLineStylesForDisplayColor(submissionDisplayColor);
       const showPinkDetours = pinkNodes.length > 0;
 
       for (const points of solid) {
@@ -578,11 +586,17 @@ const MapPage = () => {
             integratedPinkRoute.detourPaint,
             dashedStyle,
             routeLayersRef.current,
-            dashedHaloStyle
+            dashedHaloStyle,
+            dashedSecondaryStyle
           );
         } else {
           for (const points of dashed) {
             routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedHaloStyle).addTo(map));
+            if (dashedSecondaryStyle) {
+              routeLayersRef.current.push(
+                L.polyline(points as L.LatLngExpression[], dashedSecondaryStyle).addTo(map)
+              );
+            }
             routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
           }
         }
@@ -957,7 +971,7 @@ const MapPage = () => {
       });
       return (
         <div
-          role="list"
+          role="group"
           aria-label={listAriaLabel}
           className="submission-color-swatch-grid submission-color-swatch-grid--compact"
         >
@@ -972,7 +986,6 @@ const MapPage = () => {
                     ? "submission-color-swatch-btn submission-color-swatch-btn--selected"
                     : "submission-color-swatch-btn"
                 }
-                role="listitem"
                 title={`${hex}${isSelected ? " (נבחר)" : ""}`}
                 aria-pressed={isSelected}
                 onClick={() => {
@@ -982,7 +995,12 @@ const MapPage = () => {
               >
                 <span
                   className="submission-color-swatch-dot"
-                  style={{ backgroundColor: hex }}
+                  style={
+                    {
+                      "--swatch-primary": hex,
+                      "--swatch-secondary": secondaryHexForPrimaryNormalized(hex) ?? hex,
+                    } as React.CSSProperties
+                  }
                   aria-hidden
                 />
               </button>
@@ -1816,7 +1834,16 @@ const MapPage = () => {
                 >
                   <span
                     className="base-map-submission-color-trigger-dot"
-                    style={{ backgroundColor: selectedSubmissionStripHex ?? "#ff69b4" }}
+                    style={
+                      {
+                        "--swatch-primary": selectedSubmissionStripHex ?? "#ff69b4",
+                        "--swatch-secondary":
+                          secondaryHexForPrimaryNormalized(
+                            selectedSubmissionStripHex ?? "#ff69b4"
+                          ) ??
+                          (selectedSubmissionStripHex ?? "#ff69b4"),
+                      } as CSSProperties
+                    }
                     aria-hidden="true"
                   />
                 </button>
