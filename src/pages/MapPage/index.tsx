@@ -24,6 +24,7 @@ import {
   flattenIntegratedRouteForPersistence,
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
+import { serializeIntegratedRouteToColabBundle } from "../../utils/colabRouteGeometryExport";
 import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
 import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
@@ -1406,6 +1407,11 @@ const MapPage = () => {
 
     setSubmitting(true);
     try {
+      const colabRouteGeometryBundle =
+        includePink && integratedPinkRoute
+          ? serializeIntegratedRouteToColabBundle(integratedPinkRoute)
+          : null;
+
       const useOverwrite = isEditingExistingSubmission && submitEditDisposition === "overwrite";
 
       if (useOverwrite) {
@@ -1427,6 +1433,7 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          colabRouteGeometryBundle,
           ...overwriteColorPayload,
         });
       } else {
@@ -1444,6 +1451,7 @@ const MapPage = () => {
           pinkNodes,
           pinkRoutePoints: includePink ? pinkRouteForPersistence : [],
           memorialSites: memorialRows,
+          colabRouteGeometryBundle,
           ...newColorPayload,
         });
         selectedSubmissionIdRef.current = submissionId;

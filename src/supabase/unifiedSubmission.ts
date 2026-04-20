@@ -3,6 +3,7 @@ import supabase from ".";
 import { MemorialFeatureType } from "./memorialSites";
 import type { MapWorkspaceProjectIds } from "./submissionBatches";
 import { isAllowedSubmissionDisplayColor } from "../submission/submissionDisplayColor";
+import type { ColabRouteGeometryBundle } from "../utils/colabRouteGeometryExport";
 
 export interface PendingPinkNodeSubmission {
   name: string | null;
@@ -31,6 +32,7 @@ type SubmitUnifiedFeaturesParamsBase = {
   pinkRoutePoints?: Array<[number, number]>;
   memorialSites: PendingMemorialSubmission[];
   submissionDisplayColor?: string | null;
+  colabRouteGeometryBundle?: ColabRouteGeometryBundle | null;
 };
 
 /** Create a new submission batch row and insert features (default). */
@@ -207,6 +209,9 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
       p_memorial_project_id: workspace.memorialProjectId,
       p_feature_rows: rowsToRpcPayload(rows),
       p_submission_display_color: params.submissionDisplayColor ?? null,
+      ...(params.colabRouteGeometryBundle != null
+        ? { p_colab_route_geometry_bundle: params.colabRouteGeometryBundle }
+        : {}),
     });
     if (error) throw error;
     await insertPinkRouteLineIfNeeded(
@@ -237,6 +242,9 @@ export async function submitUnifiedFeatures(params: SubmitUnifiedFeaturesParams)
     p_memorial_project_id: params.memorialProjectId,
     p_feature_rows: rowsToRpcPayload(rows),
     p_submission_display_color: params.submissionDisplayColor ?? null,
+    ...(params.colabRouteGeometryBundle != null
+      ? { p_colab_route_geometry_bundle: params.colabRouteGeometryBundle }
+      : {}),
   });
   if (error) throw error;
   await insertPinkRouteLineIfNeeded(

@@ -1,6 +1,7 @@
 import { GeoJSON } from "geojson";
 import supabase from ".";
 import type { PendingSite } from "./memorialSites";
+import type { ColabRouteGeometryBundle } from "../utils/colabRouteGeometryExport";
 
 /** Matches `PendingPinkNode` in MapPage (`tempId` is stable per geo_feature row for hydration). */
 export interface SubmissionBatchPinkNodeState {
@@ -32,6 +33,7 @@ export interface SubmissionBatchDetail {
   pinkNodes: SubmissionBatchPinkNodeState[];
   centralSite: PendingSite | null;
   localSites: PendingSite[];
+  colabRouteGeometryBundle: ColabRouteGeometryBundle | null;
 }
 
 export type MapSubmissionListContext = {
@@ -313,7 +315,7 @@ export async function loadSubmissionBatchMapDetail(
   const { data: batch, error: batchErr } = await supabase
     .from("submission_batches")
     .select(
-      "submission_id, submission_name, display_color, created_by, created_at, updated_at"
+      "submission_id, submission_name, display_color, created_by, created_at, updated_at, colab_route_geometry_bundle"
     )
     .eq("submission_id", submissionId)
     .maybeSingle();
@@ -321,7 +323,15 @@ export async function loadSubmissionBatchMapDetail(
   if (batchErr) throw batchErr;
   if (!batch) throw new Error(`Submission batch not found: ${submissionId}`);
 
-  const b = batch as SubmissionBatchRow;
+  const b = batch as SubmissionBatchRow & {
+    colab_route_geometry_bundle?: unknown;
+  };
+  const colabRouteGeometryBundleRaw = b.colab_route_geometry_bundle;
+  const colabRouteGeometryBundle: ColabRouteGeometryBundle | null =
+    colabRouteGeometryBundleRaw != null &&
+    typeof colabRouteGeometryBundleRaw === "object"
+      ? (colabRouteGeometryBundleRaw as ColabRouteGeometryBundle)
+      : null;
 
   type FeatureRow = {
     id: string;
@@ -421,6 +431,7 @@ export async function loadSubmissionBatchMapDetail(
     pinkNodes,
     centralSite,
     localSites,
+    colabRouteGeometryBundle,
   };
 }
 
