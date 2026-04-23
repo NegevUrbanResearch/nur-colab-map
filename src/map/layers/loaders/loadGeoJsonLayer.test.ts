@@ -16,6 +16,7 @@ vi.mock("leaflet", () => ({
   },
 }));
 
+import { LAYER_POPUP_MAX_WIDTH_PX, LAYER_POPUP_MIN_WIDTH_PX } from "../popupLayout";
 import { loadGeoJsonLayer } from "./loadGeoJsonLayer";
 
 const sampleFeatureCollection: FeatureCollection = {
@@ -131,6 +132,35 @@ describe("loadGeoJsonLayer", () => {
     expect(typeof bindArg.content).toBe("function");
     const html = bindArg.content!();
     expect(html).toContain("data-layer-popup-cta");
+  });
+
+  it("binds popups with minWidth/maxWidth LAYER_POPUP_*_WIDTH_PX for readable width", async () => {
+    const map = { addTo: vi.fn() } as unknown as import("leaflet").Map;
+    let bindPopupMock: ReturnType<typeof vi.fn> | undefined;
+    geoJSONMock.mockImplementation((data: FeatureCollection, options?: GeoJSONOptions) => {
+      if (options?.onEachFeature && data.type === "FeatureCollection") {
+        for (const feature of data.features) {
+          bindPopupMock = vi.fn();
+          const leafletFeature = { bindPopup: bindPopupMock, on: vi.fn() };
+          options.onEachFeature(feature, leafletFeature as never);
+        }
+      }
+      return { addTo: vi.fn().mockReturnThis() };
+    });
+
+    await loadGeoJsonLayer({
+      map,
+      urls: { geojsonUrl: "https://example.com/x.geojson" },
+      ui: { popup: { fields: [{ key: "name" }] } },
+    });
+
+    expect(bindPopupMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        minWidth: LAYER_POPUP_MIN_WIDTH_PX,
+        maxWidth: LAYER_POPUP_MAX_WIDTH_PX,
+      }),
+    );
   });
 
   it("stops DOM propagation on feature click when a popup is bound", async () => {

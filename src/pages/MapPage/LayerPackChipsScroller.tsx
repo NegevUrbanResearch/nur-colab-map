@@ -17,7 +17,6 @@ export default function LayerPackChipsScroller({
 }: Props) {
   const packs = registry?.packs ?? [];
   if (packs.length === 0) return null;
-
   const midpoint = Math.ceil(packs.length / 2);
   const rowA = packs.slice(0, midpoint);
   const rowB = packs.slice(midpoint);
@@ -56,15 +55,9 @@ export default function LayerPackChipsScroller({
       role="region"
       aria-label="בחירת חבילת שכבות"
     >
-      <div className="layer-packs-sheet-pack-rows">
-        <div className="layer-packs-sheet-pack-row" role="presentation">
-          {rowA.map(renderChip)}
-        </div>
-        {rowB.length > 0 ? (
-          <div className="layer-packs-sheet-pack-row" role="presentation">
-            {rowB.map(renderChip)}
-          </div>
-        ) : null}
+      <div className="layer-packs-sheet-pack-rows" role="presentation">
+        <div className="layer-packs-sheet-pack-row">{rowA.map(renderChip)}</div>
+        {rowB.length > 0 ? <div className="layer-packs-sheet-pack-row">{rowB.map(renderChip)}</div> : null}
       </div>
     </div>
   );

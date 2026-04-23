@@ -4,6 +4,7 @@ import L from "leaflet";
 import type { LoadedLayer, LoadLayerArgs } from "../types";
 import { layerUiDeclaresPopupFields } from "../popupModel";
 import { popupContentFromUi } from "../popupContent";
+import { LAYER_POPUP_MAX_WIDTH_PX, LAYER_POPUP_MIN_WIDTH_PX } from "../popupLayout";
 
 function geoJsonLayerInteractive(args: LoadLayerArgs): boolean {
   if (args.geojsonInteractive === false) return false;
@@ -37,7 +38,11 @@ export async function loadGeoJsonLayer(args: LoadLayerArgs): Promise<LoadedLayer
         });
       const initial = getPopupContent();
       if (initial) {
-        leafletFeature.bindPopup(getPopupContent, { className: "layer-popup-embed", maxWidth: 320 });
+        leafletFeature.bindPopup(getPopupContent, {
+          className: "layer-popup-embed",
+          minWidth: LAYER_POPUP_MIN_WIDTH_PX,
+          maxWidth: LAYER_POPUP_MAX_WIDTH_PX,
+        });
         leafletFeature.on("click", (e: LeafletMouseEvent) => {
           if (e.originalEvent) {
             L.DomEvent.stopPropagation(e.originalEvent);

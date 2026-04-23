@@ -60,7 +60,7 @@ export default function LayerPacksSheet({
     >
       <div
         ref={dialogRef}
-        className="layer-packs-sheet layer-packs-sheet--size-stable"
+        className="layer-packs-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelId}
