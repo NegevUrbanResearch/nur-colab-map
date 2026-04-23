@@ -3344,6 +3344,16 @@ input.unified-submit-name-input,
   scroll-padding-inline: 4px;
 }
 
+.layer-packs-sheet-pack-rows {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: max-content;
+  min-width: 100%;
+  box-sizing: border-box;
+}
+
 .layer-packs-sheet-pack-scroller::-webkit-scrollbar {
   display: none;
 }
@@ -3355,6 +3365,7 @@ input.unified-submit-name-input,
   gap: 6px;
   width: max-content;
   min-width: 100%;
+  flex: 0 0 auto;
 }
 
 .layer-packs-sheet-pack-chip {
@@ -3372,9 +3383,12 @@ input.unified-submit-name-input,
 }
 
 .layer-packs-sheet-pack-chip--focused {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.28);
-  box-shadow: 0 0 0 1px rgba(96, 213, 142, 0.35);
+  background: rgba(96, 213, 142, 0.14);
+  border-color: rgba(120, 220, 170, 0.55);
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.32),
+    0 0 0 1px rgba(96, 213, 142, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
 .layer-packs-sheet-pack-chip__select {
@@ -3398,7 +3412,7 @@ input.unified-submit-name-input,
 
 .layer-packs-sheet-pack-chip__name {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -3463,6 +3477,15 @@ input.unified-submit-name-input,
   inset-inline-end: 16px;
 }
 
+.layer-tiles-grid {
+  --layer-tile-on-bg: rgba(255, 255, 255, 0.2);
+  --layer-tile-on-border: rgba(120, 220, 170, 0.45);
+  --layer-tile-partial-bg: rgba(255, 255, 255, 0.14);
+  --layer-tile-partial-border: rgba(243, 164, 41, 0.5);
+  --layer-tile-off-bg: rgba(255, 255, 255, 0.08);
+  --layer-tile-off-border: rgba(255, 255, 255, 0.2);
+}
+
 .layer-tiles-grid__list {
   list-style: none;
   display: grid;
@@ -3485,43 +3508,25 @@ input.unified-submit-name-input,
   align-items: stretch;
 }
 
-.layer-tile::before {
-  content: "";
-  position: absolute;
-  inset-block-start: 10px;
-  inset-inline-start: 10px;
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
-  border: 1px solid rgba(255, 255, 255, 0.36);
-  background: transparent;
-  pointer-events: none;
-}
+/* Stateful cards: on/partial/off read from surface + border (no checkbox glyph) */
+
+.layer-tile::before { content: none; }
 
 .layer-tile--on {
-  background: rgba(255, 255, 255, 0.2) !important;
-  border-color: rgba(255, 255, 255, 0.28) !important;
-}
-
-.layer-tile--on::before {
-  background: linear-gradient(135deg, #39b96b, #60d58e);
-  border-color: transparent;
+  background: var(--layer-tile-on-bg) !important;
+  border-color: var(--layer-tile-on-border) !important;
 }
 
 .layer-tile--off {
   opacity: 1;
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: var(--layer-tile-off-bg) !important;
+  border-color: var(--layer-tile-off-border) !important;
 }
 
 .layer-tile--partial {
-  background: rgba(255, 255, 255, 0.16) !important;
-  border-color: rgba(243, 164, 41, 0.45) !important;
+  background: var(--layer-tile-partial-bg) !important;
+  border-color: var(--layer-tile-partial-border) !important;
   opacity: 1;
-}
-
-.layer-tile--partial::before {
-  background: linear-gradient(135deg, rgba(220, 180, 80, 0.95), rgba(243, 164, 41, 0.95));
-  border-color: transparent;
 }
 
 .layer-tile__label {
@@ -3529,7 +3534,7 @@ input.unified-submit-name-input,
   font-size: 12px;
   font-weight: 600;
   line-height: 1.25;
-  padding-inline-start: 22px;
+  padding: 2px 10px 2px 10px;
 }
 
 .layer-tiles-grid-empty,
@@ -3563,8 +3568,8 @@ input.unified-submit-name-input,
 
 .layer-packs-sheet {
   width: 100%;
-  max-width: 520px;
-  max-height: min(70vh, 640px);
+  max-width: min(520px, calc(100vw - 24px));
+  max-height: min(78vh, 680px);
   background: rgba(20, 20, 20, 0.52);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -3574,6 +3579,12 @@ input.unified-submit-name-input,
   display: flex;
   flex-direction: column;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+}
+
+/* Predictable menu footprint; cap min-height on short viewports so max-height is not fighting */
+.layer-packs-sheet.layer-packs-sheet--size-stable {
+  min-height: min(420px, 65vh);
 }
 
 @media (min-width: 901px) {
@@ -3594,12 +3605,32 @@ input.unified-submit-name-input,
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.layer-packs-sheet__head-main {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .layer-packs-sheet__title {
   margin: 0;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: rgba(255, 255, 255, 0.92);
   text-align: right;
   flex: 1;
+  min-width: 0;
+}
+
+.layer-packs-sheet__active-total {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.62);
+  white-space: nowrap;
 }
 
 .layer-packs-sheet__body {

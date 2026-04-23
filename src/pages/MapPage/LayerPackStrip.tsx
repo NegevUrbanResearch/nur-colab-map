@@ -26,8 +26,13 @@ export default function LayerPackStrip({
   disabled,
 }: Props) {
   return (
-    <div className="layer-pack-strip" dir="rtl" aria-label="בקרת שכבות">
-      <div className="layer-pack-strip__primary">
+    <div className="layer-pack-strip" dir="rtl">
+      <div
+        className="layer-pack-strip__primary"
+        role="toolbar"
+        aria-label="בקרת שכבות"
+        aria-orientation="horizontal"
+      >
         <button
           type="button"
           className="map-layer-ui-btn layer-pack-strip__trigger"

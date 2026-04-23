@@ -1912,6 +1912,7 @@ const MapPage = () => {
       <LayerPacksSheet
         open={layerSheetOpen}
         onClose={() => setLayerSheetOpen(false)}
+        totalActiveLayerCount={totalActiveLayerCount}
         packStrip={
           <LayerPackChipsScroller
             registry={layerRegistry}

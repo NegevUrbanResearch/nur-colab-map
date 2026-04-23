@@ -6,12 +6,21 @@ type Props = {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Total layers on across all packs; shown subtly in the header when defined. */
+  totalActiveLayerCount?: number;
   /** Horizontal pack scroller (inside sheet, under header). */
   packStrip?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export default function LayerPacksSheet({ open, onClose, title = "שכבות", packStrip, children }: Props) {
+export default function LayerPacksSheet({
+  open,
+  onClose,
+  title = "שכבות",
+  totalActiveLayerCount,
+  packStrip,
+  children,
+}: Props) {
   const labelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
@@ -45,7 +54,7 @@ export default function LayerPacksSheet({ open, onClose, title = "שכבות", p
     >
       <div
         ref={dialogRef}
-        className="layer-packs-sheet"
+        className="layer-packs-sheet layer-packs-sheet--size-stable"
         role="dialog"
         aria-modal="true"
         aria-labelledby={labelId}
@@ -53,9 +62,19 @@ export default function LayerPacksSheet({ open, onClose, title = "שכבות", p
         onClick={(e) => e.stopPropagation()}
       >
         <div className="layer-packs-sheet__head">
-          <h2 className="layer-packs-sheet__title" id={labelId}>
-            {title}
-          </h2>
+          <div className="layer-packs-sheet__head-main">
+            <h2 className="layer-packs-sheet__title" id={labelId}>
+              {title}
+            </h2>
+            {typeof totalActiveLayerCount === "number" ? (
+              <span
+                className="layer-packs-sheet__active-total"
+                aria-label={`${totalActiveLayerCount} שכבות פעילות`}
+              >
+                {totalActiveLayerCount} פעיל
+              </span>
+            ) : null}
+          </div>
           <button
             type="button"
             ref={closeBtnRef}

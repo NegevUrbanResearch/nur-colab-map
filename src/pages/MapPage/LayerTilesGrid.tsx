@@ -37,6 +37,7 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
                   type="button"
                   className={on ? "layer-tile layer-tile--on" : "layer-tile layer-tile--off"}
                   aria-pressed={on}
+                  aria-label={on ? `כבה שכבה: ${label}` : `הפעל שכבה: ${label}`}
                   onClick={() => onToggleLayer(layer.id)}
                 >
                   <span className="layer-tile__label">{label}</span>
@@ -47,14 +48,25 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
           const memberIds = row.members.map((m) => m.id);
           const agg = familyAggregate(memberIds, isLayerOn);
           const ariaPressed = agg === "partial" ? "mixed" : agg === "on";
-          const tileClass =
-            agg === "on" ? "layer-tile layer-tile--on" : agg === "partial" ? "layer-tile layer-tile--partial" : "layer-tile layer-tile--off";
+          const familyAriaLabel =
+            agg === "on"
+              ? `כבה קבוצת שכבות: ${row.label}`
+              : agg === "partial"
+                ? `השלם או בטל שכבות בקבוצה: ${row.label} (מצב חלקי)`
+                : `הפעל קבוצת שכבות: ${row.label}`;
           return (
             <li key={`family:${row.familyKey}`} className="layer-tiles-grid__item">
               <button
                 type="button"
-                className={tileClass}
+                className={
+                  agg === "on"
+                    ? "layer-tile layer-tile--on"
+                    : agg === "partial"
+                      ? "layer-tile layer-tile--partial"
+                      : "layer-tile layer-tile--off"
+                }
                 aria-pressed={ariaPressed}
+                aria-label={familyAriaLabel}
                 onClick={() => onToggleLayerGroup(memberIds)}
               >
                 <span className="layer-tile__label">{row.label}</span>

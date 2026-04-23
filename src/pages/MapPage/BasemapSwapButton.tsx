@@ -2,7 +2,7 @@ import type { BasemapId } from "./useLayerPackState";
 
 const LABEL: Record<BasemapId, string> = {
   satellite: "בסיס: לוויין",
-  osm: "בסיס: OSM",
+  osm: "בסיס: רחובות",
 };
 
 type Props = {
