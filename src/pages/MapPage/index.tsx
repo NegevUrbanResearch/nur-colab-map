@@ -45,7 +45,15 @@ import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 import { getCoreLayerUrls } from "../../map/layers/coreLayers";
+import { buildLayerRegistry } from "../../map/layers/layerRegistry";
+import type { LayerRegistry } from "../../map/layers/types";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
+import { getLayerKey } from "./useLayerPackState";
+import { useLayerPackState } from "./useLayerPackState";
+import LayerPacksSheet from "./LayerPacksSheet";
+import LayerPackStrip from "./LayerPackStrip";
+import LayerTilesGrid from "./LayerTilesGrid";
+import LegendTray, { type LegendTrayGroup } from "./LegendTray";
 import {
   applyEditAction,
   canRedo,
@@ -85,9 +93,13 @@ function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, n
   return flattenIntegratedRouteForPersistence(route);
 }
 
+const ESRI_WORLD_IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const OSM_DEFAULT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
 const MapPage = () => {
   const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
+  const baseMapLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLayersRef = useRef<L.Layer[]>([]);
   const activeProjectRef = useRef<ActiveProject>("pink");
@@ -158,6 +170,85 @@ const MapPage = () => {
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  const [layerRegistry, setLayerRegistry] = useState<LayerRegistry | null>(null);
+  const [layerSheetOpen, setLayerSheetOpen] = useState(false);
+  const [legendTrayOpen, setLegendTrayOpen] = useState(false);
+  const [narrowMapDock, setNarrowMapDock] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const sync = () => setNarrowMapDock(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    let cancel = false;
+    buildLayerRegistry()
+      .then((r) => {
+        if (!cancel) setLayerRegistry(r);
+      })
+      .catch((err) => {
+        console.error("Failed to load layer registry:", err);
+        if (!cancel) setLayerRegistry(null);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  const {
+    basemap,
+    setBasemap,
+    focusedPackId,
+    setFocusedPackId,
+    getPackState,
+    activeCountForPack,
+    totalActiveLayerCount,
+    togglePack,
+    toggleLayer,
+    isLayerOn,
+    layerOnByKey,
+  } = useLayerPackState(layerRegistry);
+
+  const legendTrayGroups = useMemo((): LegendTrayGroup[] => {
+    if (!layerRegistry) return [];
+    const out: LegendTrayGroup[] = [];
+    for (const p of layerRegistry.packs) {
+      for (const l of p.manifest.layers) {
+        const k = getLayerKey(p.id, l.id);
+        if (layerOnByKey[k] === true) {
+          out.push({ id: k, label: `${p.name} — ${l.name}` });
+        }
+      }
+    }
+    return out;
+  }, [layerRegistry, layerOnByKey]);
+
+  const focusedLayerPack = useMemo(() => {
+    if (!layerRegistry || !focusedPackId) return null;
+    return layerRegistry.packs.find((p) => p.id === focusedPackId) ?? null;
+  }, [layerRegistry, focusedPackId]);
+
+  const cycleBasemap = useCallback(() => {
+    setBasemap((b) => (b === "satellite" ? "osm" : "satellite"));
+  }, [setBasemap]);
+
+  const openLayerSheet = useCallback(() => {
+    setLegendTrayOpen(false);
+    setLayerSheetOpen(true);
+  }, []);
+
+  const toggleLegendTray = useCallback(() => {
+    setLegendTrayOpen((prev) => {
+      const next = !prev;
+      if (next) setLayerSheetOpen(false);
+      return next;
+    });
   }, []);
 
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
@@ -418,10 +509,11 @@ const MapPage = () => {
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
     const mapInstance = mapRef.current;
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    const baseTile = L.tileLayer(ESRI_WORLD_IMAGERY, {
       maxZoom: 19,
       attribution: "Tiles &copy; Esri",
     }).addTo(mapRef.current);
+    baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
 
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
@@ -474,6 +566,7 @@ const MapPage = () => {
         popoverDismissSuppressTimerRef.current = null;
       }
       parkingLayerRef.current = null;
+      baseMapLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -483,6 +576,20 @@ const MapPage = () => {
       routeLayersRef.current = [];
     };
   }, [isBootstrapping, bootError]);
+
+  useEffect(() => {
+    if (isBootstrapping || bootError) return;
+    const map = mapRef.current;
+    const cur = baseMapLayerRef.current;
+    if (!map || !cur) return;
+    map.removeLayer(cur);
+    const next =
+      basemap === "satellite"
+        ? L.tileLayer(ESRI_WORLD_IMAGERY, { maxZoom: 19, attribution: "Tiles &copy; Esri" })
+        : L.tileLayer(OSM_DEFAULT_TILES, { maxZoom: 19, attribution: "&copy; OpenStreetMap" });
+    next.addTo(map);
+    baseMapLayerRef.current = next;
+  }, [basemap, isBootstrapping, bootError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1032,6 +1139,13 @@ const MapPage = () => {
       editingPinkTempId ||
       editingMemorial
   );
+
+  useEffect(() => {
+    if (isEntryModalOpen) {
+      setLayerSheetOpen(false);
+      setLegendTrayOpen(false);
+    }
+  }, [isEntryModalOpen]);
 
   const markerPopoverAnchor = useMemo(() => {
     if (!markerActionPopover) return null;
@@ -1651,7 +1765,43 @@ const MapPage = () => {
 
       {memorialSiteEditForm}
 
-      {activeProject === "pink" && !isEntryModalOpen && (
+      <LegendTray open={legendTrayOpen} onClose={() => setLegendTrayOpen(false)} groups={legendTrayGroups} />
+
+      <LayerPacksSheet open={layerSheetOpen} onClose={() => setLayerSheetOpen(false)}>
+        {focusedLayerPack ? (
+          <LayerTilesGrid
+            layers={focusedLayerPack.manifest.layers}
+            isLayerOn={(id) => isLayerOn(focusedLayerPack.id, id)}
+            onToggleLayer={(id) => toggleLayer(focusedLayerPack.id, id)}
+          />
+        ) : (
+          <p className="layer-packs-sheet-empty" dir="rtl">
+            אין עדיין חבילת שכבות זמינה.
+          </p>
+        )}
+      </LayerPacksSheet>
+
+      {!isEntryModalOpen && (
+        <div
+          className={
+            narrowMapDock ? "map-bottom-fusion map-bottom-fusion--stack" : "map-bottom-fusion map-bottom-fusion--split"
+          }
+        >
+          <LayerPackStrip
+            registry={layerRegistry}
+            totalActiveLayerCount={totalActiveLayerCount}
+            focusedPackId={focusedPackId}
+            onSelectPack={setFocusedPackId}
+            getPackState={getPackState}
+            activeCountForPack={activeCountForPack}
+            onTogglePack={togglePack}
+            onOpenLayerSheet={openLayerSheet}
+            onToggleLegend={toggleLegendTray}
+            basemap={basemap}
+            onCycleBasemap={cycleBasemap}
+          />
+
+      {activeProject === "pink" && (
         <div className="pink-toolbar" dir="rtl">
           <div className="map-toolbar-body map-toolbar-body--pink" dir="ltr">
             <div className="map-toolbar-row map-toolbar-row--history">
@@ -1719,7 +1869,7 @@ const MapPage = () => {
         </div>
       )}
 
-      {activeProject === "memorial" && !isEntryModalOpen && (
+      {activeProject === "memorial" && (
         <div
           className={`memorial-toolbar${memorialDragPlacementEnabled ? "" : " memorial-toolbar--tap-only"}`}
           dir="rtl"
@@ -1817,6 +1967,9 @@ const MapPage = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
         </div>
       )}
 
