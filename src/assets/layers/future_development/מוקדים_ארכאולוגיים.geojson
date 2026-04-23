@@ -1,0 +1,13 @@
+{
+"type": "FeatureCollection",
+"name": "מוקדים_ארכאולוגיים",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "FID": 0, "NoteType": 0, "Name": "חרבת בית לג'וס", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.577923043879942, 31.596336559004637 ] } },
+{ "type": "Feature", "properties": { "FID": 1, "NoteType": 0, "Name": "בארות יצחק הישנה מגדל מים", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.500342427845709, 31.460856690443695 ] } },
+{ "type": "Feature", "properties": { "FID": 2, "NoteType": 0, "Name": "תל הרור", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.60662184417091, 31.38190484093321 ] } },
+{ "type": "Feature", "properties": { "FID": 3, "NoteType": 0, "Name": "תל ג'מה", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.444491495759692, 31.387729600332872 ] } },
+{ "type": "Feature", "properties": { "FID": 4, "NoteType": 0, "Name": "בית הכנסת העתיק בחר' מעון", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.408932732578471, 31.328941603808584 ] } },
+{ "type": "Feature", "properties": { "FID": 5, "NoteType": 0, "Name": "קבר שייח נוראן", "Notes": " ", "created_us": "LINKERR", "created_da": 1769040000000, "last_edite": "LINKERR", "last_edi_1": 1769040000000 }, "geometry": { "type": "Point", "coordinates": [ 34.42348929399887, 31.30047712021473 ] } }
+]
+}

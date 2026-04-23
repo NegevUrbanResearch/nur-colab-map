@@ -25,7 +25,11 @@ import {
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
 import { serializeIntegratedRouteToColabBundle } from "../../utils/colabRouteGeometryExport";
-import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
+import {
+  addDetourPaintToMap,
+  ensurePriorityPinkOverlayPane,
+  PRIORITY_PINK_OVERLAY_PANE,
+} from "../../map/pinkDetourLeaflet";
 import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
   isAllowedSubmissionDisplayColor,
@@ -44,7 +48,22 @@ import {
 import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
-import { addParkingLotsLayer } from "../../utils/parkingLayer";
+import { getCoreLayerUrls } from "../../map/layers/coreLayers";
+import { buildLayerRegistry } from "../../map/layers/layerRegistry";
+import { createBasemapTileLayer } from "../../map/layers/basemaps";
+import { buildLegendModel } from "../../map/layers/legend/buildLegendModel";
+import { geojsonAdapterFromPackStyle } from "../../map/layers/geojsonStyleFromPack";
+import { loadLayerIntoMap } from "../../map/layers/loaders/loadLayerIntoMap";
+import { resolveLayerSourceUrls } from "../../map/layers/resolveLayerAssetUrls";
+import { buildLayerTileRows, packLayerKey, parsePackLayerKey } from "../../map/layers/layerNameUtils";
+import type { LayerRegistry, OnLayerPopupMapAction } from "../../map/layers/types";
+import { useLayerPackState } from "./useLayerPackState";
+import LayerPacksSheet from "./LayerPacksSheet";
+import LayerPackChipsScroller from "./LayerPackChipsScroller";
+import PackMasterToggleRow from "./PackMasterToggleRow";
+import LayerPackStrip from "./LayerPackStrip";
+import LayerTilesGrid from "./LayerTilesGrid";
+import LegendTray, { type LegendTraySection } from "./LegendTray";
 import {
   applyEditAction,
   canRedo,
@@ -61,9 +80,7 @@ const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const HERITAGE_AXIS_URL = `${APP_BASE_URL}line-layer/heritage-axis.geojson`;
-const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
-const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
+const { heritageAxis: HERITAGE_AXIS_URL } = getCoreLayerUrls();
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
@@ -88,6 +105,7 @@ function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, n
 const MapPage = () => {
   const navigate = useNavigate();
   const mapRef = useRef<L.Map | null>(null);
+  const baseMapLayerRef = useRef<L.TileLayer | null>(null);
   const markersRef = useRef<Map<string, L.Marker>>(new Map());
   const routeLayersRef = useRef<L.Layer[]>([]);
   const activeProjectRef = useRef<ActiveProject>("pink");
@@ -160,10 +178,95 @@ const MapPage = () => {
     return () => mq.removeEventListener("change", sync);
   }, []);
 
+  const [layerRegistry, setLayerRegistry] = useState<LayerRegistry | null>(null);
+  const [layerSheetOpen, setLayerSheetOpen] = useState(false);
+  const [legendTrayOpen, setLegendTrayOpen] = useState(false);
+  const [narrowMapDock, setNarrowMapDock] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    const sync = () => setNarrowMapDock(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    let cancel = false;
+    buildLayerRegistry()
+      .then((r) => {
+        if (!cancel) setLayerRegistry(r);
+      })
+      .catch((err) => {
+        console.error("Failed to load layer registry:", err);
+        if (!cancel) setLayerRegistry(null);
+      });
+    return () => {
+      cancel = true;
+    };
+  }, []);
+
+  const {
+    basemap,
+    setBasemap,
+    focusedPackId,
+    setFocusedPackId,
+    getPackState,
+    activeCountForPack,
+    totalActiveLayerCount,
+    togglePack,
+    toggleLayer,
+    toggleLayerGroup,
+    isLayerOn,
+    layerOnByKey,
+  } = useLayerPackState(layerRegistry);
+
+  const legendTraySections = useMemo((): LegendTraySection[] => {
+    if (!layerRegistry) return [];
+    const model = buildLegendModel(layerRegistry, layerOnByKey);
+    return model.groups.map((g) => ({
+      id: g.packId,
+      title: g.packName,
+      rows: g.rows,
+    }));
+  }, [layerRegistry, layerOnByKey]);
+
+  const focusedLayerPack = useMemo(() => {
+    if (!layerRegistry || !focusedPackId) return null;
+    return layerRegistry.packs.find((p) => p.id === focusedPackId) ?? null;
+  }, [layerRegistry, focusedPackId]);
+
+  const focusedPackTileRows = useMemo(() => {
+    if (!focusedLayerPack) return [];
+    return buildLayerTileRows(focusedLayerPack.id, focusedLayerPack.manifest.layers);
+  }, [focusedLayerPack]);
+
+  const cycleBasemap = useCallback(() => {
+    setBasemap((b) => (b === "satellite" ? "osm" : "satellite"));
+  }, [setBasemap]);
+
+  const openLayerSheet = useCallback(() => {
+    setLegendTrayOpen(false);
+    setLayerSheetOpen(true);
+  }, []);
+
+  const toggleLegendTray = useCallback(() => {
+    setLegendTrayOpen((prev) => {
+      const next = !prev;
+      if (next) setLayerSheetOpen(false);
+      return next;
+    });
+  }, []);
+
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
-  const parkingLayerRef = useRef<L.LayerGroup | null>(null);
+  const manifestOverlayLayersRef = useRef<Map<string, L.Layer>>(new Map());
+  const manifestOverlayLoadSessionRef = useRef(0);
+  /** Per-layer version: bumped when a layer is turned off or superseded; in-flight loads must match. */
+  const manifestLayerVersionRef = useRef<Map<string, number>>(new Map());
+  const layerOnByKeyRef = useRef<Record<string, boolean>>({});
   const centralSiteRef = useRef<PendingSite | null>(null);
   /** One-shot: outside dismiss used pointerdown on the map; ignore the subsequent Leaflet map `click` for placement. */
   const suppressNextMapClickPlacementRef = useRef(false);
@@ -196,6 +299,10 @@ const MapPage = () => {
   useLayoutEffect(() => {
     selectedSubmissionIdRef.current = selectedSubmissionId;
   }, [selectedSubmissionId]);
+
+  useLayoutEffect(() => {
+    layerOnByKeyRef.current = layerOnByKey;
+  }, [layerOnByKey]);
 
   useLayoutEffect(() => {
     submissionNameInputRef.current = submissionNameInput;
@@ -232,6 +339,49 @@ const MapPage = () => {
   useLayoutEffect(() => {
     applyLocalActionRef.current = applyLocalAction;
   }, [applyLocalAction]);
+
+  const onLayerPopupMapActionRef = useRef<OnLayerPopupMapAction>(() => {});
+
+  const invokeLayerPopupMapAction = useCallback<OnLayerPopupMapAction>((args) => {
+    onLayerPopupMapActionRef.current(args);
+  }, []);
+
+  useLayoutEffect(() => {
+    onLayerPopupMapActionRef.current = (a) => {
+      suppressNextMapClickPlacementRef.current = true;
+      if (popoverDismissSuppressTimerRef.current != null) {
+        window.clearTimeout(popoverDismissSuppressTimerRef.current);
+      }
+      popoverDismissSuppressTimerRef.current = window.setTimeout(() => {
+        popoverDismissSuppressTimerRef.current = null;
+        suppressNextMapClickPlacementRef.current = false;
+      }, 550);
+
+      if (a.action === "create_pink_node") {
+        setActiveProject("pink");
+        setPendingMemorialTarget(null);
+        setEditingPinkTempId(null);
+        setEditingMemorial(null);
+        setMarkerActionPopover(null);
+        setPendingPinkTarget({ lat: a.lat, lng: a.lng });
+        return;
+      }
+      setActiveProject("memorial");
+      setPendingPinkTarget(null);
+      setEditingPinkTempId(null);
+      setEditingMemorial(null);
+      setMarkerActionPopover(null);
+      const t = activeMemorialTypeRef.current;
+      if (t === "central" && centralSiteRef.current) {
+        if (!window.confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) {
+          return;
+        }
+        const prev = centralSiteRef.current;
+        applyLocalActionRef.current({ kind: "memorial:removeCentral", previous: prev });
+      }
+      setPendingMemorialTarget({ lat: a.lat, lng: a.lng, type: t });
+    };
+  }, []);
 
   const handleMarkerActionPopoverClose = useCallback((ev: PointerEvent) => {
     const map = mapRef.current;
@@ -417,12 +567,12 @@ const MapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
-    const mapInstance = mapRef.current;
-    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
-      maxZoom: 19,
-      attribution: "Tiles &copy; Esri",
-    }).addTo(mapRef.current);
+    ensurePriorityPinkOverlayPane(mapRef.current);
+    const baseTile = createBasemapTileLayer("satellite").addTo(mapRef.current);
+    baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
+
+    let heritageAxisFetchCancelled = false;
 
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
       if (suppressNextMapClickPlacementRef.current) {
@@ -453,27 +603,31 @@ const MapPage = () => {
 
     fetch(HERITAGE_AXIS_URL)
       .then((res) => {
+        if (heritageAxisFetchCancelled) return null;
         if (!res.ok) throw new Error(`Failed to fetch heritage axis GeoJSON (${res.status})`);
         return res.json();
       })
-      .then((geojson: GeoJSON.FeatureCollection) => {
+      .then((geojson: GeoJSON.FeatureCollection | null) => {
+        if (heritageAxisFetchCancelled || geojson == null) return;
         defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
         setDefaultLineLoaded(true);
       })
-      .catch((err) => console.error("Failed to load heritage axis line:", err));
-
-    addParkingLotsLayer(mapInstance, PARKING_LOTS_URL, PARKING_ICON_URL, () => mapRef.current === mapInstance)
-      .then((group) => {
-        if (group) parkingLayerRef.current = group;
-      })
-      .catch((err) => console.error("Failed to load parking lots:", err));
+      .catch((err) => {
+        if (!heritageAxisFetchCancelled) {
+          console.error("Failed to load heritage axis line:", err);
+        }
+      });
 
     return () => {
+      heritageAxisFetchCancelled = true;
       if (popoverDismissSuppressTimerRef.current != null) {
         window.clearTimeout(popoverDismissSuppressTimerRef.current);
         popoverDismissSuppressTimerRef.current = null;
       }
-      parkingLayerRef.current = null;
+      manifestOverlayLoadSessionRef.current += 1;
+      manifestLayerVersionRef.current.clear();
+      manifestOverlayLayersRef.current.clear();
+      baseMapLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
@@ -483,6 +637,127 @@ const MapPage = () => {
       routeLayersRef.current = [];
     };
   }, [isBootstrapping, bootError]);
+
+  useEffect(() => {
+    if (isBootstrapping || bootError) return;
+    const map = mapRef.current;
+    const registry = layerRegistry;
+    if (!map || !registry) return;
+
+    const sessionAtStart = manifestOverlayLoadSessionRef.current;
+    const want = new Set<string>();
+    for (const pack of registry.packs) {
+      for (const layer of pack.manifest.layers) {
+        const k = packLayerKey(pack.id, layer.id);
+        if (layerOnByKey[k] === true) want.add(k);
+      }
+    }
+
+    const bumpVersion = (key: string) => {
+      const m = manifestLayerVersionRef.current;
+      m.set(key, (m.get(key) ?? 0) + 1);
+    };
+
+    for (const [key, lyr] of [...manifestOverlayLayersRef.current.entries()]) {
+      if (!want.has(key)) {
+        bumpVersion(key);
+        try {
+          map.removeLayer(lyr);
+        } catch {
+          // no-op
+        }
+        manifestOverlayLayersRef.current.delete(key);
+      }
+    }
+
+    for (const key of want) {
+      if (manifestOverlayLayersRef.current.has(key)) continue;
+
+      const parsed = parsePackLayerKey(key);
+      if (!parsed) continue;
+      const { packId, layerId } = parsed;
+      const pack = registry.packs.find((p) => p.id === packId);
+      const layer = pack?.manifest.layers.find((l) => l.id === layerId);
+      if (!pack || !layer) continue;
+
+      const urls = resolveLayerSourceUrls(pack.id, layer);
+      if (!urls) {
+        if (import.meta.env.DEV) console.warn("[MapPage] Unresolved layer assets:", key);
+        continue;
+      }
+
+      const m = manifestLayerVersionRef.current;
+      const versionAtStart = (m.get(key) ?? 0) + 1;
+      m.set(key, versionAtStart);
+
+      const geo = geojsonAdapterFromPackStyle(pack.styles[layer.id], layer);
+
+      void loadLayerIntoMap({
+        map,
+        urls,
+        pmtilesSourceLayer: layer.pmtilesSourceLayer ?? "layer",
+        style: pack.styles[layer.id],
+        ui: layer.ui,
+        layerGeometryType: layer.geometryType,
+        onPopupAction: invokeLayerPopupMapAction,
+        getLayerPopupCtaMode: () => activeProjectRef.current,
+        ...geo,
+      })
+        .then((loaded) => {
+          if (manifestOverlayLoadSessionRef.current !== sessionAtStart) {
+            try {
+              map.removeLayer(loaded.layer);
+            } catch {
+              // no-op
+            }
+            return;
+          }
+          if (manifestLayerVersionRef.current.get(key) !== versionAtStart) {
+            try {
+              map.removeLayer(loaded.layer);
+            } catch {
+              // no-op
+            }
+            return;
+          }
+          if (layerOnByKeyRef.current[key] !== true) {
+            try {
+              map.removeLayer(loaded.layer);
+            } catch {
+              // no-op
+            }
+            return;
+          }
+          manifestOverlayLayersRef.current.set(key, loaded.layer);
+        })
+        .catch((err) => console.error("Failed to load manifest layer:", key, err));
+    }
+  }, [isBootstrapping, bootError, layerRegistry, layerOnByKey, invokeLayerPopupMapAction]);
+
+  useEffect(() => {
+    if (isBootstrapping || bootError) return;
+    const map = mapRef.current;
+    const cur = baseMapLayerRef.current;
+    if (!map || !cur) return;
+    map.removeLayer(cur);
+    const next = createBasemapTileLayer(basemap);
+    next.addTo(map);
+    // Leaflet orders same-pane layers by insertion; a newly added basemap would sit above
+    // earlier overlays unless we send it to the back of the tile stack.
+    next.bringToBack();
+    baseMapLayerRef.current = next;
+
+    for (const [key, layer] of manifestOverlayLayersRef.current) {
+      if (layerOnByKeyRef.current[key] !== true) continue;
+      if (!map.hasLayer(layer)) {
+        try {
+          layer.addTo(map);
+        } catch {
+          // no-op
+        }
+      }
+    }
+  }, [basemap, isBootstrapping, bootError]);
 
   useEffect(() => {
     let cancelled = false;
@@ -571,13 +846,20 @@ const MapPage = () => {
       } = routeLineStylesForDisplayColor(submissionDisplayColor);
       const showPinkDetours = pinkNodes.length > 0;
 
+      const routePane = { pane: PRIORITY_PINK_OVERLAY_PANE };
       for (const points of solid) {
-        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
+        routeLayersRef.current.push(
+          L.polyline(points as L.LatLngExpression[], { ...solidStyle, ...routePane }).addTo(map)
+        );
       }
       if (showPinkDetours) {
         for (const points of removed) {
-          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedHaloStyle).addTo(map));
-          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
+          routeLayersRef.current.push(
+            L.polyline(points as L.LatLngExpression[], { ...removedHaloStyle, ...routePane }).addTo(map)
+          );
+          routeLayersRef.current.push(
+            L.polyline(points as L.LatLngExpression[], { ...removedStyle, ...routePane }).addTo(map)
+          );
         }
       }
       if (showPinkDetours) {
@@ -592,13 +874,19 @@ const MapPage = () => {
           );
         } else {
           for (const points of dashed) {
-            routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedHaloStyle).addTo(map));
+            routeLayersRef.current.push(
+              L.polyline(points as L.LatLngExpression[], { ...dashedHaloStyle, ...routePane }).addTo(map)
+            );
             if (dashedSecondaryStyle) {
               routeLayersRef.current.push(
-                L.polyline(points as L.LatLngExpression[], dashedSecondaryStyle).addTo(map)
+                L.polyline(points as L.LatLngExpression[], { ...dashedSecondaryStyle, ...routePane }).addTo(
+                  map
+                )
               );
             }
-            routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+            routeLayersRef.current.push(
+              L.polyline(points as L.LatLngExpression[], { ...dashedStyle, ...routePane }).addTo(map)
+            );
           }
         }
       }
@@ -619,6 +907,7 @@ const MapPage = () => {
       pinkNodes.forEach((node) => {
         const marker = L.marker([node.lat, node.lng], {
           draggable: true,
+          pane: PRIORITY_PINK_OVERLAY_PANE,
           icon: L.divIcon({
             className: "pink-line-node-marker",
             html: `<div class="pink-line-node" style="background-color: ${pinkNodeFill}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.45);">${nodeOrder.get(node.tempId) || 1}</div>`,
@@ -679,7 +968,11 @@ const MapPage = () => {
               iconAnchor: [20, 20],
               popupAnchor: [0, -20],
             });
-      const marker = L.marker([site.lat, site.lng], { icon, draggable: true }).addTo(map);
+      const marker = L.marker([site.lat, site.lng], {
+        icon,
+        draggable: true,
+        pane: PRIORITY_PINK_OVERLAY_PANE,
+      }).addTo(map);
       let dragStartLatLng: L.LatLng | null = null;
       let suppressNextDeleteClick = false;
       marker.on("dragstart", () => {
@@ -740,6 +1033,7 @@ const MapPage = () => {
     }
     if (pendingPinkTarget) {
       pendingPinkMarkerRef.current = L.marker([pendingPinkTarget.lat, pendingPinkTarget.lng], {
+        pane: PRIORITY_PINK_OVERLAY_PANE,
         icon: L.divIcon({
           className: "pink-line-node-marker",
           html: `<div class="pink-line-node">+</div>`,
@@ -763,6 +1057,7 @@ const MapPage = () => {
     if (pendingMemorialTarget) {
       const iconUrl = pendingMemorialTarget.type === "central" ? regionalMemorialIconUrl : localMemorialIconUrl;
       pendingMemorialMarkerRef.current = L.marker([pendingMemorialTarget.lat, pendingMemorialTarget.lng], {
+        pane: PRIORITY_PINK_OVERLAY_PANE,
         icon: L.icon({
           iconUrl,
           iconSize: [40, 40],
@@ -1032,6 +1327,13 @@ const MapPage = () => {
       editingPinkTempId ||
       editingMemorial
   );
+
+  useEffect(() => {
+    if (isEntryModalOpen) {
+      setLayerSheetOpen(false);
+      setLegendTrayOpen(false);
+    }
+  }, [isEntryModalOpen]);
 
   const markerPopoverAnchor = useMemo(() => {
     if (!markerActionPopover) return null;
@@ -1651,7 +1953,58 @@ const MapPage = () => {
 
       {memorialSiteEditForm}
 
-      {activeProject === "pink" && !isEntryModalOpen && (
+      <LegendTray open={legendTrayOpen} onClose={() => setLegendTrayOpen(false)} sections={legendTraySections} />
+
+      <LayerPacksSheet
+        open={layerSheetOpen}
+        onClose={() => setLayerSheetOpen(false)}
+        totalActiveLayerCount={totalActiveLayerCount}
+        headAccessory={
+          <PackMasterToggleRow
+            registry={layerRegistry}
+            focusedPackId={focusedPackId}
+            getPackState={getPackState}
+            onTogglePack={togglePack}
+          />
+        }
+        packStrip={
+          <LayerPackChipsScroller
+            registry={layerRegistry}
+            focusedPackId={focusedPackId}
+            onSelectPack={setFocusedPackId}
+            activeCountForPack={activeCountForPack}
+          />
+        }
+      >
+        {focusedLayerPack ? (
+          <LayerTilesGrid
+            rows={focusedPackTileRows}
+            isLayerOn={(id) => isLayerOn(focusedLayerPack.id, id)}
+            onToggleLayer={(id) => toggleLayer(focusedLayerPack.id, id)}
+            onToggleLayerGroup={(ids) => toggleLayerGroup(focusedLayerPack.id, ids)}
+          />
+        ) : (
+          <p className="layer-packs-sheet-empty" dir="rtl">
+            אין עדיין חבילת שכבות זמינה.
+          </p>
+        )}
+      </LayerPacksSheet>
+
+      {!isEntryModalOpen && (
+        <div
+          className={
+            narrowMapDock ? "map-bottom-fusion map-bottom-fusion--stack" : "map-bottom-fusion map-bottom-fusion--split"
+          }
+        >
+          <LayerPackStrip
+            totalActiveLayerCount={totalActiveLayerCount}
+            onOpenLayerSheet={openLayerSheet}
+            onToggleLegend={toggleLegendTray}
+            basemap={basemap}
+            onCycleBasemap={cycleBasemap}
+          />
+
+      {activeProject === "pink" && (
         <div className="pink-toolbar" dir="rtl">
           <div className="map-toolbar-body map-toolbar-body--pink" dir="ltr">
             <div className="map-toolbar-row map-toolbar-row--history">
@@ -1719,7 +2072,7 @@ const MapPage = () => {
         </div>
       )}
 
-      {activeProject === "memorial" && !isEntryModalOpen && (
+      {activeProject === "memorial" && (
         <div
           className={`memorial-toolbar${memorialDragPlacementEnabled ? "" : " memorial-toolbar--tap-only"}`}
           dir="rtl"
@@ -1817,6 +2170,9 @@ const MapPage = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
         </div>
       )}
 

@@ -1,0 +1,277 @@
+{
+  "id": "future_development",
+  "name": "Future Development",
+  "layers": [
+    {
+      "id": "אנדרטאות_ומוקדי_הנצחה",
+      "name": "אנדרטאות_ומוקדי_הנצחה",
+      "file": "אנדרטאות_ומוקדי_הנצחה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "הציר_הורוד_חדש",
+      "name": "הציר_הורוד_חדש",
+      "file": "הציר_הורוד_חדש.geojson",
+      "format": "geojson",
+      "geometryType": "line"
+    },
+    {
+      "id": "יציאה_כביש",
+      "name": "יציאה_כביש",
+      "file": "יציאה_כביש.geojson",
+      "format": "geojson",
+      "geometryType": "line"
+    },
+    {
+      "id": "מוזיאונים_מרכזי_מבקרים_ומוקדי_תרבות",
+      "name": "מוזיאונים_מרכזי_מבקרים_ומוקדי_תרבות",
+      "file": "מוזיאונים_מרכזי_מבקרים_ומוקדי_תרבות.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "מוקדי_מורשת",
+      "name": "מוקדי_מורשת",
+      "file": "מוקדי_מורשת.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "מוקדים_ארכאולוגיים",
+      "name": "מוקדים_ארכאולוגיים",
+      "file": "מוקדים_ארכאולוגיים.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "מורשת-מוצע",
+      "name": "מורשת-מוצע",
+      "file": "מורשת-מוצע.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            },
+            {
+              "label": "type",
+              "key": "type"
+            },
+            {
+              "label": "Status",
+              "key": "Status"
+            },
+            {
+              "label": "PopupInfo",
+              "key": "PopupInfo"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "מורשת-קיים",
+      "name": "מורשת-קיים",
+      "file": "מורשת-קיים.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            },
+            {
+              "label": "type",
+              "key": "type"
+            },
+            {
+              "label": "Status",
+              "key": "Status"
+            },
+            {
+              "label": "PopupInfo",
+              "key": "PopupInfo"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "מימושים",
+      "name": "מימושים",
+      "file": "מימושים.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מימושים.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "תכנית",
+              "key": "TOCHNIT"
+            },
+            {
+              "label": "KVUZ_TRG",
+              "key": "KVUZ_TRG"
+            },
+            {
+              "label": "תרגום יעוד",
+              "key": "TARGUMYEUD"
+            },
+            {
+              "label": "מימוש",
+              "key": "mimush"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "מתחמי_דיור",
+      "name": "מתחמי_דיור",
+      "file": "מתחמי_דיור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מתחמי_דיור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "מספר תכנית",
+              "key": "PLAN_NB"
+            },
+            {
+              "label": "שם תכנית",
+              "key": "PLAN_NAME"
+            },
+            {
+              "label": "סוג מתחם",
+              "key": "PLANING_TYPE"
+            },
+            {
+              "label": "סטטוס",
+              "key": "PLAN_STATUS"
+            },
+            {
+              "label": "תוספת יח\"ד",
+              "key": "FLAT_NUMBER"
+            },
+            {
+              "label": "תכנית עבודה",
+              "key": "YEARLY_WORK_PLAN"
+            },
+            {
+              "label": "חדש / התחדשות",
+              "key": "PLANING_TYPE"
+            },
+            {
+              "label": "שם יישוב",
+              "key": "SETTLE_NAME"
+            },
+            {
+              "label": "מרחב תכנון",
+              "key": "PLANING_AREA"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "PLAN_NAME"
+        }
+      }
+    },
+    {
+      "id": "חניה",
+      "name": "חניה",
+      "file": "parking-lots.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "שם",
+              "key": "name"
+            },
+            {
+              "label": "הערות",
+              "key": "notes"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "name"
+        }
+      }
+    },
+    {
+      "id": "ציר_232",
+      "name": "ציר_232",
+      "file": "ציר_232.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    }
+  ]
+}

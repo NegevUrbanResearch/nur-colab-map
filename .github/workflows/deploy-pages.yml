@@ -34,8 +34,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Use npx vite directly so `--base` reaches Vite. `npm run build -- --base …` is mishandled by npm
+      # (it treats `--base` as an npm flag and passes only the path as Vite's root directory).
       - name: Build
-        run: npm run build -- --base "${{ steps.pages.outputs.base_path }}"
+        run: npx tsc && npx vite build --base "${{ steps.pages.outputs.base_path }}"
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
