@@ -40,6 +40,63 @@ const mockRegistry: LayerRegistry = {
   getLayer: () => undefined,
 };
 
+describe("packAggregateFromLayerBooleans (pack / tile family aggregate sync)", () => {
+  it('returns "off" for empty or all-false', () => {
+    expect(packAggregateFromLayerBooleans([])).toBe("off");
+    expect(packAggregateFromLayerBooleans([false, false])).toBe("off");
+  });
+
+  it('returns "on" only when every layer is on', () => {
+    expect(packAggregateFromLayerBooleans([true])).toBe("on");
+    expect(packAggregateFromLayerBooleans([true, true])).toBe("on");
+  });
+
+  it('returns "partial" when some but not all are on', () => {
+    expect(packAggregateFromLayerBooleans([true, false])).toBe("partial");
+    expect(packAggregateFromLayerBooleans([false, true, false])).toBe("partial");
+  });
+
+  it("merged-family row: aggregate tracks partial → on → off like LayerTilesGrid familyAggregate", () => {
+    const memberIds = ["חדירה_לישוב-אזור", "חדירה_לישוב-נקודה"] as const;
+    const octoberPack: LayerRegistry = {
+      packs: [
+        {
+          id: "october_7th",
+          name: "Oct",
+          displayName: "Oct",
+          manifest: {
+            id: "october_7th",
+            name: "Oct",
+            layers: [
+              { id: "חדירה_לישוב-אזור", name: "a", file: "a.geojson", format: "geojson", geometryType: "polygon" },
+              { id: "חדירה_לישוב-נקודה", name: "b", file: "b.geojson", format: "geojson", geometryType: "point" },
+              { id: "ביזה-אזור", name: "c", file: "c.geojson", format: "geojson", geometryType: "polygon" },
+            ],
+          },
+          styles: {},
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const familyAgg = (m: Record<string, boolean>) =>
+      packAggregateFromLayerBooleans(memberIds.map((id) => m[packLayerKey("october_7th", id)] === true));
+
+    const kArea = packLayerKey("october_7th", "חדירה_לישוב-אזור");
+    const kPoint = packLayerKey("october_7th", "חדירה_לישוב-נקודה");
+    const kOther = packLayerKey("october_7th", "ביזה-אזור");
+    let m: Record<string, boolean> = { [kArea]: true, [kPoint]: false, [kOther]: false };
+    expect(familyAgg(m)).toBe("partial");
+
+    m = nextLayerStateAfterPackToggle(m, "october_7th", [...memberIds], octoberPack);
+    expect(familyAgg(m)).toBe("on");
+    expect(m[kOther]).toBe(false);
+
+    m = nextLayerStateAfterPackToggle(m, "october_7th", [...memberIds], octoberPack);
+    expect(familyAgg(m)).toBe("off");
+    expect(m[kOther]).toBe(false);
+  });
+});
+
 describe("useLayerPackState helpers", () => {
   it("toggles full pack: off → all on → all off", () => {
     const layerKeys = ["L1", "L2"].map((id) => getLayerKey("pack_a", id));
@@ -79,41 +136,6 @@ describe("useLayerPackState helpers", () => {
     m = nextLayerStateAfterPackToggle(m, "pack_b", ["X1"], mockRegistry);
     expect(m[getLayerKey("pack_b", "X1")]).toBe(true);
     expect(m[getLayerKey("pack_a", "L1")]).toBe(true);
-  });
-
-  it("subset pack toggle (merged tile row) turns all members on from partial, then all off from full on", () => {
-    const octoberPack: LayerRegistry = {
-      packs: [
-        {
-          id: "october_7th",
-          name: "Oct",
-          displayName: "Oct",
-          manifest: {
-            id: "october_7th",
-            name: "Oct",
-            layers: [
-              { id: "חדירה_לישוב-אזור", name: "a", file: "a.geojson", format: "geojson", geometryType: "polygon" },
-              { id: "חדירה_לישוב-נקודה", name: "b", file: "b.geojson", format: "geojson", geometryType: "point" },
-              { id: "ביזה-אזור", name: "c", file: "c.geojson", format: "geojson", geometryType: "polygon" },
-            ],
-          },
-          styles: {},
-        },
-      ],
-      getLayer: () => undefined,
-    };
-    const kArea = packLayerKey("october_7th", "חדירה_לישוב-אזור");
-    const kPoint = packLayerKey("october_7th", "חדירה_לישוב-נקודה");
-    const kOther = packLayerKey("october_7th", "ביזה-אזור");
-    let m: Record<string, boolean> = { [kArea]: true, [kPoint]: false, [kOther]: false };
-    m = nextLayerStateAfterPackToggle(m, "october_7th", ["חדירה_לישוב-אזור", "חדירה_לישוב-נקודה"], octoberPack);
-    expect(m[kArea]).toBe(true);
-    expect(m[kPoint]).toBe(true);
-    expect(m[kOther]).toBe(false);
-    m = nextLayerStateAfterPackToggle(m, "october_7th", ["חדירה_לישוב-אזור", "חדירה_לישוב-נקודה"], octoberPack);
-    expect(m[kArea]).toBe(false);
-    expect(m[kPoint]).toBe(false);
-    expect(m[kOther]).toBe(false);
   });
 
   it("defaults future_development::חניה on when the key first appears in the registry", () => {

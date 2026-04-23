@@ -6,7 +6,12 @@ import {
 } from "../../submission/submissionDisplayColor";
 
 /** Longer dashes + shorter gaps so each color reads as its own segments (not one two-tone band). Period must match `PROPOSED_DASH_OFFSET_PRIMARY` (half-period interleave). */
-const PROPOSED_DASH = "10 8";
+export const ROUTE_PROPOSED_DASH_PATTERN = "10 8";
+const PROPOSED_DASH = ROUTE_PROPOSED_DASH_PATTERN;
+
+/** Single source for halo widths under ghost / proposed route strokes (Cityscope parity targets). */
+export const ROUTE_OLD_LINE_HALO_WEIGHT_PX = 6;
+export const ROUTE_PROPOSED_LINE_HALO_WEIGHT_PX = 10;
 /** Secondary at offset 0; primary shifted by half the dash period so gaps fill with the partner color. */
 const PROPOSED_DASH_OFFSET_PRIMARY = "9";
 
@@ -35,7 +40,7 @@ export const oldLineStyle: PolylineOptions = {
 /** Drawn beneath `oldLineStyle` polylines for a white halo without changing gray stroke semantics. */
 export const oldLineHaloStyle: PolylineOptions = {
   color: "#ffffff",
-  weight: 6,
+  weight: ROUTE_OLD_LINE_HALO_WEIGHT_PX,
   opacity: 0.22,
   lineCap: "round",
   lineJoin: "round",
@@ -57,7 +62,7 @@ export const proposedLineStyle: PolylineOptions = {
  */
 export const proposedLineHaloStyle: PolylineOptions = {
   color: "#e8eef5",
-  weight: 10,
+  weight: ROUTE_PROPOSED_LINE_HALO_WEIGHT_PX,
   opacity: 0.32,
   lineCap: "round",
   lineJoin: "round",

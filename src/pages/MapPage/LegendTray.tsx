@@ -14,14 +14,44 @@ export type LegendTraySection = {
 function LegendSwatchView({ swatch }: { swatch: LegendSwatchPreview }) {
   if (swatch.kind === "line") {
     const h = Math.max(2, Math.min(6, swatch.strokeWidth ?? 2));
+    const color = swatch.strokeColor ?? "rgba(255,255,255,0.5)";
+    const op = swatch.strokeOpacity ?? 1;
+    const dash = swatch.strokeDasharray?.trim();
+    if (dash) {
+      const pad = 2;
+      return (
+        <span className="legend-tray__swatch legend-tray__swatch--line" aria-hidden>
+          <svg
+            className="legend-tray__swatch-line legend-tray__swatch-line--dashed"
+            width="100%"
+            height={h + pad * 2}
+            viewBox="0 0 40 10"
+            preserveAspectRatio="none"
+            style={{ display: "block" }}
+          >
+            <line
+              x1="0"
+              y1="5"
+              x2="40"
+              y2="5"
+              stroke={color}
+              strokeWidth={Math.max(1.2, Math.min(4, h))}
+              strokeOpacity={op}
+              strokeDasharray={dash}
+              strokeLinecap="butt"
+            />
+          </svg>
+        </span>
+      );
+    }
     return (
       <span className="legend-tray__swatch legend-tray__swatch--line" aria-hidden>
         <span
           className="legend-tray__swatch-line"
           style={{
             height: h,
-            backgroundColor: swatch.strokeColor ?? "rgba(255,255,255,0.5)",
-            opacity: swatch.strokeOpacity ?? 1,
+            backgroundColor: color,
+            opacity: op,
           }}
         />
       </span>

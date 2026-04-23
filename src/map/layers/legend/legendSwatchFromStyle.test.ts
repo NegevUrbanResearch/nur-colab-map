@@ -19,6 +19,32 @@ describe("legendSwatchFromStyle", () => {
     });
   });
 
+  it("includes strokeDasharray when stroke uses dash or dashArray", () => {
+    const styleDash = {
+      type: "line",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [{ type: "stroke", color: "#111", width: 3, opacity: 1, dash: [4, 3] }],
+      },
+    };
+    expect(legendSwatchFromStyle(styleDash, "line")).toMatchObject({
+      kind: "line",
+      strokeDasharray: "4 3",
+    });
+    const styleDashArray = {
+      type: "line",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [{ type: "stroke", color: "#222", width: 2, opacity: 0.8, dashArray: [10, 14] }],
+      },
+    };
+    expect(legendSwatchFromStyle(styleDashArray, "line")).toMatchObject({
+      kind: "line",
+      strokeColor: "#222",
+      strokeDasharray: "10 14",
+    });
+  });
+
   it("returns point swatch from markerPoint symbol", () => {
     const style = {
       type: "point",

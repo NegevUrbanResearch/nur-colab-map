@@ -3,7 +3,13 @@ import L from "leaflet";
 import type { PathOptions } from "leaflet";
 import parkingIconUrl from "../../assets/layers/future_development/parking-icon.png?url";
 import { cityscopeGeometryKind, parseDefaultSymbolFromStyle, type ParsedMarker } from "./cityscopeSymbolParse";
+import { packLineStrokePaintFromParsed, packPolygonOutlineWidthFromParsed } from "./styleToLeaflet";
 import type { LayerManifestEntry } from "./types";
+
+type GeojsonPackAdapter = {
+  geojsonStyle?: PathOptions | ((feature?: Feature) => PathOptions);
+  geojsonPointToLayer?: (feature: Feature, latlng: L.LatLng) => L.Layer;
+};
 
 const PARKING_LOTS_GEOJSON = "parking-lots.geojson";
 
@@ -40,70 +46,38 @@ function pointFeatureToLayer(m: ParsedMarker, layer: LayerManifestEntry, latlng:
 /**
  * Derives Leaflet GeoJSON layer options from pack style JSON + manifest geometry.
  */
-export function geojsonAdapterFromPackStyle(
-  style: unknown,
-  layer: LayerManifestEntry,
-): {
-  geojsonStyle?: PathOptions | ((feature?: Feature) => PathOptions);
-  geojsonPointToLayer?: (feature: Feature, latlng: L.LatLng) => L.Layer;
-} {
+export function geojsonAdapterFromPackStyle(style: unknown, layer: LayerManifestEntry): GeojsonPackAdapter {
   const parsed = parseDefaultSymbolFromStyle(style);
   const g = layer.geometryType.toLowerCase();
-
-  if (g === "point" && parsed?.marker) {
-    const m = parsed.marker;
-    return {
-      geojsonPointToLayer: (_f, latlng) => pointFeatureToLayer(m, layer, latlng),
-    };
-  }
-
-  if (g === "line" && parsed?.stroke) {
-    const s = parsed.stroke;
-    const dash = s.dash?.length ? s.dash : undefined;
-    return {
-      geojsonStyle: {
-        color: s.color,
-        weight: Math.max(1, Math.min(12, s.width)),
-        opacity: s.opacity,
-        dashArray: dash,
-      },
-    };
-  }
-
-  if (g === "polygon" && (parsed?.fill || parsed?.stroke)) {
-    const f = parsed.fill;
-    const s = parsed.stroke;
-    return {
-      geojsonStyle: {
-        fillColor: f?.color,
-        fillOpacity: f?.opacity ?? 0.35,
-        color: s?.color ?? f?.color ?? "#000000",
-        weight: s ? Math.max(0.5, Math.min(6, s.width)) : 1,
-        opacity: s?.opacity ?? 1,
-      },
-    };
-  }
-
   const sk = cityscopeGeometryKind(style);
-  if (sk === "line" && parsed?.stroke) {
-    const s = parsed.stroke;
-    const dash = s.dash?.length ? s.dash : undefined;
+
+  const lineFromPack = (): GeojsonPackAdapter | undefined => {
+    if (!parsed?.stroke) return undefined;
+    const paint = packLineStrokePaintFromParsed(parsed.stroke, {
+      color: "#3388ff",
+      weight: 2,
+      opacity: 1,
+    });
     return {
       geojsonStyle: {
-        color: s.color,
-        weight: Math.max(1, Math.min(12, s.width)),
-        opacity: s.opacity,
-        dashArray: dash,
+        color: paint.color,
+        weight: paint.weight,
+        opacity: paint.opacity,
+        dashArray: paint.dash,
       },
     };
-  }
-  if (sk === "point" && parsed?.marker) {
+  };
+
+  const pointFromPack = (): GeojsonPackAdapter | undefined => {
+    if (!parsed?.marker) return undefined;
     const m = parsed.marker;
     return {
       geojsonPointToLayer: (_f, latlng) => pointFeatureToLayer(m, layer, latlng),
     };
-  }
-  if (sk === "polygon" && (parsed?.fill || parsed?.stroke)) {
+  };
+
+  const polygonFromPack = (): GeojsonPackAdapter | undefined => {
+    if (!(parsed?.fill || parsed?.stroke)) return undefined;
     const f = parsed.fill;
     const s = parsed.stroke;
     return {
@@ -111,10 +85,34 @@ export function geojsonAdapterFromPackStyle(
         fillColor: f?.color,
         fillOpacity: f?.opacity ?? 0.35,
         color: s?.color ?? f?.color ?? "#000000",
-        weight: s ? Math.max(0.5, Math.min(6, s.width)) : 1,
+        weight: packPolygonOutlineWidthFromParsed(s),
         opacity: s?.opacity ?? 1,
       },
     };
+  };
+
+  if (g === "point") {
+    const r = pointFromPack();
+    if (r) return r;
+  } else if (g === "line") {
+    const r = lineFromPack();
+    if (r) return r;
+  } else if (g === "polygon") {
+    const r = polygonFromPack();
+    if (r) return r;
+  }
+
+  if (sk === "line") {
+    const r = lineFromPack();
+    if (r) return r;
+  }
+  if (sk === "point") {
+    const r = pointFromPack();
+    if (r) return r;
+  }
+  if (sk === "polygon") {
+    const r = polygonFromPack();
+    if (r) return r;
   }
 
   return {};

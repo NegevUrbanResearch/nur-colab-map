@@ -3,6 +3,7 @@ import type { LayerManifestEntry, LayerPackStylesJson } from "./types";
 import { legendSwatchFromStyle } from "./legend/legendSwatchFromStyle";
 import {
   OCTOBER_7TH_PACK_ID,
+  normalizeLegendFallbackLabel,
   october7thFamilyRowId,
   october7thMergedFamilyLabel,
   type October7thMergedFamilyKey,
@@ -51,19 +52,36 @@ export function pickOctober7thFamilyLayerForSwatch(
   })[0]!;
 }
 
+const OCTOBER7_GEO_SUFFIXES = ["-אזור", "-נקודה", "-ציר"] as const;
+
+function stripOctober7GeometrySuffix(layerId: string): string {
+  for (const suf of OCTOBER7_GEO_SUFFIXES) {
+    if (layerId.endsWith(suf)) return layerId.slice(0, -suf.length);
+  }
+  return layerId;
+}
+
 /**
  * Maps a concrete layer id to its merged display family when it belongs to a
  * geometry-variant group (October 7 pack only).
+ *
+ * Intentional exclusions: some layers share a `-אזור` / `-נקודה` (or similar) pattern but are
+ * not merged — for example `אזור_הרס-אזור` and `אזור_הרס-נקודה` stay separate rows until a
+ * dedicated `אזור_הרס` family key and curated label are added to the product glossary.
  */
 export function october7thMergedFamilyKeyFromLayerId(layerId: string): October7thMergedFamilyKey | null {
   if (layerId.startsWith("חדירה_לישוב")) return "חדירה_לישוב";
   if (layerId.startsWith("מאבק_וגבורה")) return "מאבק_וגבורה";
   if (layerId.startsWith("פגיעה_נקודתית")) return "פגיעה_נקודתית";
+  if (layerId.startsWith("ביזה-")) return "ביזה";
+  if (layerId.startsWith("אירוע_נקודתי-")) {
+    return stripOctober7GeometrySuffix(layerId) as October7thMergedFamilyKey;
+  }
   return null;
 }
 
 export type LayerTileRow =
-  | { kind: "layer"; layer: LayerManifestEntry }
+  | { kind: "layer"; layer: LayerManifestEntry; label: string }
   | {
       kind: "family";
       familyKey: October7thMergedFamilyKey;
@@ -74,7 +92,11 @@ export type LayerTileRow =
 /** Focused-pack tiles: one row per layer, except October 7 families merge by first manifest occurrence order. */
 export function buildLayerTileRows(packId: string, layers: LayerManifestEntry[]): LayerTileRow[] {
   if (!isOctober7thPack(packId)) {
-    return layers.map((layer) => ({ kind: "layer" as const, layer }));
+    return layers.map((layer) => ({
+      kind: "layer" as const,
+      layer,
+      label: normalizeLegendFallbackLabel(layer.name),
+    }));
   }
   const seen = new Set<October7thMergedFamilyKey>();
   const out: LayerTileRow[] = [];
@@ -91,7 +113,11 @@ export function buildLayerTileRows(packId: string, layers: LayerManifestEntry[])
         members,
       });
     } else {
-      out.push({ kind: "layer", layer });
+      out.push({
+        kind: "layer",
+        layer,
+        label: normalizeLegendFallbackLabel(layer.name),
+      });
     }
   }
   return out;
@@ -132,7 +158,7 @@ export function buildOctober7thActiveLegendRows(
       const swatch = legendSwatchFromStyle(styles[layer.id], layer.geometryType);
       rows.push({
         id: packLayerKey(packId, layer.id),
-        label: layer.name,
+        label: normalizeLegendFallbackLabel(layer.name),
         ...(swatch != null ? { swatch } : {}),
       });
     }

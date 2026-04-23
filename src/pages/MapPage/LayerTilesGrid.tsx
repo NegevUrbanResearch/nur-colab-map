@@ -29,7 +29,7 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
       <ul className="layer-tiles-grid__list" role="list">
         {rows.map((row) => {
           if (row.kind === "layer") {
-            const { layer } = row;
+            const { layer, label } = row;
             const on = isLayerOn(layer.id);
             return (
               <li key={layer.id} className="layer-tiles-grid__item">
@@ -39,7 +39,7 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
                   aria-pressed={on}
                   onClick={() => onToggleLayer(layer.id)}
                 >
-                  <span className="layer-tile__label">{layer.name}</span>
+                  <span className="layer-tile__label">{label}</span>
                 </button>
               </li>
             );

@@ -9,6 +9,8 @@ export type LegendSwatchPreview = {
   strokeColor?: string;
   strokeWidth?: number;
   strokeOpacity?: number;
+  /** Line: SVG/Leaflet dash pattern (e.g. `4 2`) when the pack stroke uses dashes */
+  strokeDasharray?: string;
   /** Point marker shape from Cityscope */
   pointShape?: "circle" | "square" | "diamond" | "cross" | "x";
   /** Approximate point symbol radius hint (px) for legend sizing */

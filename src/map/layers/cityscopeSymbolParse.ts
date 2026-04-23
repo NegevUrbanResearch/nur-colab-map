@@ -85,11 +85,15 @@ export function parseDefaultSymbolFromStyle(style: unknown): ParsedDefaultSymbol
         if (iconAnchor) out.marker.iconAnchor = iconAnchor;
       }
     } else if (t === "stroke") {
+      const dashRaw = entry.dash;
+      const dashArrayRaw = entry.dashArray;
+      const dashFromSymbol =
+        Array.isArray(dashRaw) ? (dashRaw as number[]) : Array.isArray(dashArrayRaw) ? (dashArrayRaw as number[]) : null;
       out.stroke = {
         color: str(entry.color, "#3388ff"),
         width: num(entry.width, 1),
         opacity: num(entry.opacity, 1),
-        dash: Array.isArray(entry.dash) ? (entry.dash as number[]) : entry.dash === null ? null : null,
+        dash: dashFromSymbol,
       };
     } else if (t === "fill" && entry.fillType === "solid") {
       out.fill = {

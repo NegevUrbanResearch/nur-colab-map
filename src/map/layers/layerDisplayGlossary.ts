@@ -16,16 +16,34 @@ export function layerPackDisplayNameHe(packId: string, manifest: LayerPackManife
   return LAYER_PACK_DISPLAY_NAME_HE[packId] ?? manifest.name;
 }
 
-export type October7thMergedFamilyKey = "חדירה_לישוב" | "מאבק_וגבורה" | "פגיעה_נקודתית";
+export type October7thMergedFamilyKey =
+  | "חדירה_לישוב"
+  | "מאבק_וגבורה"
+  | "פגיעה_נקודתית"
+  | "ביזה"
+  | `אירוע_נקודתי-${string}`;
 
-const OCTOBER_MERGED_FAMILY_LABEL: Record<October7thMergedFamilyKey, string> = {
+const OCTOBER_MERGED_FAMILY_LABEL: Partial<Record<string, string>> = {
   חדירה_לישוב: "חדירה לישוב",
   מאבק_וגבורה: "מאבק וגבורה",
   פגיעה_נקודתית: "פגיעה נקודתית",
+  ביזה: "ביזה",
+  "אירוע_נקודתי-רציחה_חטיפה": "אירוע נקודתי — רציחה וחטיפה",
 };
 
+/** Human-readable legend/tile label from technical layer ids (underscores and hyphens → spaces). */
+export function normalizeLegendFallbackLabel(technical: string): string {
+  return technical
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function october7thMergedFamilyLabel(familyKey: October7thMergedFamilyKey): string {
-  return OCTOBER_MERGED_FAMILY_LABEL[familyKey];
+  const curated = OCTOBER_MERGED_FAMILY_LABEL[familyKey];
+  if (curated != null) return curated;
+  return normalizeLegendFallbackLabel(familyKey);
 }
 
 /** Stable id for a merged family row (legend, keyed UI). */

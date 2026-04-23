@@ -3,6 +3,7 @@ import {
   parseDefaultSymbolFromStyle,
   type ParsedDefaultSymbol,
 } from "../cityscopeSymbolParse";
+import { packLineStrokePaintFromParsed, packPolygonOutlineWidthFromParsed } from "../styleToLeaflet";
 import type { LegendSwatchPreview } from "./legendTypes";
 
 function normalizePointShape(raw: string): LegendSwatchPreview["pointShape"] {
@@ -37,11 +38,13 @@ function swatchFromParsed(
   if (g === "line" || styleKind === "line") {
     const s = parsed.stroke;
     if (!s) return undefined;
+    const paint = packLineStrokePaintFromParsed(s, { color: "#3388ff", weight: 2, opacity: 1 });
     return {
       kind: "line",
-      strokeColor: s.color,
-      strokeWidth: Math.max(1, Math.min(8, s.width)),
-      strokeOpacity: s.opacity,
+      strokeColor: paint.color,
+      strokeWidth: paint.weight,
+      strokeOpacity: paint.opacity,
+      ...(paint.dash ? { strokeDasharray: paint.dash.join(" ") } : {}),
     };
   }
 
@@ -53,7 +56,7 @@ function swatchFromParsed(
     fillColor: fill?.color,
     fillOpacity: fill?.opacity,
     strokeColor: stroke?.color,
-    strokeWidth: stroke ? Math.max(0.5, Math.min(4, stroke.width)) : undefined,
+    strokeWidth: stroke ? packPolygonOutlineWidthFromParsed(stroke) : undefined,
     strokeOpacity: stroke?.opacity,
   };
 }

@@ -1,4 +1,4 @@
-import { OCTOBER_7TH_PACK_ID } from "../layerDisplayGlossary";
+import { normalizeLegendFallbackLabel, OCTOBER_7TH_PACK_ID } from "../layerDisplayGlossary";
 import { buildOctober7thActiveLegendRows, packLayerKey } from "../layerNameUtils";
 import type { LayerRegistry, LayerRegistryPack } from "../types";
 import { legendSwatchFromStyle } from "./legendSwatchFromStyle";
@@ -14,7 +14,7 @@ function rowsForDefaultPack(pack: LayerRegistryPack, layerOnByKey: Record<string
     const swatch = legendSwatchFromStyle(styles[layer.id], layer.geometryType);
     rows.push({
       id: packLayerKey(packId, layer.id),
-      label: layer.name,
+      label: normalizeLegendFallbackLabel(layer.name),
       ...(swatch != null ? { swatch } : {}),
     });
   }

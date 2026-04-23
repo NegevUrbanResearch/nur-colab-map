@@ -167,6 +167,70 @@ describe("buildLegendModel", () => {
     expect(row?.swatch?.fillColor).toBe("#0d47a1");
   });
 
+  it("normalizes underscores in fallback layer names for non-October packs", () => {
+    const registry: LayerRegistry = {
+      packs: [
+        {
+          id: "greens",
+          name: "Greens Pack",
+          displayName: "Greens Pack",
+          manifest: {
+            id: "greens",
+            name: "Greens Pack",
+            layers: [
+              {
+                id: "layer_with_underscores",
+                name: "layer_with_underscores",
+                file: "x.geojson",
+                format: "geojson",
+                geometryType: "polygon",
+              },
+            ],
+          },
+          styles: {},
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const layerOnByKey: Record<string, boolean> = {
+      [key("greens", "layer_with_underscores")]: true,
+    };
+    const model = buildLegendModel(registry, layerOnByKey);
+    expect(model.groups[0]?.rows[0]?.label).toBe("layer with underscores");
+  });
+
+  it("normalizes underscores for October 7 non-merged layer legend rows", () => {
+    const registry: LayerRegistry = {
+      packs: [
+        {
+          id: "october_7th",
+          name: "October 7Th",
+          displayName: "October 7Th",
+          manifest: {
+            id: "october_7th",
+            name: "October 7Th",
+            layers: [
+              {
+                id: "some_other_layer",
+                name: "foo_bar_baz",
+                file: "x.geojson",
+                format: "geojson",
+                geometryType: "polygon",
+              },
+            ],
+          },
+          styles: {},
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const layerOnByKey: Record<string, boolean> = {
+      [key("october_7th", "some_other_layer")]: true,
+    };
+    const model = buildLegendModel(registry, layerOnByKey);
+    expect(model.groups[0]?.rows[0]?.label).toBe("foo bar baz");
+  });
+
   it("attaches legend swatch from pack styles when present", () => {
     const lineStyle = {
       type: "line",
