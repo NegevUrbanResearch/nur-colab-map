@@ -58,7 +58,7 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
                 ? `השלם או בטל שכבות בקבוצה: ${row.label} (מצב חלקי)`
                 : `הפעל קבוצת שכבות: ${row.label}`;
           return (
-            <li key={`family:${row.familyKey}`} className="layer-tiles-grid__item">
+            <li key={`family:${row.mergedFamily}`} className="layer-tiles-grid__item">
               <button
                 type="button"
                 className={

@@ -131,7 +131,7 @@ export type LayerTileRow =
   | { kind: "layer"; layer: LayerManifestEntry; label: string }
   | {
       kind: "family";
-      familyKey: October7thMergedFamilyKey;
+      mergedFamily: October7thMergedFamilyKey;
       label: string;
       members: LayerManifestEntry[];
     };
@@ -155,7 +155,7 @@ export function buildLayerTileRows(packId: string, layers: LayerManifestEntry[])
       const members = october7thManifestMembersForFamilyKey(layers, fam);
       out.push({
         kind: "family",
-        familyKey: fam,
+        mergedFamily: fam,
         label: october7thMergedFamilyLabel(fam),
         members,
       });
