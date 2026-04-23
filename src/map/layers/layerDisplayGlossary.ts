@@ -21,6 +21,7 @@ export type October7thMergedFamilyKey =
   | "מאבק_וגבורה"
   | "פגיעה_נקודתית"
   | "ביזה"
+  | "אזור_הרס"
   | `אירוע_נקודתי-${string}`;
 
 const OCTOBER_MERGED_FAMILY_LABEL: Partial<Record<string, string>> = {
@@ -28,6 +29,7 @@ const OCTOBER_MERGED_FAMILY_LABEL: Partial<Record<string, string>> = {
   מאבק_וגבורה: "מאבק וגבורה",
   פגיעה_נקודתית: "פגיעה נקודתית",
   ביזה: "ביזה",
+  אזור_הרס: "אזור הרס",
   "אירוע_נקודתי-רציחה_חטיפה": "אירוע נקודתי — רציחה וחטיפה",
 };
 

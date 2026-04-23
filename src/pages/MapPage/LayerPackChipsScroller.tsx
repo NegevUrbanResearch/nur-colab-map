@@ -1,3 +1,4 @@
+import { countMergedPackTileRows } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 
 type Props = {
@@ -23,7 +24,7 @@ export default function LayerPackChipsScroller({
 
   const renderChip = (p: (typeof packs)[0]) => {
     const n = activeCountForPack(p.id);
-    const total = p.manifest.layers.length;
+    const total = countMergedPackTileRows(p.id, p.manifest.layers);
     const focused = p.id === focusedPackId;
     return (
       <div key={p.id} className="layer-packs-sheet-pack-chip">

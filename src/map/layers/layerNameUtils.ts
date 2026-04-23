@@ -111,16 +111,13 @@ function stripOctober7GeometrySuffix(layerId: string): string {
 /**
  * Maps a concrete layer id to its merged display family when it belongs to a
  * geometry-variant group (October 7 pack only).
- *
- * Intentional exclusions: some layers share a `-אזור` / `-נקודה` (or similar) pattern but are
- * not merged — for example `אזור_הרס-אזור` and `אזור_הרס-נקודה` stay separate rows until a
- * dedicated `אזור_הרס` family key and curated label are added to the product glossary.
  */
 export function october7thMergedFamilyKeyFromLayerId(layerId: string): October7thMergedFamilyKey | null {
   if (layerId.startsWith("חדירה_לישוב")) return "חדירה_לישוב";
   if (layerId.startsWith("מאבק_וגבורה")) return "מאבק_וגבורה";
   if (layerId.startsWith("פגיעה_נקודתית")) return "פגיעה_נקודתית";
   if (layerId.startsWith("ביזה-")) return "ביזה";
+  if (layerId.startsWith("אזור_הרס-")) return "אזור_הרס";
   if (layerId.startsWith("אירוע_נקודתי-")) {
     return stripOctober7GeometrySuffix(layerId) as October7thMergedFamilyKey;
   }
@@ -211,4 +208,30 @@ export function buildOctober7thActiveLegendRows(
     }
   }
   return rows;
+}
+
+/** Virtual tile rows for pack UI (October 7 merges geometry-variant families into one row each). */
+export function countMergedPackTileRows(packId: string, layers: LayerManifestEntry[]): number {
+  return buildLayerTileRows(packId, layers).length;
+}
+
+/**
+ * How many of those virtual rows are fully on (single layer on, or merged family with every member on).
+ * Matches chip `n` when `total` is `countMergedPackTileRows` for the same pack.
+ */
+export function countMergedPackFullyActiveTileRows(
+  packId: string,
+  layers: LayerManifestEntry[],
+  layerOnByKey: Record<string, boolean>,
+): number {
+  const isOn = (layerId: string) => layerOnByKey[packLayerKey(packId, layerId)] === true;
+  let n = 0;
+  for (const row of buildLayerTileRows(packId, layers)) {
+    if (row.kind === "layer") {
+      if (isOn(row.layer.id)) n += 1;
+    } else if (row.members.length > 0 && row.members.every((m) => isOn(m.id))) {
+      n += 1;
+    }
+  }
+  return n;
 }

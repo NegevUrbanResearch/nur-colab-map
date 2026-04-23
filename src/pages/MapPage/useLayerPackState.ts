@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { packLayerKey } from "../../map/layers/layerNameUtils";
+import { countMergedPackFullyActiveTileRows, packLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 
 const FUTURE_DEV_PARKING_LAYER_KEY = packLayerKey("future_development", "חניה");
@@ -156,7 +156,7 @@ export function useLayerPackState(registry: LayerRegistry | null) {
       if (!registry) return 0;
       const pack = registry.packs.find((p) => p.id === packId);
       if (!pack) return 0;
-      return pack.manifest.layers.filter((l) => layerOnByKey[getLayerKey(packId, l.id)]).length;
+      return countMergedPackFullyActiveTileRows(packId, pack.manifest.layers, layerOnByKey);
     },
     [registry, layerOnByKey]
   );

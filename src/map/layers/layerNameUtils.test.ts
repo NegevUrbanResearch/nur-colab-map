@@ -3,6 +3,8 @@ import type { LayerManifestEntry } from "./types";
 import {
   buildLayerTileRows,
   buildOctober7thActiveLegendRows,
+  countMergedPackFullyActiveTileRows,
+  countMergedPackTileRows,
   october7thMergedFamilyKeyFromLayerId,
   packLayerKey,
   parsePackLayerKey,
@@ -39,9 +41,9 @@ describe("october7thMergedFamilyKeyFromLayerId", () => {
     expect(october7thMergedFamilyKeyFromLayerId("אירוע_נקודתי-רציחה_חטיפה")).toBe("אירוע_נקודתי-רציחה_חטיפה");
   });
 
-  it("does not merge אזור_הרס geometry variants (excluded from merged families until glossary adds a family key)", () => {
-    expect(october7thMergedFamilyKeyFromLayerId("אזור_הרס-אזור")).toBeNull();
-    expect(october7thMergedFamilyKeyFromLayerId("אזור_הרס-נקודה")).toBeNull();
+  it("merges אזור_הרס geometry variants into one family", () => {
+    expect(october7thMergedFamilyKeyFromLayerId("אזור_הרס-אזור")).toBe("אזור_הרס");
+    expect(october7thMergedFamilyKeyFromLayerId("אזור_הרס-נקודה")).toBe("אזור_הרס");
   });
 });
 
@@ -181,6 +183,27 @@ describe("buildOctober7thActiveLegendRows", () => {
     };
     const rows = buildOctober7thActiveLegendRows("october_7th", layers, layerOnByKey, {});
     expect(rows).toEqual([{ id: "october_7th::family:מאבק_וגבורה", label: "מאבק וגבורה" }]);
+  });
+});
+
+describe("countMergedPackTileRows / countMergedPackFullyActiveTileRows", () => {
+  it("counts october merged families as one virtual row each", () => {
+    const layers = [layer("ביזה-אזור"), layer("ביזה-נקודה"), layer("solo")];
+    expect(countMergedPackTileRows("october_7th", layers)).toBe(2);
+    const key = (id: string) => packLayerKey("october_7th", id);
+    const onBoth = { [key("ביזה-אזור")]: true, [key("ביזה-נקודה")]: true, [key("solo")]: false };
+    expect(countMergedPackFullyActiveTileRows("october_7th", layers, onBoth)).toBe(1);
+    const onPartial = { [key("ביזה-אזור")]: true, [key("ביזה-נקודה")]: false, [key("solo")]: true };
+    expect(countMergedPackFullyActiveTileRows("october_7th", layers, onPartial)).toBe(1);
+    const onAll = { [key("ביזה-אזור")]: true, [key("ביזה-נקודה")]: true, [key("solo")]: true };
+    expect(countMergedPackFullyActiveTileRows("october_7th", layers, onAll)).toBe(2);
+  });
+
+  it("matches raw layer count for non-october packs", () => {
+    const layers = [layer("a"), layer("b")];
+    expect(countMergedPackTileRows("greens", layers)).toBe(2);
+    const m = { [packLayerKey("greens", "a")]: true, [packLayerKey("greens", "b")]: false };
+    expect(countMergedPackFullyActiveTileRows("greens", layers, m)).toBe(1);
   });
 });
 
