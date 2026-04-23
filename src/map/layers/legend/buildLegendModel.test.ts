@@ -351,4 +351,79 @@ describe("buildLegendModel", () => {
     expect(model.groups[0]?.rows[0]?.swatch?.kind).toBe("line");
     expect(model.groups[0]?.rows[0]?.swatch?.strokeColor).toBe("#00ff00");
   });
+
+  it("expands uniqueValue styles into per-class legend entries with distinct swatches", () => {
+    const uvStyle = {
+      type: "polygon",
+      renderer: "uniqueValue",
+      uniqueValues: {
+        field: "land_use",
+        classes: [
+          {
+            value: "park",
+            label: "פארק",
+            symbol: {
+              symbolLayers: [
+                { type: "fill", fillType: "solid", color: "#228822", opacity: 0.7 },
+                { type: "stroke", color: "#113311", width: 1, opacity: 1, dash: null },
+              ],
+            },
+          },
+          {
+            value: "built",
+            label: "בנוי",
+            symbol: {
+              symbolLayers: [
+                { type: "fill", fillType: "solid", color: "#884422", opacity: 0.5 },
+                { type: "stroke", color: "#221100", width: 2, opacity: 1, dash: null },
+              ],
+            },
+          },
+        ],
+      },
+      defaultSymbol: {
+        symbolLayers: [
+          { type: "fill", fillType: "solid", color: "#999999", opacity: 0.3 },
+          { type: "stroke", color: "#000000", width: 1, opacity: 1, dash: null },
+        ],
+      },
+    };
+    const registry: LayerRegistry = {
+      packs: [
+        {
+          id: "greens",
+          name: "Greens Pack",
+          displayName: "Greens Pack",
+          manifest: {
+            id: "greens",
+            name: "Greens Pack",
+            layers: [
+              {
+                id: "land_poly",
+                name: "land_use_layer",
+                file: "x.geojson",
+                format: "geojson",
+                geometryType: "polygon",
+              },
+            ],
+          },
+          styles: { land_poly: uvStyle },
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const layerOnByKey: Record<string, boolean> = {
+      [key("greens", "land_poly")]: true,
+    };
+    const model = buildLegendModel(registry, layerOnByKey);
+    const row = model.groups[0]?.rows[0];
+    expect(row?.label).toBe("land use layer");
+    expect(row?.swatch).toBeUndefined();
+    expect(row?.classEntries).toHaveLength(2);
+    expect(row?.classEntries?.[0]?.label).toBe("פארק");
+    expect(row?.classEntries?.[0]?.swatch?.kind).toBe("polygon");
+    expect(row?.classEntries?.[0]?.swatch?.fillColor).toBe("#228822");
+    expect(row?.classEntries?.[1]?.label).toBe("בנוי");
+    expect(row?.classEntries?.[1]?.swatch?.fillColor).toBe("#884422");
+  });
 });

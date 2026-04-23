@@ -43,6 +43,61 @@ describe("legendSwatchFromStyle", () => {
       strokeColor: "#222",
       strokeDasharray: "10 14",
     });
+
+    const styleDashCim = {
+      type: "line",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [{ type: "stroke", color: "#abc", width: 2, opacity: 1, dash: { array: [5, 6] } }],
+      },
+    };
+    expect(legendSwatchFromStyle(styleDashCim, "line")).toMatchObject({
+      kind: "line",
+      strokeDasharray: "5 6",
+    });
+  });
+
+  it("normalizes stroke dash arrays to finite numbers only", () => {
+    const style = {
+      type: "line",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [
+          {
+            type: "stroke",
+            color: "#333",
+            width: 2,
+            opacity: 1,
+            dash: [4, Number.NaN, 3, Infinity],
+          },
+        ],
+      },
+    };
+    expect(legendSwatchFromStyle(style, "line")).toMatchObject({
+      kind: "line",
+      strokeDasharray: "4 3",
+    });
+  });
+
+  it("treats dash arrays with no finite segments as solid (no strokeDasharray)", () => {
+    const style = {
+      type: "line",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [
+          {
+            type: "stroke",
+            color: "#444",
+            width: 2,
+            opacity: 1,
+            dash: [Number.NaN, Infinity],
+          },
+        ],
+      },
+    };
+    const s = legendSwatchFromStyle(style, "line");
+    expect(s).toMatchObject({ kind: "line", strokeColor: "#444" });
+    expect(s).not.toHaveProperty("strokeDasharray");
   });
 
   it("returns point swatch from markerPoint symbol", () => {
@@ -84,6 +139,39 @@ describe("legendSwatchFromStyle", () => {
     expect(s?.kind).toBe("polygon");
     expect(s?.fillColor).toBe("#d76e89");
     expect(s?.strokeColor).toBe("#000000");
+  });
+
+  it("uses class-selected symbol for uniqueValue styles (line stroke from first class, not default)", () => {
+    const style = {
+      type: "line",
+      renderer: "uniqueValue",
+      uniqueValues: {
+        field: "kind",
+        classes: [
+          { value: "rail", symbol: { symbolLayers: [{ type: "stroke", color: "#333333", width: 3, opacity: 1 }] } },
+        ],
+      },
+      defaultSymbol: { symbolLayers: [{ type: "stroke", color: "#aaaaaa", width: 1, opacity: 1 }] },
+    };
+    const swatch = legendSwatchFromStyle(style, "line");
+    expect(swatch?.strokeColor).toBe("#333333");
+  });
+
+  it("uses previewPropsOverride to select a specific uniqueValue class", () => {
+    const style = {
+      type: "line",
+      renderer: "uniqueValue",
+      uniqueValues: {
+        field: "kind",
+        classes: [
+          { value: "a", symbol: { symbolLayers: [{ type: "stroke", color: "#111111", width: 1, opacity: 1 }] } },
+          { value: "b", symbol: { symbolLayers: [{ type: "stroke", color: "#222222", width: 2, opacity: 1 }] } },
+        ],
+      },
+      defaultSymbol: { symbolLayers: [{ type: "stroke", color: "#999999", width: 9, opacity: 1 }] },
+    };
+    expect(legendSwatchFromStyle(style, "line", { kind: "b" })?.strokeColor).toBe("#222222");
+    expect(legendSwatchFromStyle(style, "line", { kind: "a" })?.strokeColor).toBe("#111111");
   });
 
   it("returns undefined when style has no defaultSymbol", () => {

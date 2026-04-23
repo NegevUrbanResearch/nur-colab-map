@@ -17,6 +17,13 @@ export type LegendSwatchPreview = {
   pointSizePx?: number;
 };
 
+/** One legend line under a layer row for `uniqueValue` class breakdowns. */
+export type LegendModelClassEntry = {
+  id: string;
+  label: string;
+  swatch?: LegendSwatchPreview;
+};
+
 export type LegendModelRow = {
   id: string;
   label: string;
@@ -25,6 +32,8 @@ export type LegendModelRow = {
   swatch?: LegendSwatchPreview;
   /** Inline previews for combined (multi-geometry) legend rows, e.g. October 7 families. */
   swatches?: LegendSwatchPreview[];
+  /** Per-class entries when the pack style uses `uniqueValue` with a `classes` array. */
+  classEntries?: LegendModelClassEntry[];
 };
 
 export type LegendModelGroup = {

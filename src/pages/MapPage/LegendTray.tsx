@@ -181,20 +181,50 @@ export default function LegendTray({
                   <h3 className="legend-tray__section-title">{section.title}</h3>
                   <ul className="legend-tray__list" role="list">
                     {section.rows.map((row) => {
-                      const swatches = legendRowSwatches(row);
+                      const classEntries = row.classEntries;
+                      const topSwatches =
+                        classEntries != null && classEntries.length > 0 ? [] : legendRowSwatches(row);
                       return (
-                        <li key={row.id} className="legend-tray__row">
+                        <li
+                          key={row.id}
+                          className={
+                            classEntries != null && classEntries.length > 0
+                              ? "legend-tray__row legend-tray__row--with-classes"
+                              : "legend-tray__row"
+                          }
+                        >
                           <div className="legend-tray__row-inner">
                             <span className="legend-tray__row-label">{row.label}</span>
-                            {swatches.length > 0 ? (
+                            {topSwatches.length > 0 ? (
                               <span className="legend-tray__swatches" aria-hidden>
-                                {swatches.map((sw, i) => (
+                                {topSwatches.map((sw, i) => (
                                   <LegendSwatchView key={`${row.id}-sw-${i}`} swatch={sw} />
                                 ))}
                               </span>
                             ) : null}
                           </div>
                           {row.detail ? <span className="legend-tray__row-detail">{row.detail}</span> : null}
+                          {classEntries != null && classEntries.length > 0 ? (
+                            <ul className="legend-tray__class-list" role="list">
+                              {classEntries.map((ce) => {
+                                const ceSwatches = ce.swatch != null ? [ce.swatch] : [];
+                                return (
+                                  <li key={ce.id} className="legend-tray__class-row">
+                                    <div className="legend-tray__row-inner legend-tray__row-inner--class">
+                                      <span className="legend-tray__class-label">{ce.label}</span>
+                                      {ceSwatches.length > 0 ? (
+                                        <span className="legend-tray__swatches" aria-hidden>
+                                          {ceSwatches.map((sw, i) => (
+                                            <LegendSwatchView key={`${ce.id}-sw-${i}`} swatch={sw} />
+                                          ))}
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          ) : null}
                         </li>
                       );
                     })}
