@@ -63,11 +63,61 @@ describe("loadLayerIntoMap", () => {
     expect(loadPmtilesLayer).toHaveBeenCalledTimes(1);
     expect(loadGeoJsonLayer).toHaveBeenCalledTimes(1);
     expect(loadGeoJsonLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        urls: {
+          pmtilesUrl: "https://example.com/tiles.pmtiles",
+          geojsonUrl: "https://example.com/data.geojson",
+        },
+        geojsonInteractive: true,
+      }),
+    );
+  });
+
+  it("preserves explicit geojsonInteractive false on PMTiles fallback", async () => {
+    vi.mocked(loadPmtilesLayer).mockRejectedValue(new Error("pmtiles failed"));
+    vi.mocked(loadGeoJsonLayer).mockResolvedValue({
+      mode: "geojson",
+      layer: {} as import("leaflet").Layer,
+    });
+
+    await loadLayerIntoMap({
+      map: mockMap,
+      urls: {
+        pmtilesUrl: "https://example.com/tiles.pmtiles",
+        geojsonUrl: "https://example.com/data.geojson",
+      },
+      geojsonInteractive: false,
+    });
+
+    expect(loadGeoJsonLayer).toHaveBeenCalledWith(
       expect.objectContaining({ geojsonInteractive: false }),
     );
   });
 
-  it("keeps GeoJSON interactive when PMTiles was not in use", async () => {
+  it("geojson-only path forwards args for loadGeoJsonLayer popup defaults", async () => {
+    vi.mocked(loadGeoJsonLayer).mockResolvedValue({
+      mode: "geojson",
+      layer: {} as import("leaflet").Layer,
+    });
+
+    const ui = { popup: { fields: [{ key: "name" }] } };
+
+    await loadLayerIntoMap({
+      map: mockMap,
+      urls: { geojsonUrl: "https://example.com/data.geojson" },
+      ui,
+    });
+
+    expect(loadPmtilesLayer).not.toHaveBeenCalled();
+    expect(loadGeoJsonLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        urls: { geojsonUrl: "https://example.com/data.geojson" },
+        ui,
+      }),
+    );
+  });
+
+  it("preserves explicit geojsonInteractive false for geojson-only load", async () => {
     vi.mocked(loadGeoJsonLayer).mockResolvedValue({
       mode: "geojson",
       layer: {} as import("leaflet").Layer,
@@ -76,11 +126,12 @@ describe("loadLayerIntoMap", () => {
     await loadLayerIntoMap({
       map: mockMap,
       urls: { geojsonUrl: "https://example.com/data.geojson" },
+      ui: { popup: { fields: [{ key: "name" }] } },
+      geojsonInteractive: false,
     });
 
-    expect(loadPmtilesLayer).not.toHaveBeenCalled();
     expect(loadGeoJsonLayer).toHaveBeenCalledWith(
-      expect.not.objectContaining({ geojsonInteractive: false }),
+      expect.objectContaining({ geojsonInteractive: false }),
     );
   });
 

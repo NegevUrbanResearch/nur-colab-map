@@ -56,10 +56,11 @@ import { geojsonAdapterFromPackStyle } from "../../map/layers/geojsonStyleFromPa
 import { loadLayerIntoMap } from "../../map/layers/loaders/loadLayerIntoMap";
 import { resolveLayerSourceUrls } from "../../map/layers/resolveLayerAssetUrls";
 import { buildLayerTileRows, packLayerKey, parsePackLayerKey } from "../../map/layers/layerNameUtils";
-import type { LayerRegistry } from "../../map/layers/types";
+import type { LayerRegistry, OnLayerPopupMapAction } from "../../map/layers/types";
 import { useLayerPackState } from "./useLayerPackState";
 import LayerPacksSheet from "./LayerPacksSheet";
 import LayerPackChipsScroller from "./LayerPackChipsScroller";
+import PackMasterToggleRow from "./PackMasterToggleRow";
 import LayerPackStrip from "./LayerPackStrip";
 import LayerTilesGrid from "./LayerTilesGrid";
 import LegendTray, { type LegendTraySection } from "./LegendTray";
@@ -338,6 +339,49 @@ const MapPage = () => {
   useLayoutEffect(() => {
     applyLocalActionRef.current = applyLocalAction;
   }, [applyLocalAction]);
+
+  const onLayerPopupMapActionRef = useRef<OnLayerPopupMapAction>(() => {});
+
+  const invokeLayerPopupMapAction = useCallback<OnLayerPopupMapAction>((args) => {
+    onLayerPopupMapActionRef.current(args);
+  }, []);
+
+  useLayoutEffect(() => {
+    onLayerPopupMapActionRef.current = (a) => {
+      suppressNextMapClickPlacementRef.current = true;
+      if (popoverDismissSuppressTimerRef.current != null) {
+        window.clearTimeout(popoverDismissSuppressTimerRef.current);
+      }
+      popoverDismissSuppressTimerRef.current = window.setTimeout(() => {
+        popoverDismissSuppressTimerRef.current = null;
+        suppressNextMapClickPlacementRef.current = false;
+      }, 550);
+
+      if (a.action === "create_pink_node") {
+        setActiveProject("pink");
+        setPendingMemorialTarget(null);
+        setEditingPinkTempId(null);
+        setEditingMemorial(null);
+        setMarkerActionPopover(null);
+        setPendingPinkTarget({ lat: a.lat, lng: a.lng });
+        return;
+      }
+      setActiveProject("memorial");
+      setPendingPinkTarget(null);
+      setEditingPinkTempId(null);
+      setEditingMemorial(null);
+      setMarkerActionPopover(null);
+      const t = activeMemorialTypeRef.current;
+      if (t === "central" && centralSiteRef.current) {
+        if (!window.confirm("ניתן לבחור רק אנדרטה מרכזית אחת. האם להחליף את הקיימת?")) {
+          return;
+        }
+        const prev = centralSiteRef.current;
+        applyLocalActionRef.current({ kind: "memorial:removeCentral", previous: prev });
+      }
+      setPendingMemorialTarget({ lat: a.lat, lng: a.lng, type: t });
+    };
+  }, []);
 
   const handleMarkerActionPopoverClose = useCallback((ev: PointerEvent) => {
     const map = mapRef.current;
@@ -655,6 +699,8 @@ const MapPage = () => {
         style: pack.styles[layer.id],
         ui: layer.ui,
         layerGeometryType: layer.geometryType,
+        onPopupAction: invokeLayerPopupMapAction,
+        getLayerPopupCtaMode: () => activeProjectRef.current,
         ...geo,
       })
         .then((loaded) => {
@@ -686,7 +732,7 @@ const MapPage = () => {
         })
         .catch((err) => console.error("Failed to load manifest layer:", key, err));
     }
-  }, [isBootstrapping, bootError, layerRegistry, layerOnByKey]);
+  }, [isBootstrapping, bootError, layerRegistry, layerOnByKey, invokeLayerPopupMapAction]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -1913,14 +1959,20 @@ const MapPage = () => {
         open={layerSheetOpen}
         onClose={() => setLayerSheetOpen(false)}
         totalActiveLayerCount={totalActiveLayerCount}
+        headAccessory={
+          <PackMasterToggleRow
+            registry={layerRegistry}
+            focusedPackId={focusedPackId}
+            getPackState={getPackState}
+            onTogglePack={togglePack}
+          />
+        }
         packStrip={
           <LayerPackChipsScroller
             registry={layerRegistry}
             focusedPackId={focusedPackId}
             onSelectPack={setFocusedPackId}
-            getPackState={getPackState}
             activeCountForPack={activeCountForPack}
-            onTogglePack={togglePack}
           />
         }
       >

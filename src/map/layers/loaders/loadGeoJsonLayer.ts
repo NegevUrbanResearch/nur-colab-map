@@ -1,7 +1,15 @@
 import type { GeoJSON } from "geojson";
+import type { LeafletMouseEvent } from "leaflet";
 import L from "leaflet";
 import type { LoadedLayer, LoadLayerArgs } from "../types";
+import { layerUiDeclaresPopupFields } from "../popupModel";
 import { popupContentFromUi } from "../popupContent";
+
+function geoJsonLayerInteractive(args: LoadLayerArgs): boolean {
+  if (args.geojsonInteractive === false) return false;
+  if (args.geojsonInteractive === true) return true;
+  return layerUiDeclaresPopupFields(args.ui);
+}
 
 export async function loadGeoJsonLayer(args: LoadLayerArgs): Promise<LoadedLayer> {
   const url = args.urls.geojsonUrl;
@@ -16,12 +24,59 @@ export async function loadGeoJsonLayer(args: LoadLayerArgs): Promise<LoadedLayer
   const data = (await res.json()) as GeoJSON;
 
   const layer = L.geoJSON(data, {
-    interactive: args.geojsonInteractive === true,
+    interactive: geoJsonLayerInteractive(args),
     style: args.geojsonStyle,
     pointToLayer: args.geojsonPointToLayer,
     onEachFeature(feature, leafletFeature) {
-      const html = popupContentFromUi(args.ui, feature);
-      if (html) leafletFeature.bindPopup(html);
+      const onAction = args.onPopupAction;
+      const ctaModeGetter = args.getLayerPopupCtaMode;
+      const getPopupContent = () =>
+        popupContentFromUi(args.ui, feature, {
+          includeCta: Boolean(onAction),
+          ctaMode: ctaModeGetter ? ctaModeGetter() : "pink",
+        });
+      const initial = getPopupContent();
+      if (initial) {
+        leafletFeature.bindPopup(getPopupContent, { className: "layer-popup-embed", maxWidth: 320 });
+        leafletFeature.on("click", (e: LeafletMouseEvent) => {
+          if (e.originalEvent) {
+            L.DomEvent.stopPropagation(e.originalEvent);
+          }
+        });
+        if (onAction) {
+          let ctaHandler: ((ev: Event) => void) | null = null;
+          let ctaRoot: Element | null = null;
+          leafletFeature.on("popupopen", () => {
+            const p = leafletFeature.getPopup();
+            if (!p) return;
+            const el = p.getElement();
+            if (!el) return;
+            ctaRoot = el.querySelector(".layer-popup__actions");
+            if (!ctaRoot) return;
+            const latlng = p.getLatLng();
+            if (!latlng) return;
+            ctaHandler = (ev: Event) => {
+              const t = (ev.target as HTMLElement).closest("button[data-layer-popup-cta]");
+              if (!t) return;
+              L.DomEvent.stopPropagation(ev);
+              L.DomEvent.preventDefault(ev);
+              const k = t.getAttribute("data-layer-popup-cta");
+              if (k === "create_pink_node")
+                onAction({ action: "create_pink_node", lat: latlng.lat, lng: latlng.lng });
+              if (k === "create_memorial")
+                onAction({ action: "create_memorial", lat: latlng.lat, lng: latlng.lng });
+            };
+            ctaRoot.addEventListener("click", ctaHandler, { capture: true });
+          });
+          leafletFeature.on("popupclose", () => {
+            if (ctaHandler && ctaRoot) {
+              ctaRoot.removeEventListener("click", ctaHandler, { capture: true });
+            }
+            ctaHandler = null;
+            ctaRoot = null;
+          });
+        }
+      }
     },
   });
 

@@ -131,6 +131,7 @@ describe("buildOctober7thActiveLegendRows", () => {
     });
     expect(rows[0]?.swatch?.kind).toBe("point");
     expect(rows[0]?.swatch?.fillColor).toBe("#0d47a1");
+    expect(rows[0]?.swatches?.map((s) => s.kind)).toEqual(["point", "polygon"]);
   });
 
   it("dedupes active geometry variants like the legend model", () => {

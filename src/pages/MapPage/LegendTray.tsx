@@ -11,6 +11,12 @@ export type LegendTraySection = {
   rows: LegendTrayRow[];
 };
 
+function legendRowSwatches(row: LegendModelRow): LegendSwatchPreview[] {
+  if (row.swatches != null && row.swatches.length > 0) return row.swatches;
+  if (row.swatch != null) return [row.swatch];
+  return [];
+}
+
 function LegendSwatchView({ swatch }: { swatch: LegendSwatchPreview }) {
   if (swatch.kind === "line") {
     const h = Math.max(2, Math.min(6, swatch.strokeWidth ?? 2));
@@ -174,15 +180,24 @@ export default function LegendTray({
                 <section key={section.id} className="legend-tray__section" aria-label={section.title}>
                   <h3 className="legend-tray__section-title">{section.title}</h3>
                   <ul className="legend-tray__list" role="list">
-                    {section.rows.map((row) => (
-                      <li key={row.id} className="legend-tray__row">
-                        <div className="legend-tray__row-inner">
-                          <span className="legend-tray__row-label">{row.label}</span>
-                          {row.swatch ? <LegendSwatchView swatch={row.swatch} /> : null}
-                        </div>
-                        {row.detail ? <span className="legend-tray__row-detail">{row.detail}</span> : null}
-                      </li>
-                    ))}
+                    {section.rows.map((row) => {
+                      const swatches = legendRowSwatches(row);
+                      return (
+                        <li key={row.id} className="legend-tray__row">
+                          <div className="legend-tray__row-inner">
+                            <span className="legend-tray__row-label">{row.label}</span>
+                            {swatches.length > 0 ? (
+                              <span className="legend-tray__swatches" aria-hidden>
+                                {swatches.map((sw, i) => (
+                                  <LegendSwatchView key={`${row.id}-sw-${i}`} swatch={sw} />
+                                ))}
+                              </span>
+                            ) : null}
+                          </div>
+                          {row.detail ? <span className="legend-tray__row-detail">{row.detail}</span> : null}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               ))}

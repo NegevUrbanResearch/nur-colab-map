@@ -17,6 +17,6 @@ export async function loadLayerIntoMap(args: LoadLayerArgs): Promise<LoadedLayer
   }
   const pmtilesAttempted = Boolean(args.urls.pmtilesUrl);
   return loadGeoJsonLayer(
-    pmtilesAttempted ? { ...args, geojsonInteractive: false } : args,
+    pmtilesAttempted ? { ...args, geojsonInteractive: args.geojsonInteractive ?? true } : args,
   );
 }

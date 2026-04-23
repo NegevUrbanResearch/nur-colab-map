@@ -728,7 +728,7 @@
       "symbolLayers": [
         {
           "type": "stroke",
-          "color": "#828282",
+          "color": "#6e6e6e",
           "width": 0.9333333333333332,
           "opacity": 1.0,
           "dash": null
@@ -736,8 +736,8 @@
         {
           "type": "fill",
           "fillType": "solid",
-          "color": "#828282",
-          "opacity": 1.0
+          "color": "#000000",
+          "opacity": 0.0
         }
       ]
     },
@@ -815,6 +815,27 @@
               {
                 "type": "stroke",
                 "color": "#fd8d3c",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "value": "שדרות",
+          "label": "שדרות",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#e6550d",
                 "width": 0.9333333333333332,
                 "opacity": 1.0,
                 "dash": null

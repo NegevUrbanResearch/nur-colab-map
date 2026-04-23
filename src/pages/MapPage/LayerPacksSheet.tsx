@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { useDialogFocusTrap } from "./useDialogFocusTrap";
 
@@ -8,9 +8,14 @@ type Props = {
   title?: string;
   /** Total layers on across all packs; shown subtly in the header when defined. */
   totalActiveLayerCount?: number;
+  /**
+   * Optional control rendered in the header, visually to the “left” of the title in RTL
+   * (e.g. focused pack master toggle with hint text).
+   */
+  headAccessory?: ReactNode;
   /** Horizontal pack scroller (inside sheet, under header). */
-  packStrip?: React.ReactNode;
-  children: React.ReactNode;
+  packStrip?: ReactNode;
+  children: ReactNode;
 };
 
 export default function LayerPacksSheet({
@@ -18,6 +23,7 @@ export default function LayerPacksSheet({
   onClose,
   title = "שכבות",
   totalActiveLayerCount,
+  headAccessory,
   packStrip,
   children,
 }: Props) {
@@ -66,6 +72,9 @@ export default function LayerPacksSheet({
             <h2 className="layer-packs-sheet__title" id={labelId}>
               {title}
             </h2>
+            {headAccessory ? (
+              <div className="layer-packs-sheet__head-accessory">{headAccessory}</div>
+            ) : null}
             {typeof totalActiveLayerCount === "number" ? (
               <span
                 className="layer-packs-sheet__active-total"

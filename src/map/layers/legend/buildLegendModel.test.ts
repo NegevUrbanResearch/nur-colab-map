@@ -165,6 +165,94 @@ describe("buildLegendModel", () => {
     const row = model.groups[0]?.rows[0];
     expect(row?.swatch?.kind).toBe("point");
     expect(row?.swatch?.fillColor).toBe("#0d47a1");
+    expect(row?.swatches?.map((s) => s.kind)).toEqual(["point", "polygon"]);
+  });
+
+  it("emits deduped point, line, and polygon swatches for October 7 merged family when all variants are active", () => {
+    const pointStyle = {
+      type: "point",
+      renderer: "simple",
+      defaultSymbol: {
+        symbolLayers: [
+          {
+            type: "markerPoint",
+            marker: {
+              shape: "circle",
+              size: 8,
+              fillColor: "#0d47a1",
+              strokeColor: "#000000",
+              strokeWidth: 1,
+            },
+          },
+        ],
+      },
+    };
+    const lineStyle = {
+      type: "line",
+      defaultSymbol: {
+        symbolLayers: [{ type: "stroke", color: "#ff9800", width: 2, opacity: 1, dash: null }],
+      },
+    };
+    const polygonStyle = {
+      type: "polygon",
+      defaultSymbol: {
+        symbolLayers: [
+          { type: "fill", fillType: "solid", color: "#d76e89", opacity: 0.8 },
+          { type: "stroke", color: "#000000", width: 1, opacity: 1, dash: null },
+        ],
+      },
+    };
+    const registry: LayerRegistry = {
+      packs: [
+        {
+          id: "october_7th",
+          name: "October 7Th",
+          displayName: "October 7Th",
+          manifest: {
+            id: "october_7th",
+            name: "October 7Th",
+            layers: [
+              {
+                id: "חדירה_לישוב-אזור",
+                name: "חדירה_לישוב-אזור",
+                file: "a.geojson",
+                format: "geojson",
+                geometryType: "polygon",
+              },
+              {
+                id: "חדירה_לישוב-נקודה",
+                name: "חדירה_לישוב-נקודה",
+                file: "b.geojson",
+                format: "geojson",
+                geometryType: "point",
+              },
+              {
+                id: "חדירה_לישוב-ציר",
+                name: "חדירה_לישוב-ציר",
+                file: "c.geojson",
+                format: "geojson",
+                geometryType: "line",
+              },
+            ],
+          },
+          styles: {
+            "חדירה_לישוב-אזור": polygonStyle,
+            "חדירה_לישוב-נקודה": pointStyle,
+            "חדירה_לישוב-ציר": lineStyle,
+          },
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const layerOnByKey: Record<string, boolean> = {
+      [key("october_7th", "חדירה_לישוב-אזור")]: true,
+      [key("october_7th", "חדירה_לישוב-נקודה")]: true,
+      [key("october_7th", "חדירה_לישוב-ציר")]: true,
+    };
+    const model = buildLegendModel(registry, layerOnByKey);
+    const row = model.groups[0]?.rows[0];
+    expect(row?.swatches?.map((s) => s.kind)).toEqual(["point", "line", "polygon"]);
+    expect(row?.swatch?.kind).toBe("point");
   });
 
   it("normalizes underscores in fallback layer names for non-October packs", () => {

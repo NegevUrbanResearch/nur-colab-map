@@ -1,4 +1,4 @@
-import type { LegendModelRow } from "./legend/legendTypes";
+import type { LegendModelRow, LegendSwatchPreview } from "./legend/legendTypes";
 import type { LayerManifestEntry, LayerPackStylesJson } from "./types";
 import { legendSwatchFromStyle } from "./legend/legendSwatchFromStyle";
 import {
@@ -33,6 +33,53 @@ function october7thGeometrySwatchPriority(geometryType: string): number {
   if (t === "line" || t === "linestring" || t === "multilinestring") return 1;
   if (t === "polygon" || t === "multipolygon") return 2;
   return 3;
+}
+
+/** Maps manifest geometry to legend swatch kind; null if unknown. */
+function october7thGeometryLegendKind(geometryType: string): "point" | "line" | "polygon" | null {
+  const p = october7thGeometrySwatchPriority(geometryType);
+  if (p === 0) return "point";
+  if (p === 1) return "line";
+  if (p === 2) return "polygon";
+  return null;
+}
+
+/**
+ * All manifest layers that belong to a merged October 7 display family (same logic as layer tiles).
+ */
+export function october7thManifestMembersForFamilyKey(
+  layers: LayerManifestEntry[],
+  familyKey: October7thMergedFamilyKey,
+): LayerManifestEntry[] {
+  return layers.filter((l) => october7thMergedFamilyKeyFromLayerId(l.id) === familyKey);
+}
+
+/**
+ * One swatch per geometry kind for active family members (deduped), in point → line → polygon order.
+ */
+export function buildOctober7thFamilyMultiSwatches(
+  activeFamilyMembers: LayerManifestEntry[],
+  manifestLayers: LayerManifestEntry[],
+  styles: LayerPackStylesJson,
+): LegendSwatchPreview[] {
+  const orderIndex = new Map(manifestLayers.map((l, i) => [l.id, i] as const));
+  const bestByKind = new Map<"point" | "line" | "polygon", LayerManifestEntry>();
+  for (const m of activeFamilyMembers) {
+    const kind = october7thGeometryLegendKind(m.geometryType);
+    if (!kind) continue;
+    const prev = bestByKind.get(kind);
+    if (!prev || (orderIndex.get(m.id) ?? 0) < (orderIndex.get(prev.id) ?? 0)) {
+      bestByKind.set(kind, m);
+    }
+  }
+  const out: LegendSwatchPreview[] = [];
+  for (const kind of ["point", "line", "polygon"] as const) {
+    const member = bestByKind.get(kind);
+    if (!member) continue;
+    const sw = legendSwatchFromStyle(styles[member.id], member.geometryType);
+    if (sw) out.push(sw);
+  }
+  return out;
 }
 
 /**
@@ -105,7 +152,7 @@ export function buildLayerTileRows(packId: string, layers: LayerManifestEntry[])
     if (fam) {
       if (seen.has(fam)) continue;
       seen.add(fam);
-      const members = layers.filter((l) => october7thMergedFamilyKeyFromLayerId(l.id) === fam);
+      const members = october7thManifestMembersForFamilyKey(layers, fam);
       out.push({
         kind: "family",
         familyKey: fam,
@@ -138,10 +185,8 @@ export function buildOctober7thActiveLegendRows(
     if (fam) {
       if (seenFamilies.has(fam)) continue;
       seenFamilies.add(fam);
-      const activeFamilyMembers = layers.filter(
-        (l) =>
-          october7thMergedFamilyKeyFromLayerId(l.id) === fam &&
-          layerOnByKey[packLayerKey(packId, l.id)] === true,
+      const activeFamilyMembers = october7thManifestMembersForFamilyKey(layers, fam).filter(
+        (l) => layerOnByKey[packLayerKey(packId, l.id)] === true,
       );
       const source =
         activeFamilyMembers.length > 0
@@ -149,10 +194,12 @@ export function buildOctober7thActiveLegendRows(
           : undefined;
       const famSwatch =
         source != null ? legendSwatchFromStyle(styles[source.id], source.geometryType) : undefined;
+      const multiSwatches = buildOctober7thFamilyMultiSwatches(activeFamilyMembers, layers, styles);
       rows.push({
         id: october7thFamilyRowId(packId, fam),
         label: october7thMergedFamilyLabel(fam),
         ...(famSwatch != null ? { swatch: famSwatch } : {}),
+        ...(multiSwatches.length > 1 ? { swatches: multiSwatches } : {}),
       });
     } else {
       const swatch = legendSwatchFromStyle(styles[layer.id], layer.geometryType);

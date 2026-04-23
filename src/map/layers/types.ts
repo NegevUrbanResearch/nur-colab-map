@@ -1,6 +1,15 @@
 import type { Feature } from "geojson";
 import type { LatLng, Layer, Map as LeafletMap, PathOptions } from "leaflet";
 
+/** Map placement actions triggered from layer info popups (CTA buttons). */
+export type LayerPopupCtaAction = "create_pink_node" | "create_memorial";
+
+/**
+ * Fired when the user uses a CTA in a manifest layer info popup. Coordinates are the popup anchor
+ * (the user’s click on the feature / tile), matching Leaflet’s placement for that interaction.
+ */
+export type OnLayerPopupMapAction = (args: { action: LayerPopupCtaAction; lat: number; lng: number }) => void;
+
 /** Resolved URLs for a single manifest layer (PMTiles preferred when present). */
 export type LayerSourceUrls = {
   pmtilesUrl?: string;
@@ -24,10 +33,28 @@ export type LoadLayerArgs = {
   /** When set, point features render with this factory instead of default markers. */
   geojsonPointToLayer?: (feature: Feature, latlng: LatLng) => Layer;
   /**
-   * When true, GeoJSON features receive pointer events (popups/clicks). Default false so overlays
-   * do not swallow map clicks (placement editing). Omit or false for PMTiles → GeoJSON fallback.
+   * When true, GeoJSON features receive pointer events. When false, never interactive. When omitted,
+   * `loadGeoJsonLayer` defaults to interactive iff `ui` declares `popup.fields` (see
+   * `layerUiDeclaresPopupFields`); otherwise non-interactive so bare overlays do not swallow map clicks.
+   * When PMTiles was attempted and `loadLayerIntoMap` falls back to GeoJSON, omitted becomes `true`
+   * unless explicitly set to `false`.
    */
   geojsonInteractive?: boolean;
+  /**
+   * When false, skips the PMTiles click → `queryTileFeaturesDebug` popup bridge. When omitted and
+   * `ui.popup.fields` is set, the PMTiles grid is interactive and opens the same popup model as GeoJSON.
+   */
+  pmtilesInteractive?: boolean;
+  /**
+   * When set, the layer info popup (GeoJSON and PMTiles) includes CTA button(s) that call this with
+   * the clicked-anchored lat/lng. The host map uses this to start pink-line or memorial placement.
+   */
+  onPopupAction?: OnLayerPopupMapAction;
+  /**
+   * If set, each popup open / click resolves the active map mode so the correct single CTA is shown
+   * (node vs memorial). Prefer this over a static CTA so toggling the map mode updates the button.
+   */
+  getLayerPopupCtaMode?: () => "pink" | "memorial";
 };
 
 export type LoadedLayer = {

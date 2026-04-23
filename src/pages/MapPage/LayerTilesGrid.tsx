@@ -40,7 +40,10 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
                   aria-label={on ? `כבה שכבה: ${label}` : `הפעל שכבה: ${label}`}
                   onClick={() => onToggleLayer(layer.id)}
                 >
-                  <span className="layer-tile__label">{label}</span>
+                  <span className="layer-tile__status-rail" aria-hidden="true" />
+                  <span className="layer-tile__body">
+                    <span className="layer-tile__label">{label}</span>
+                  </span>
                 </button>
               </li>
             );
@@ -69,7 +72,10 @@ export default function LayerTilesGrid({ rows, isLayerOn, onToggleLayer, onToggl
                 aria-label={familyAriaLabel}
                 onClick={() => onToggleLayerGroup(memberIds)}
               >
-                <span className="layer-tile__label">{row.label}</span>
+                <span className="layer-tile__status-rail" aria-hidden="true" />
+                <span className="layer-tile__body">
+                  <span className="layer-tile__label">{row.label}</span>
+                </span>
               </button>
             </li>
           );
