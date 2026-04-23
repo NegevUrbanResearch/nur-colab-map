@@ -6,6 +6,7 @@ import {
   packAggregateFromLayerBooleans,
   reconcileLayerOnByKeyWithRegistry,
 } from "./useLayerPackState";
+import { packLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 
 const mockRegistry: LayerRegistry = {
@@ -75,6 +76,39 @@ describe("useLayerPackState helpers", () => {
     m = nextLayerStateAfterPackToggle(m, "pack_b", ["X1"], mockRegistry);
     expect(m[getLayerKey("pack_b", "X1")]).toBe(true);
     expect(m[getLayerKey("pack_a", "L1")]).toBe(true);
+  });
+
+  it("subset pack toggle (merged tile row) turns all members on from partial, then all off from full on", () => {
+    const octoberPack: LayerRegistry = {
+      packs: [
+        {
+          id: "october_7th",
+          name: "Oct",
+          manifest: {
+            id: "october_7th",
+            name: "Oct",
+            layers: [
+              { id: "חדירה_לישוב-אזור", name: "a", file: "a.geojson", format: "geojson", geometryType: "polygon" },
+              { id: "חדירה_לישוב-נקודה", name: "b", file: "b.geojson", format: "geojson", geometryType: "point" },
+              { id: "ביזה-אזור", name: "c", file: "c.geojson", format: "geojson", geometryType: "polygon" },
+            ],
+          },
+          styles: {},
+        },
+      ],
+    };
+    const kArea = packLayerKey("october_7th", "חדירה_לישוב-אזור");
+    const kPoint = packLayerKey("october_7th", "חדירה_לישוב-נקודה");
+    const kOther = packLayerKey("october_7th", "ביזה-אזור");
+    let m: Record<string, boolean> = { [kArea]: true, [kPoint]: false, [kOther]: false };
+    m = nextLayerStateAfterPackToggle(m, "october_7th", ["חדירה_לישוב-אזור", "חדירה_לישוב-נקודה"], octoberPack);
+    expect(m[kArea]).toBe(true);
+    expect(m[kPoint]).toBe(true);
+    expect(m[kOther]).toBe(false);
+    m = nextLayerStateAfterPackToggle(m, "october_7th", ["חדירה_לישוב-אזור", "חדירה_לישוב-נקודה"], octoberPack);
+    expect(m[kArea]).toBe(false);
+    expect(m[kPoint]).toBe(false);
+    expect(m[kOther]).toBe(false);
   });
 
   it("reconcileLayerOnByKeyWithRegistry removes stale keys so true count matches current registry", () => {

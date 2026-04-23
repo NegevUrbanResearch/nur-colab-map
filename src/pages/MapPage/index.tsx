@@ -46,14 +46,16 @@ import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
 import { getCoreLayerUrls } from "../../map/layers/coreLayers";
 import { buildLayerRegistry } from "../../map/layers/layerRegistry";
+import { createBasemapTileLayer } from "../../map/layers/basemaps";
+import { buildLegendModel } from "../../map/layers/legend/buildLegendModel";
+import { buildLayerTileRows } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
-import { getLayerKey } from "./useLayerPackState";
 import { useLayerPackState } from "./useLayerPackState";
 import LayerPacksSheet from "./LayerPacksSheet";
 import LayerPackStrip from "./LayerPackStrip";
 import LayerTilesGrid from "./LayerTilesGrid";
-import LegendTray, { type LegendTrayGroup } from "./LegendTray";
+import LegendTray, { type LegendTraySection } from "./LegendTray";
 import {
   applyEditAction,
   canRedo,
@@ -92,9 +94,6 @@ type SubmitEditDisposition = "overwrite" | "saveAsNew";
 function flattenSegmentsForPersistence(route: IntegratedRoute): Array<[number, number]> {
   return flattenIntegratedRouteForPersistence(route);
 }
-
-const ESRI_WORLD_IMAGERY = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-const OSM_DEFAULT_TILES = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
 const MapPage = () => {
   const navigate = useNavigate();
@@ -211,28 +210,30 @@ const MapPage = () => {
     totalActiveLayerCount,
     togglePack,
     toggleLayer,
+    toggleLayerGroup,
     isLayerOn,
     layerOnByKey,
   } = useLayerPackState(layerRegistry);
 
-  const legendTrayGroups = useMemo((): LegendTrayGroup[] => {
+  const legendTraySections = useMemo((): LegendTraySection[] => {
     if (!layerRegistry) return [];
-    const out: LegendTrayGroup[] = [];
-    for (const p of layerRegistry.packs) {
-      for (const l of p.manifest.layers) {
-        const k = getLayerKey(p.id, l.id);
-        if (layerOnByKey[k] === true) {
-          out.push({ id: k, label: `${p.name} — ${l.name}` });
-        }
-      }
-    }
-    return out;
+    const model = buildLegendModel(layerRegistry, layerOnByKey);
+    return model.groups.map((g) => ({
+      id: g.packId,
+      title: g.packName,
+      rows: g.rows,
+    }));
   }, [layerRegistry, layerOnByKey]);
 
   const focusedLayerPack = useMemo(() => {
     if (!layerRegistry || !focusedPackId) return null;
     return layerRegistry.packs.find((p) => p.id === focusedPackId) ?? null;
   }, [layerRegistry, focusedPackId]);
+
+  const focusedPackTileRows = useMemo(() => {
+    if (!focusedLayerPack) return [];
+    return buildLayerTileRows(focusedLayerPack.id, focusedLayerPack.manifest.layers);
+  }, [focusedLayerPack]);
 
   const cycleBasemap = useCallback(() => {
     setBasemap((b) => (b === "satellite" ? "osm" : "satellite"));
@@ -509,10 +510,7 @@ const MapPage = () => {
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
     const mapInstance = mapRef.current;
-    const baseTile = L.tileLayer(ESRI_WORLD_IMAGERY, {
-      maxZoom: 19,
-      attribution: "Tiles &copy; Esri",
-    }).addTo(mapRef.current);
+    const baseTile = createBasemapTileLayer("satellite").addTo(mapRef.current);
     baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
 
@@ -583,10 +581,7 @@ const MapPage = () => {
     const cur = baseMapLayerRef.current;
     if (!map || !cur) return;
     map.removeLayer(cur);
-    const next =
-      basemap === "satellite"
-        ? L.tileLayer(ESRI_WORLD_IMAGERY, { maxZoom: 19, attribution: "Tiles &copy; Esri" })
-        : L.tileLayer(OSM_DEFAULT_TILES, { maxZoom: 19, attribution: "&copy; OpenStreetMap" });
+    const next = createBasemapTileLayer(basemap);
     next.addTo(map);
     baseMapLayerRef.current = next;
   }, [basemap, isBootstrapping, bootError]);
@@ -1765,14 +1760,15 @@ const MapPage = () => {
 
       {memorialSiteEditForm}
 
-      <LegendTray open={legendTrayOpen} onClose={() => setLegendTrayOpen(false)} groups={legendTrayGroups} />
+      <LegendTray open={legendTrayOpen} onClose={() => setLegendTrayOpen(false)} sections={legendTraySections} />
 
       <LayerPacksSheet open={layerSheetOpen} onClose={() => setLayerSheetOpen(false)}>
         {focusedLayerPack ? (
           <LayerTilesGrid
-            layers={focusedLayerPack.manifest.layers}
+            rows={focusedPackTileRows}
             isLayerOn={(id) => isLayerOn(focusedLayerPack.id, id)}
             onToggleLayer={(id) => toggleLayer(focusedLayerPack.id, id)}
+            onToggleLayerGroup={(ids) => toggleLayerGroup(focusedLayerPack.id, ids)}
           />
         ) : (
           <p className="layer-packs-sheet-empty" dir="rtl">

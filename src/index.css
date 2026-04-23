@@ -3376,6 +3376,12 @@ input.unified-submit-name-input,
   opacity: 0.85;
 }
 
+.layer-tile--partial {
+  border-color: rgba(220, 180, 80, 0.55) !important;
+  background: rgba(120, 90, 30, 0.35) !important;
+  opacity: 1;
+}
+
 .layer-tile__label {
   display: block;
   font-size: 12px;
@@ -3501,6 +3507,26 @@ input.unified-submit-name-input,
   overflow: auto;
   min-height: 0;
   max-height: min(34vh, 300px);
+}
+
+.legend-tray__sections {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.legend-tray__section {
+  margin: 0;
+}
+
+.legend-tray__section-title {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.72);
+  text-align: right;
+  text-transform: none;
 }
 
 .legend-tray__list {

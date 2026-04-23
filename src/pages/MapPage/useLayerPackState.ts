@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { packLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 
 export type PackAggregateState = "off" | "partial" | "on";
@@ -6,7 +7,7 @@ export type PackAggregateState = "off" | "partial" | "on";
 export type BasemapId = "satellite" | "osm";
 
 export function getLayerKey(packId: string, layerId: string): string {
-  return `${packId}::${layerId}`;
+  return packLayerKey(packId, layerId);
 }
 
 export function packAggregateFromLayerBooleans(values: boolean[]): PackAggregateState {
@@ -130,6 +131,15 @@ export function useLayerPackState(registry: LayerRegistry | null) {
     [registry]
   );
 
+  /** Bulk toggle for merged tile rows: all on → all off; otherwise all on (same semantics as pack master). */
+  const toggleLayerGroup = useCallback(
+    (packId: string, layerIds: string[]) => {
+      if (!registry) return;
+      setLayerOnByKey((m) => nextLayerStateAfterPackToggle(m, packId, layerIds, registry));
+    },
+    [registry]
+  );
+
   const totalActiveLayerCount = useMemo(
     () => Object.values(layerOnByKey).filter(Boolean).length,
     [layerOnByKey]
@@ -162,6 +172,7 @@ export function useLayerPackState(registry: LayerRegistry | null) {
     togglePack,
     setLayerOn,
     toggleLayer,
+    toggleLayerGroup,
     isLayerOn,
   };
 }

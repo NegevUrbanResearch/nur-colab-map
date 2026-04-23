@@ -1,12 +1,18 @@
 import { useRef, useEffect } from "react";
 
-export type LegendTrayGroup = { id: string; label: string; detail?: string };
+export type LegendTrayRow = { id: string; label: string; detail?: string };
+
+export type LegendTraySection = {
+  id: string;
+  title: string;
+  rows: LegendTrayRow[];
+};
 
 type Props = {
   open: boolean;
   onClose: () => void;
   title?: string;
-  groups: LegendTrayGroup[];
+  sections: LegendTraySection[];
   emptyMessage?: string;
 };
 
@@ -14,7 +20,7 @@ export default function LegendTray({
   open,
   onClose,
   title = "מקרא",
-  groups,
+  sections,
   emptyMessage = "אין כרגע ערכי מקרא לשכבות הפעילות.",
 }: Props) {
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -44,7 +50,13 @@ export default function LegendTray({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="legend-tray" role="dialog" aria-label={title} dir="rtl" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="legend-tray"
+        role="dialog"
+        aria-label={title}
+        dir="rtl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="legend-tray__head">
           <h2 className="legend-tray__title">{title}</h2>
           <button
@@ -58,17 +70,24 @@ export default function LegendTray({
           </button>
         </div>
         <div className="legend-tray__body">
-          {groups.length === 0 ? (
+          {sections.length === 0 ? (
             <p className="legend-tray__empty">{emptyMessage}</p>
           ) : (
-            <ul className="legend-tray__list" role="list">
-              {groups.map((g) => (
-                <li key={g.id} className="legend-tray__row">
-                  <span className="legend-tray__row-label">{g.label}</span>
-                  {g.detail ? <span className="legend-tray__row-detail">{g.detail}</span> : null}
-                </li>
+            <div className="legend-tray__sections">
+              {sections.map((section) => (
+                <section key={section.id} className="legend-tray__section" aria-label={section.title}>
+                  <h3 className="legend-tray__section-title">{section.title}</h3>
+                  <ul className="legend-tray__list" role="list">
+                    {section.rows.map((row) => (
+                      <li key={row.id} className="legend-tray__row">
+                        <span className="legend-tray__row-label">{row.label}</span>
+                        {row.detail ? <span className="legend-tray__row-detail">{row.detail}</span> : null}
+                      </li>
+                    ))}
+                  </ul>
+                </section>
               ))}
-            </ul>
+            </div>
           )}
         </div>
       </div>
