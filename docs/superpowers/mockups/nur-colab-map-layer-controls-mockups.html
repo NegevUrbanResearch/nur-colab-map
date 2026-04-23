@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nur Colab Map — Layer Controls Mockups</title>
+    <style>
+      * { box-sizing: border-box; font-family: Inter, "Noto Sans Hebrew", Arial, sans-serif; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: linear-gradient(145deg, #12161c, #0c0f13);
+        color: rgba(255, 255, 255, 0.95);
+      }
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+      .title {
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 14px;
+        background: rgba(20,20,20,.5);
+        backdrop-filter: blur(10px);
+        padding: 14px;
+      }
+      .actions {
+        margin-top: 12px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      button, a {
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 10px;
+        background: rgba(255,255,255,.08);
+        color: rgba(255,255,255,.95);
+        padding: 8px 12px;
+        font-size: 13px;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      button.active { background: rgba(255, 105, 180, 0.24); border-color: rgba(255, 105, 180, 0.5); }
+      .frame {
+        margin-top: 14px;
+        height: 78vh;
+        border: 1px solid rgba(255,255,255,.14);
+        border-radius: 14px;
+        overflow: hidden;
+        background: rgba(0,0,0,.35);
+      }
+      iframe { width: 100%; height: 100%; border: 0; }
+      .meta { color: rgba(255,255,255,.72); font-size: 13px; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <section class="title">
+        <h1 style="margin:0 0 8px">מוקאפ בקרות שכבות — Nur Colab Map</h1>
+        <div class="meta">
+          כל הווריאנטים כאן הם
+          <strong>Current UI + Overlay</strong>
+          (base-map-controls למעלה + pink/memorial toolbar למטה) כדי לראות פיט אמיתי במובייל.
+        </div>
+        <div class="actions">
+          <button class="variant active" data-src="nur-colab-map-layer-controls-variant-c.html">Variant C (selected)</button>
+          <a href="README.md" target="_blank" rel="noreferrer">README</a>
+        </div>
+      </section>
+
+      <section class="frame">
+        <iframe id="preview" src="nur-colab-map-layer-controls-variant-c.html" title="Layer controls mockup preview"></iframe>
+      </section>
+    </main>
+
+    <script>
+      const preview = document.getElementById("preview");
+      const buttons = document.querySelectorAll(".variant");
+      buttons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          buttons.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          preview.src = btn.dataset.src;
+        });
+      });
+    </script>
+  </body>
+</html>
