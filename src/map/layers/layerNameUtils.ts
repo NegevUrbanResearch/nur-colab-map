@@ -1,4 +1,6 @@
-import type { LayerManifestEntry } from "./types";
+import type { LegendModelRow } from "./legend/legendTypes";
+import type { LayerManifestEntry, LayerPackStylesJson } from "./types";
+import { legendSwatchFromStyle } from "./legend/legendSwatchFromStyle";
 import {
   OCTOBER_7TH_PACK_ID,
   october7thFamilyRowId,
@@ -10,8 +12,43 @@ export function packLayerKey(packId: string, layerId: string): string {
   return `${packId}::${layerId}`;
 }
 
+const PACK_LAYER_SEP = "::";
+
+/** Inverse of `packLayerKey` when `layerId` does not contain the separator (true for all pack layers). */
+export function parsePackLayerKey(key: string): { packId: string; layerId: string } | null {
+  const i = key.indexOf(PACK_LAYER_SEP);
+  if (i <= 0) return null;
+  return { packId: key.slice(0, i), layerId: key.slice(i + PACK_LAYER_SEP.length) };
+}
+
 export function isOctober7thPack(packId: string): boolean {
   return packId === OCTOBER_7TH_PACK_ID;
+}
+
+/** Lower = preferred for a merged family legend swatch (among active members). */
+function october7thGeometrySwatchPriority(geometryType: string): number {
+  const t = geometryType.toLowerCase();
+  if (t === "point" || t === "multipoint") return 0;
+  if (t === "line" || t === "linestring" || t === "multilinestring") return 1;
+  if (t === "polygon" || t === "multipolygon") return 2;
+  return 3;
+}
+
+/**
+ * Picks which active member’s style should drive the merged family legend swatch: point over line
+ * over polygon, then manifest order for ties (not “first active in manifest” alone).
+ */
+export function pickOctober7thFamilyLayerForSwatch(
+  activeFamilyMembers: LayerManifestEntry[],
+  manifestLayers: LayerManifestEntry[],
+): LayerManifestEntry {
+  const orderIndex = new Map(manifestLayers.map((l, i) => [l.id, i] as const));
+  return [...activeFamilyMembers].sort((a, b) => {
+    const ra = october7thGeometrySwatchPriority(a.geometryType);
+    const rb = october7thGeometrySwatchPriority(b.geometryType);
+    if (ra !== rb) return ra - rb;
+    return (orderIndex.get(a.id) ?? 0) - (orderIndex.get(b.id) ?? 0);
+  })[0]!;
 }
 
 /**
@@ -60,30 +97,43 @@ export function buildLayerTileRows(packId: string, layers: LayerManifestEntry[])
   return out;
 }
 
-export type LegendActiveRow = { id: string; label: string; detail?: string };
-
 /** Legend rows for October 7 when only some layers are active (dedupe by family). */
 export function buildOctober7thActiveLegendRows(
   packId: string,
   layers: LayerManifestEntry[],
-  layerOnByKey: Record<string, boolean>
-): LegendActiveRow[] {
+  layerOnByKey: Record<string, boolean>,
+  styles: LayerPackStylesJson,
+): LegendModelRow[] {
   const seenFamilies = new Set<October7thMergedFamilyKey>();
-  const rows: LegendActiveRow[] = [];
+  const rows: LegendModelRow[] = [];
   for (const layer of layers) {
     if (layerOnByKey[packLayerKey(packId, layer.id)] !== true) continue;
     const fam = october7thMergedFamilyKeyFromLayerId(layer.id);
     if (fam) {
       if (seenFamilies.has(fam)) continue;
       seenFamilies.add(fam);
+      const activeFamilyMembers = layers.filter(
+        (l) =>
+          october7thMergedFamilyKeyFromLayerId(l.id) === fam &&
+          layerOnByKey[packLayerKey(packId, l.id)] === true,
+      );
+      const source =
+        activeFamilyMembers.length > 0
+          ? pickOctober7thFamilyLayerForSwatch(activeFamilyMembers, layers)
+          : undefined;
+      const famSwatch =
+        source != null ? legendSwatchFromStyle(styles[source.id], source.geometryType) : undefined;
       rows.push({
         id: october7thFamilyRowId(packId, fam),
         label: october7thMergedFamilyLabel(fam),
+        ...(famSwatch != null ? { swatch: famSwatch } : {}),
       });
     } else {
+      const swatch = legendSwatchFromStyle(styles[layer.id], layer.geometryType);
       rows.push({
         id: packLayerKey(packId, layer.id),
         label: layer.name,
+        ...(swatch != null ? { swatch } : {}),
       });
     }
   }

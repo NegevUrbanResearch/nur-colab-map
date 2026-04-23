@@ -1,26 +1,21 @@
 import { OCTOBER_7TH_PACK_ID } from "../layerDisplayGlossary";
 import { buildOctober7thActiveLegendRows, packLayerKey } from "../layerNameUtils";
-import type { LayerManifestEntry, LayerRegistry } from "../types";
+import type { LayerRegistry, LayerRegistryPack } from "../types";
+import { legendSwatchFromStyle } from "./legendSwatchFromStyle";
+import type { LegendModel, LegendModelGroup, LegendModelRow } from "./legendTypes";
 
-export type LegendModelRow = { id: string; label: string; detail?: string };
+export type { LegendModel, LegendModelGroup, LegendModelRow, LegendSwatchPreview } from "./legendTypes";
 
-export type LegendModelGroup = {
-  packId: string;
-  packName: string;
-  rows: LegendModelRow[];
-};
-
-export type LegendModel = {
-  groups: LegendModelGroup[];
-};
-
-function rowsForDefaultPack(layers: LayerManifestEntry[], packId: string, layerOnByKey: Record<string, boolean>): LegendModelRow[] {
+function rowsForDefaultPack(pack: LayerRegistryPack, layerOnByKey: Record<string, boolean>): LegendModelRow[] {
   const rows: LegendModelRow[] = [];
-  for (const layer of layers) {
+  const { id: packId, manifest, styles } = pack;
+  for (const layer of manifest.layers) {
     if (layerOnByKey[packLayerKey(packId, layer.id)] !== true) continue;
+    const swatch = legendSwatchFromStyle(styles[layer.id], layer.geometryType);
     rows.push({
       id: packLayerKey(packId, layer.id),
       label: layer.name,
+      ...(swatch != null ? { swatch } : {}),
     });
   }
   return rows;
@@ -31,12 +26,12 @@ export function buildLegendModel(registry: LayerRegistry, layerOnByKey: Record<s
   for (const pack of registry.packs) {
     const rows =
       pack.id === OCTOBER_7TH_PACK_ID
-        ? buildOctober7thActiveLegendRows(pack.id, pack.manifest.layers, layerOnByKey)
-        : rowsForDefaultPack(pack.manifest.layers, pack.id, layerOnByKey);
+        ? buildOctober7thActiveLegendRows(pack.id, pack.manifest.layers, layerOnByKey, pack.styles)
+        : rowsForDefaultPack(pack, layerOnByKey);
     if (rows.length === 0) continue;
     groups.push({
       packId: pack.id,
-      packName: pack.name,
+      packName: pack.displayName,
       rows,
     });
   }
