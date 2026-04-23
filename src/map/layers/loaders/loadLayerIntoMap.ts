@@ -12,5 +12,11 @@ export async function loadLayerIntoMap(args: LoadLayerArgs): Promise<LoadedLayer
       // fallback is intentional for resilience
     }
   }
-  return loadGeoJsonLayer(args);
+  if (!args.urls.geojsonUrl) {
+    throw new Error("loadLayerIntoMap: no geojsonUrl and PMTiles failed or was absent");
+  }
+  const pmtilesAttempted = Boolean(args.urls.pmtilesUrl);
+  return loadGeoJsonLayer(
+    pmtilesAttempted ? { ...args, geojsonInteractive: false } : args,
+  );
 }

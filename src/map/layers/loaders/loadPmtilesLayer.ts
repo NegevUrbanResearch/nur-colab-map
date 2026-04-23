@@ -10,7 +10,9 @@ export async function loadPmtilesLayer(args: LoadLayerArgs): Promise<LoadedLayer
   }
 
   const dataLayer = args.pmtilesSourceLayer ?? "layer";
-  const paintRules = styleToLeaflet(args.style, { dataLayer });
+  const gt = args.layerGeometryType?.toLowerCase();
+  const geometryHint = gt === "line" ? "line" : "polygon";
+  const paintRules = styleToLeaflet(args.style, { dataLayer, geometryHint });
 
   const grid = leafletLayer({
     url,

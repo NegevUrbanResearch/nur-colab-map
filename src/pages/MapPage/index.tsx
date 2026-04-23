@@ -48,12 +48,14 @@ import { getCoreLayerUrls } from "../../map/layers/coreLayers";
 import { buildLayerRegistry } from "../../map/layers/layerRegistry";
 import { createBasemapTileLayer } from "../../map/layers/basemaps";
 import { buildLegendModel } from "../../map/layers/legend/buildLegendModel";
-import { buildLayerTileRows, packLayerKey } from "../../map/layers/layerNameUtils";
+import { geojsonAdapterFromPackStyle } from "../../map/layers/geojsonStyleFromPack";
+import { loadLayerIntoMap } from "../../map/layers/loaders/loadLayerIntoMap";
+import { resolveLayerSourceUrls } from "../../map/layers/resolveLayerAssetUrls";
+import { buildLayerTileRows, packLayerKey, parsePackLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
-import { addParkingLotsLayer } from "../../utils/parkingLayer";
-import { dispositionForParkingLoadResult } from "../../utils/parkingLayerLoadGuard";
 import { useLayerPackState } from "./useLayerPackState";
 import LayerPacksSheet from "./LayerPacksSheet";
+import LayerPackChipsScroller from "./LayerPackChipsScroller";
 import LayerPackStrip from "./LayerPackStrip";
 import LayerTilesGrid from "./LayerTilesGrid";
 import LegendTray, { type LegendTraySection } from "./LegendTray";
@@ -73,9 +75,7 @@ const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const { heritageAxis: HERITAGE_AXIS_URL, parkingLots: PARKING_LOTS_URL, parkingIcon: PARKING_ICON_URL } =
-  getCoreLayerUrls();
-const FUTURE_DEV_PARKING_LAYER_KEY = packLayerKey("future_development", "חניה");
+const { heritageAxis: HERITAGE_AXIS_URL } = getCoreLayerUrls();
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
@@ -257,13 +257,11 @@ const MapPage = () => {
   const defaultLinePathsRef = useRef<[number, number][][]>([]);
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
-  const parkingLayerRef = useRef<L.LayerGroup | null>(null);
-  /** Bumped when parking is turned off or the map is torn down; invalidates in-flight loads. */
-  const parkingLoadSessionRef = useRef(0);
-  /** Session id for the load currently in flight (null if none). */
-  const parkingInFlightSessionRef = useRef<number | null>(null);
-  /** Latest `layerOnByKey` for parking; read inside async `isMapStillValid` to avoid stale closures. */
-  const parkingLayerWantedRef = useRef(false);
+  const manifestOverlayLayersRef = useRef<Map<string, L.Layer>>(new Map());
+  const manifestOverlayLoadSessionRef = useRef(0);
+  /** Per-layer version: bumped when a layer is turned off or superseded; in-flight loads must match. */
+  const manifestLayerVersionRef = useRef<Map<string, number>>(new Map());
+  const layerOnByKeyRef = useRef<Record<string, boolean>>({});
   const centralSiteRef = useRef<PendingSite | null>(null);
   /** One-shot: outside dismiss used pointerdown on the map; ignore the subsequent Leaflet map `click` for placement. */
   const suppressNextMapClickPlacementRef = useRef(false);
@@ -298,7 +296,7 @@ const MapPage = () => {
   }, [selectedSubmissionId]);
 
   useLayoutEffect(() => {
-    parkingLayerWantedRef.current = layerOnByKey[FUTURE_DEV_PARKING_LAYER_KEY] === true;
+    layerOnByKeyRef.current = layerOnByKey;
   }, [layerOnByKey]);
 
   useLayoutEffect(() => {
@@ -525,6 +523,8 @@ const MapPage = () => {
     baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
 
+    let heritageAxisFetchCancelled = false;
+
     mapRef.current.on("click", (e: L.LeafletMouseEvent) => {
       if (suppressNextMapClickPlacementRef.current) {
         suppressNextMapClickPlacementRef.current = false;
@@ -554,23 +554,30 @@ const MapPage = () => {
 
     fetch(HERITAGE_AXIS_URL)
       .then((res) => {
+        if (heritageAxisFetchCancelled) return null;
         if (!res.ok) throw new Error(`Failed to fetch heritage axis GeoJSON (${res.status})`);
         return res.json();
       })
-      .then((geojson: GeoJSON.FeatureCollection) => {
+      .then((geojson: GeoJSON.FeatureCollection | null) => {
+        if (heritageAxisFetchCancelled || geojson == null) return;
         defaultLinePathsRef.current = parseDefaultLinePaths(geojson);
         setDefaultLineLoaded(true);
       })
-      .catch((err) => console.error("Failed to load heritage axis line:", err));
+      .catch((err) => {
+        if (!heritageAxisFetchCancelled) {
+          console.error("Failed to load heritage axis line:", err);
+        }
+      });
 
     return () => {
+      heritageAxisFetchCancelled = true;
       if (popoverDismissSuppressTimerRef.current != null) {
         window.clearTimeout(popoverDismissSuppressTimerRef.current);
         popoverDismissSuppressTimerRef.current = null;
       }
-      parkingLoadSessionRef.current += 1;
-      parkingInFlightSessionRef.current = null;
-      parkingLayerRef.current = null;
+      manifestOverlayLoadSessionRef.current += 1;
+      manifestLayerVersionRef.current.clear();
+      manifestOverlayLayersRef.current.clear();
       baseMapLayerRef.current = null;
       if (mapRef.current) {
         mapRef.current.remove();
@@ -585,65 +592,96 @@ const MapPage = () => {
   useEffect(() => {
     if (isBootstrapping || bootError) return;
     const map = mapRef.current;
-    if (!map) return;
-    const show = layerOnByKey[FUTURE_DEV_PARKING_LAYER_KEY] === true;
-    if (!show) {
-      parkingLoadSessionRef.current += 1;
-      parkingInFlightSessionRef.current = null;
-      const g = parkingLayerRef.current;
-      if (g) {
+    const registry = layerRegistry;
+    if (!map || !registry) return;
+
+    const sessionAtStart = manifestOverlayLoadSessionRef.current;
+    const want = new Set<string>();
+    for (const pack of registry.packs) {
+      for (const layer of pack.manifest.layers) {
+        const k = packLayerKey(pack.id, layer.id);
+        if (layerOnByKey[k] === true) want.add(k);
+      }
+    }
+
+    const bumpVersion = (key: string) => {
+      const m = manifestLayerVersionRef.current;
+      m.set(key, (m.get(key) ?? 0) + 1);
+    };
+
+    for (const [key, lyr] of [...manifestOverlayLayersRef.current.entries()]) {
+      if (!want.has(key)) {
+        bumpVersion(key);
         try {
-          map.removeLayer(g);
+          map.removeLayer(lyr);
         } catch {
           // no-op
         }
-        parkingLayerRef.current = null;
+        manifestOverlayLayersRef.current.delete(key);
       }
-      return;
     }
-    if (parkingLayerRef.current) return;
 
-    const sessionAtStart = parkingLoadSessionRef.current;
-    if (parkingInFlightSessionRef.current === sessionAtStart) {
-      return;
-    }
-    parkingInFlightSessionRef.current = sessionAtStart;
+    for (const key of want) {
+      if (manifestOverlayLayersRef.current.has(key)) continue;
 
-    addParkingLotsLayer(map, PARKING_LOTS_URL, PARKING_ICON_URL, () => {
-      if (mapRef.current !== map) return false;
-      return (
-        dispositionForParkingLoadResult({
-          sessionAtStart,
-          currentSession: parkingLoadSessionRef.current,
-          layerWanted: parkingLayerWantedRef.current,
-        }) === "apply"
-      );
-    })
-      .then((group) => {
-        const d = dispositionForParkingLoadResult({
-          sessionAtStart,
-          currentSession: parkingLoadSessionRef.current,
-          layerWanted: parkingLayerWantedRef.current,
-        });
-        if (d === "discard") {
-          if (group) {
+      const parsed = parsePackLayerKey(key);
+      if (!parsed) continue;
+      const { packId, layerId } = parsed;
+      const pack = registry.packs.find((p) => p.id === packId);
+      const layer = pack?.manifest.layers.find((l) => l.id === layerId);
+      if (!pack || !layer) continue;
+
+      const urls = resolveLayerSourceUrls(pack.id, layer);
+      if (!urls) {
+        if (import.meta.env.DEV) console.warn("[MapPage] Unresolved layer assets:", key);
+        continue;
+      }
+
+      const m = manifestLayerVersionRef.current;
+      const versionAtStart = (m.get(key) ?? 0) + 1;
+      m.set(key, versionAtStart);
+
+      const geo = geojsonAdapterFromPackStyle(pack.styles[layer.id], layer);
+
+      void loadLayerIntoMap({
+        map,
+        urls,
+        pmtilesSourceLayer: "layer",
+        style: pack.styles[layer.id],
+        ui: layer.ui,
+        layerGeometryType: layer.geometryType,
+        ...geo,
+      })
+        .then((loaded) => {
+          if (manifestOverlayLoadSessionRef.current !== sessionAtStart) {
             try {
-              map.removeLayer(group);
+              map.removeLayer(loaded.layer);
             } catch {
               // no-op
             }
+            return;
           }
-          return;
-        }
-        if (group) parkingLayerRef.current = group;
-      })
-      .catch((err) => console.error("Failed to load parking lots:", err))
-      .finally(() => {
-        if (parkingInFlightSessionRef.current === sessionAtStart) {
-          parkingInFlightSessionRef.current = null;
-        }
-      });
-  }, [isBootstrapping, bootError, layerOnByKey]);
+          if (manifestLayerVersionRef.current.get(key) !== versionAtStart) {
+            try {
+              map.removeLayer(loaded.layer);
+            } catch {
+              // no-op
+            }
+            return;
+          }
+          if (layerOnByKeyRef.current[key] !== true) {
+            try {
+              map.removeLayer(loaded.layer);
+            } catch {
+              // no-op
+            }
+            return;
+          }
+          manifestOverlayLayersRef.current.set(key, loaded.layer);
+        })
+        .catch((err) => console.error("Failed to load manifest layer:", key, err));
+    }
+  }, [isBootstrapping, bootError, layerRegistry, layerOnByKey]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;
@@ -1832,7 +1870,20 @@ const MapPage = () => {
 
       <LegendTray open={legendTrayOpen} onClose={() => setLegendTrayOpen(false)} sections={legendTraySections} />
 
-      <LayerPacksSheet open={layerSheetOpen} onClose={() => setLayerSheetOpen(false)}>
+      <LayerPacksSheet
+        open={layerSheetOpen}
+        onClose={() => setLayerSheetOpen(false)}
+        packStrip={
+          <LayerPackChipsScroller
+            registry={layerRegistry}
+            focusedPackId={focusedPackId}
+            onSelectPack={setFocusedPackId}
+            getPackState={getPackState}
+            activeCountForPack={activeCountForPack}
+            onTogglePack={togglePack}
+          />
+        }
+      >
         {focusedLayerPack ? (
           <LayerTilesGrid
             rows={focusedPackTileRows}
@@ -1854,13 +1905,7 @@ const MapPage = () => {
           }
         >
           <LayerPackStrip
-            registry={layerRegistry}
             totalActiveLayerCount={totalActiveLayerCount}
-            focusedPackId={focusedPackId}
-            onSelectPack={setFocusedPackId}
-            getPackState={getPackState}
-            activeCountForPack={activeCountForPack}
-            onTogglePack={togglePack}
             onOpenLayerSheet={openLayerSheet}
             onToggleLegend={toggleLegendTray}
             basemap={basemap}

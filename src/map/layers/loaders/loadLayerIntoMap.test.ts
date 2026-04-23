@@ -62,5 +62,36 @@ describe("loadLayerIntoMap", () => {
     expect(result.mode).toBe("geojson");
     expect(loadPmtilesLayer).toHaveBeenCalledTimes(1);
     expect(loadGeoJsonLayer).toHaveBeenCalledTimes(1);
+    expect(loadGeoJsonLayer).toHaveBeenCalledWith(
+      expect.objectContaining({ geojsonInteractive: false }),
+    );
+  });
+
+  it("keeps GeoJSON interactive when PMTiles was not in use", async () => {
+    vi.mocked(loadGeoJsonLayer).mockResolvedValue({
+      mode: "geojson",
+      layer: {} as import("leaflet").Layer,
+    });
+
+    await loadLayerIntoMap({
+      map: mockMap,
+      urls: { geojsonUrl: "https://example.com/data.geojson" },
+    });
+
+    expect(loadPmtilesLayer).not.toHaveBeenCalled();
+    expect(loadGeoJsonLayer).toHaveBeenCalledWith(
+      expect.not.objectContaining({ geojsonInteractive: false }),
+    );
+  });
+
+  it("throws when pmtiles fails and no geojson url exists", async () => {
+    vi.mocked(loadPmtilesLayer).mockRejectedValue(new Error("pmtiles failed"));
+    await expect(
+      loadLayerIntoMap({
+        map: mockMap,
+        urls: { pmtilesUrl: "https://example.com/tiles.pmtiles" },
+      }),
+    ).rejects.toThrow(/no geojsonUrl/);
+    expect(loadGeoJsonLayer).not.toHaveBeenCalled();
   });
 });
