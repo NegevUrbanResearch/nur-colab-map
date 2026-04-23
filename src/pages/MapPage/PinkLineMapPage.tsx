@@ -22,14 +22,11 @@ import supabase from "../../supabase";
 import PinkLineNodeForm from "./PinkLineNodeForm";
 import PinkRouteFetchingBanner from "./PinkRouteFetchingBanner";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
+import { getCoreLayerUrls } from "../../map/layers/coreLayers";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
 
-const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
-  ? import.meta.env.BASE_URL
-  : `${import.meta.env.BASE_URL}/`;
-const HERITAGE_AXIS_URL = `${APP_BASE_URL}line-layer/heritage-axis.geojson`;
-const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
-const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
+const { heritageAxis: HERITAGE_AXIS_URL, parkingLots: PARKING_LOTS_URL, parkingIcon: PARKING_ICON_URL } =
+  getCoreLayerUrls();
 
 interface PinkLineNode {
   id: string;

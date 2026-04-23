@@ -44,6 +44,7 @@ import {
 import { submitUnifiedFeatures } from "../../supabase/unifiedSubmission";
 import supabase from "../../supabase";
 import { computeRouteViaEdgeFunction } from "../../services/googleRoutes";
+import { getCoreLayerUrls } from "../../map/layers/coreLayers";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
 import {
   applyEditAction,
@@ -61,9 +62,8 @@ const MEMORIAL_PROJECT_ID = "33333333-3333-3333-3333-333333333333";
 const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   ? import.meta.env.BASE_URL
   : `${import.meta.env.BASE_URL}/`;
-const HERITAGE_AXIS_URL = `${APP_BASE_URL}line-layer/heritage-axis.geojson`;
-const PARKING_LOTS_URL = `${APP_BASE_URL}line-layer/parking-lots.geojson`;
-const PARKING_ICON_URL = `${APP_BASE_URL}line-layer/parking-icon.png`;
+const { heritageAxis: HERITAGE_AXIS_URL, parkingLots: PARKING_LOTS_URL, parkingIcon: PARKING_ICON_URL } =
+  getCoreLayerUrls();
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
