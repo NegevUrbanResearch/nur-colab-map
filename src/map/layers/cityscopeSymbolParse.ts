@@ -6,6 +6,10 @@ export type ParsedMarker = {
   fillColor: string;
   strokeColor: string;
   strokeWidth: number;
+  /** When set, GeoJSON point layers can render as `L.icon` + `L.marker` instead of a circle. */
+  iconUrl?: string;
+  iconSize?: [number, number];
+  iconAnchor?: [number, number];
 };
 
 export type ParsedStroke = {
@@ -38,6 +42,14 @@ function str(x: unknown, fallback: string): string {
   return typeof x === "string" && x.length > 0 ? x : fallback;
 }
 
+function numPair(x: unknown): [number, number] | undefined {
+  if (!Array.isArray(x) || x.length < 2) return undefined;
+  const a = num(x[0], NaN);
+  const b = num(x[1], NaN);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return undefined;
+  return [a, b];
+}
+
 /**
  * Reads `defaultSymbol.symbolLayers` from a pack style object (simple / uniqueValue default).
  */
@@ -54,13 +66,24 @@ export function parseDefaultSymbolFromStyle(style: unknown): ParsedDefaultSymbol
     const t = entry.type;
     if (t === "markerPoint" && isRecord(entry.marker)) {
       const m = entry.marker;
+      const shape = str(m.shape, "circle");
+      const iconUrlRaw = m.iconUrl;
+      const iconUrl =
+        typeof iconUrlRaw === "string" && iconUrlRaw.trim().length > 0 ? iconUrlRaw.trim() : undefined;
+      const iconSize = numPair(m.iconSize);
+      const iconAnchor = numPair(m.iconAnchor);
       out.marker = {
-        shape: str(m.shape, "circle"),
+        shape,
         size: num(m.size, 8),
         fillColor: str(m.fillColor, "#3388ff"),
         strokeColor: str(m.strokeColor, "#000000"),
         strokeWidth: num(m.strokeWidth, 1),
       };
+      if (iconUrl) {
+        out.marker.iconUrl = iconUrl;
+        if (iconSize) out.marker.iconSize = iconSize;
+        if (iconAnchor) out.marker.iconAnchor = iconAnchor;
+      }
     } else if (t === "stroke") {
       out.stroke = {
         color: str(entry.color, "#3388ff"),

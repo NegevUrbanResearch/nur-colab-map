@@ -25,7 +25,11 @@ import {
   parseDefaultLinePaths,
 } from "../../utils/pinkLineRoute";
 import { serializeIntegratedRouteToColabBundle } from "../../utils/colabRouteGeometryExport";
-import { addDetourPaintToMap } from "../../map/pinkDetourLeaflet";
+import {
+  addDetourPaintToMap,
+  ensurePriorityPinkOverlayPane,
+  PRIORITY_PINK_OVERLAY_PANE,
+} from "../../map/pinkDetourLeaflet";
 import { routeLineStylesForDisplayColor } from "./mapLineStyles";
 import {
   isAllowedSubmissionDisplayColor,
@@ -519,6 +523,7 @@ const MapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
+    ensurePriorityPinkOverlayPane(mapRef.current);
     const baseTile = createBasemapTileLayer("satellite").addTo(mapRef.current);
     baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
@@ -691,7 +696,21 @@ const MapPage = () => {
     map.removeLayer(cur);
     const next = createBasemapTileLayer(basemap);
     next.addTo(map);
+    // Leaflet orders same-pane layers by insertion; a newly added basemap would sit above
+    // earlier overlays unless we send it to the back of the tile stack.
+    next.bringToBack();
     baseMapLayerRef.current = next;
+
+    for (const [key, layer] of manifestOverlayLayersRef.current) {
+      if (layerOnByKeyRef.current[key] !== true) continue;
+      if (!map.hasLayer(layer)) {
+        try {
+          layer.addTo(map);
+        } catch {
+          // no-op
+        }
+      }
+    }
   }, [basemap, isBootstrapping, bootError]);
 
   useEffect(() => {
@@ -781,13 +800,20 @@ const MapPage = () => {
       } = routeLineStylesForDisplayColor(submissionDisplayColor);
       const showPinkDetours = pinkNodes.length > 0;
 
+      const routePane = { pane: PRIORITY_PINK_OVERLAY_PANE };
       for (const points of solid) {
-        routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], solidStyle).addTo(map));
+        routeLayersRef.current.push(
+          L.polyline(points as L.LatLngExpression[], { ...solidStyle, ...routePane }).addTo(map)
+        );
       }
       if (showPinkDetours) {
         for (const points of removed) {
-          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedHaloStyle).addTo(map));
-          routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], removedStyle).addTo(map));
+          routeLayersRef.current.push(
+            L.polyline(points as L.LatLngExpression[], { ...removedHaloStyle, ...routePane }).addTo(map)
+          );
+          routeLayersRef.current.push(
+            L.polyline(points as L.LatLngExpression[], { ...removedStyle, ...routePane }).addTo(map)
+          );
         }
       }
       if (showPinkDetours) {
@@ -802,13 +828,19 @@ const MapPage = () => {
           );
         } else {
           for (const points of dashed) {
-            routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedHaloStyle).addTo(map));
+            routeLayersRef.current.push(
+              L.polyline(points as L.LatLngExpression[], { ...dashedHaloStyle, ...routePane }).addTo(map)
+            );
             if (dashedSecondaryStyle) {
               routeLayersRef.current.push(
-                L.polyline(points as L.LatLngExpression[], dashedSecondaryStyle).addTo(map)
+                L.polyline(points as L.LatLngExpression[], { ...dashedSecondaryStyle, ...routePane }).addTo(
+                  map
+                )
               );
             }
-            routeLayersRef.current.push(L.polyline(points as L.LatLngExpression[], dashedStyle).addTo(map));
+            routeLayersRef.current.push(
+              L.polyline(points as L.LatLngExpression[], { ...dashedStyle, ...routePane }).addTo(map)
+            );
           }
         }
       }
@@ -829,6 +861,7 @@ const MapPage = () => {
       pinkNodes.forEach((node) => {
         const marker = L.marker([node.lat, node.lng], {
           draggable: true,
+          pane: PRIORITY_PINK_OVERLAY_PANE,
           icon: L.divIcon({
             className: "pink-line-node-marker",
             html: `<div class="pink-line-node" style="background-color: ${pinkNodeFill}; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.45);">${nodeOrder.get(node.tempId) || 1}</div>`,
@@ -889,7 +922,11 @@ const MapPage = () => {
               iconAnchor: [20, 20],
               popupAnchor: [0, -20],
             });
-      const marker = L.marker([site.lat, site.lng], { icon, draggable: true }).addTo(map);
+      const marker = L.marker([site.lat, site.lng], {
+        icon,
+        draggable: true,
+        pane: PRIORITY_PINK_OVERLAY_PANE,
+      }).addTo(map);
       let dragStartLatLng: L.LatLng | null = null;
       let suppressNextDeleteClick = false;
       marker.on("dragstart", () => {
@@ -950,6 +987,7 @@ const MapPage = () => {
     }
     if (pendingPinkTarget) {
       pendingPinkMarkerRef.current = L.marker([pendingPinkTarget.lat, pendingPinkTarget.lng], {
+        pane: PRIORITY_PINK_OVERLAY_PANE,
         icon: L.divIcon({
           className: "pink-line-node-marker",
           html: `<div class="pink-line-node">+</div>`,
@@ -973,6 +1011,7 @@ const MapPage = () => {
     if (pendingMemorialTarget) {
       const iconUrl = pendingMemorialTarget.type === "central" ? regionalMemorialIconUrl : localMemorialIconUrl;
       pendingMemorialMarkerRef.current = L.marker([pendingMemorialTarget.lat, pendingMemorialTarget.lng], {
+        pane: PRIORITY_PINK_OVERLAY_PANE,
         icon: L.icon({
           iconUrl,
           iconSize: [40, 40],

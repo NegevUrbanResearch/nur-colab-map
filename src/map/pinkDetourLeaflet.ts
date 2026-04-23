@@ -1,14 +1,19 @@
 import L from "leaflet";
 import type { DetourPaintPiece } from "../utils/pinkLineRoute";
 
-const PANE_OFFROAD_LINE = "pinkOffroadLinePane";
+/** Stays above standard layer packs (see MapPage manifest overlays). */
+export const PRIORITY_PINK_OVERLAY_PANE = "priorityPinkOverlay";
 
-function ensureOffroadLinePane(map: L.Map) {
-  if (!map.getPane(PANE_OFFROAD_LINE)) {
-    const linePane = map.createPane(PANE_OFFROAD_LINE);
-    linePane.style.zIndex = "550";
-    linePane.style.pointerEvents = "auto";
+export function ensurePriorityPinkOverlayPane(map: L.Map): void {
+  if (!map.getPane(PRIORITY_PINK_OVERLAY_PANE)) {
+    const el = map.createPane(PRIORITY_PINK_OVERLAY_PANE);
+    el.style.zIndex = "650";
+    el.style.pointerEvents = "auto";
   }
+}
+
+function withPriorityPane(style: L.PolylineOptions): L.PolylineOptions {
+  return { ...style, pane: PRIORITY_PINK_OVERLAY_PANE };
 }
 
 const OFF_ROAD_LINE: L.PolylineOptions = {
@@ -17,7 +22,7 @@ const OFF_ROAD_LINE: L.PolylineOptions = {
   opacity: 0.95,
   dashArray: "6 10",
   lineCap: "round",
-  pane: PANE_OFFROAD_LINE,
+  pane: PRIORITY_PINK_OVERLAY_PANE,
 };
 
 function junctionDivIcon() {
@@ -39,19 +44,32 @@ export function addDetourPaintToMap(
   proposedHalo?: L.PolylineOptions,
   proposedSecondary?: L.PolylineOptions
 ): void {
-  ensureOffroadLinePane(map);
+  ensurePriorityPinkOverlayPane(map);
 
   const offroadPieces: Extract<DetourPaintPiece, { kind: "offroad" }>[] = [];
 
   for (const piece of pieces) {
     if (piece.kind === "road") {
       if (proposedHalo) {
-        layersOut.push(L.polyline(piece.points as L.LatLngExpression[], proposedHalo).addTo(map));
+        layersOut.push(
+          L.polyline(
+            piece.points as L.LatLngExpression[],
+            withPriorityPane(proposedHalo)
+          ).addTo(map)
+        );
       }
       if (proposedSecondary) {
-        layersOut.push(L.polyline(piece.points as L.LatLngExpression[], proposedSecondary).addTo(map));
+        layersOut.push(
+          L.polyline(
+            piece.points as L.LatLngExpression[],
+            withPriorityPane(proposedSecondary)
+          ).addTo(map)
+        );
       }
-      const pl = L.polyline(piece.points as L.LatLngExpression[], proposedPrimary).addTo(map);
+      const pl = L.polyline(
+        piece.points as L.LatLngExpression[],
+        withPriorityPane(proposedPrimary)
+      ).addTo(map);
       layersOut.push(pl);
     } else {
       offroadPieces.push(piece);
@@ -83,6 +101,7 @@ export function addDetourPaintToMap(
       icon: junctionDivIcon(),
       keyboard: false,
       riseOnHover: true,
+      pane: PRIORITY_PINK_OVERLAY_PANE,
     }).addTo(map);
     junction.bindTooltip(OFF_ROAD_TOOLTIP_HTML, {
       sticky: true,
