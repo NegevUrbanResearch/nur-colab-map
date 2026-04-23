@@ -31,6 +31,7 @@ describe("buildLegendModel", () => {
           styles: {},
         },
       ],
+      getLayer: () => undefined,
     };
     const layerOnByKey: Record<string, boolean> = {
       [key("greens", "g1")]: true,
@@ -78,6 +79,7 @@ describe("buildLegendModel", () => {
           styles: {},
         },
       ],
+      getLayer: () => undefined,
     };
     const layerOnByKey: Record<string, boolean> = {
       [key("october_7th", "חדירה_לישוב-אזור")]: true,

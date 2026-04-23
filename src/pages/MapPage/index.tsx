@@ -48,9 +48,10 @@ import { getCoreLayerUrls } from "../../map/layers/coreLayers";
 import { buildLayerRegistry } from "../../map/layers/layerRegistry";
 import { createBasemapTileLayer } from "../../map/layers/basemaps";
 import { buildLegendModel } from "../../map/layers/legend/buildLegendModel";
-import { buildLayerTileRows } from "../../map/layers/layerNameUtils";
+import { buildLayerTileRows, packLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 import { addParkingLotsLayer } from "../../utils/parkingLayer";
+import { dispositionForParkingLoadResult } from "../../utils/parkingLayerLoadGuard";
 import { useLayerPackState } from "./useLayerPackState";
 import LayerPacksSheet from "./LayerPacksSheet";
 import LayerPackStrip from "./LayerPackStrip";
@@ -74,6 +75,7 @@ const APP_BASE_URL = import.meta.env.BASE_URL.endsWith("/")
   : `${import.meta.env.BASE_URL}/`;
 const { heritageAxis: HERITAGE_AXIS_URL, parkingLots: PARKING_LOTS_URL, parkingIcon: PARKING_ICON_URL } =
   getCoreLayerUrls();
+const FUTURE_DEV_PARKING_LAYER_KEY = packLayerKey("future_development", "חניה");
 const FAVICON_URL = `${APP_BASE_URL}favicon.ico`;
 
 /** Reposition at or above this distance (meters) commits a move and suppresses the post-drag click-delete confirm. */
@@ -256,6 +258,12 @@ const MapPage = () => {
   const pendingPinkMarkerRef = useRef<L.Marker | null>(null);
   const pendingMemorialMarkerRef = useRef<L.Marker | null>(null);
   const parkingLayerRef = useRef<L.LayerGroup | null>(null);
+  /** Bumped when parking is turned off or the map is torn down; invalidates in-flight loads. */
+  const parkingLoadSessionRef = useRef(0);
+  /** Session id for the load currently in flight (null if none). */
+  const parkingInFlightSessionRef = useRef<number | null>(null);
+  /** Latest `layerOnByKey` for parking; read inside async `isMapStillValid` to avoid stale closures. */
+  const parkingLayerWantedRef = useRef(false);
   const centralSiteRef = useRef<PendingSite | null>(null);
   /** One-shot: outside dismiss used pointerdown on the map; ignore the subsequent Leaflet map `click` for placement. */
   const suppressNextMapClickPlacementRef = useRef(false);
@@ -288,6 +296,10 @@ const MapPage = () => {
   useLayoutEffect(() => {
     selectedSubmissionIdRef.current = selectedSubmissionId;
   }, [selectedSubmissionId]);
+
+  useLayoutEffect(() => {
+    parkingLayerWantedRef.current = layerOnByKey[FUTURE_DEV_PARKING_LAYER_KEY] === true;
+  }, [layerOnByKey]);
 
   useLayoutEffect(() => {
     submissionNameInputRef.current = submissionNameInput;
@@ -509,7 +521,6 @@ const MapPage = () => {
     mapContainer.innerHTML = "";
 
     mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
-    const mapInstance = mapRef.current;
     const baseTile = createBasemapTileLayer("satellite").addTo(mapRef.current);
     baseMapLayerRef.current = baseTile;
     L.control.zoom({ position: "bottomright" }).addTo(mapRef.current);
@@ -552,17 +563,13 @@ const MapPage = () => {
       })
       .catch((err) => console.error("Failed to load heritage axis line:", err));
 
-    addParkingLotsLayer(mapInstance, PARKING_LOTS_URL, PARKING_ICON_URL, () => mapRef.current === mapInstance)
-      .then((group) => {
-        if (group) parkingLayerRef.current = group;
-      })
-      .catch((err) => console.error("Failed to load parking lots:", err));
-
     return () => {
       if (popoverDismissSuppressTimerRef.current != null) {
         window.clearTimeout(popoverDismissSuppressTimerRef.current);
         popoverDismissSuppressTimerRef.current = null;
       }
+      parkingLoadSessionRef.current += 1;
+      parkingInFlightSessionRef.current = null;
       parkingLayerRef.current = null;
       baseMapLayerRef.current = null;
       if (mapRef.current) {
@@ -574,6 +581,69 @@ const MapPage = () => {
       routeLayersRef.current = [];
     };
   }, [isBootstrapping, bootError]);
+
+  useEffect(() => {
+    if (isBootstrapping || bootError) return;
+    const map = mapRef.current;
+    if (!map) return;
+    const show = layerOnByKey[FUTURE_DEV_PARKING_LAYER_KEY] === true;
+    if (!show) {
+      parkingLoadSessionRef.current += 1;
+      parkingInFlightSessionRef.current = null;
+      const g = parkingLayerRef.current;
+      if (g) {
+        try {
+          map.removeLayer(g);
+        } catch {
+          // no-op
+        }
+        parkingLayerRef.current = null;
+      }
+      return;
+    }
+    if (parkingLayerRef.current) return;
+
+    const sessionAtStart = parkingLoadSessionRef.current;
+    if (parkingInFlightSessionRef.current === sessionAtStart) {
+      return;
+    }
+    parkingInFlightSessionRef.current = sessionAtStart;
+
+    addParkingLotsLayer(map, PARKING_LOTS_URL, PARKING_ICON_URL, () => {
+      if (mapRef.current !== map) return false;
+      return (
+        dispositionForParkingLoadResult({
+          sessionAtStart,
+          currentSession: parkingLoadSessionRef.current,
+          layerWanted: parkingLayerWantedRef.current,
+        }) === "apply"
+      );
+    })
+      .then((group) => {
+        const d = dispositionForParkingLoadResult({
+          sessionAtStart,
+          currentSession: parkingLoadSessionRef.current,
+          layerWanted: parkingLayerWantedRef.current,
+        });
+        if (d === "discard") {
+          if (group) {
+            try {
+              map.removeLayer(group);
+            } catch {
+              // no-op
+            }
+          }
+          return;
+        }
+        if (group) parkingLayerRef.current = group;
+      })
+      .catch((err) => console.error("Failed to load parking lots:", err))
+      .finally(() => {
+        if (parkingInFlightSessionRef.current === sessionAtStart) {
+          parkingInFlightSessionRef.current = null;
+        }
+      });
+  }, [isBootstrapping, bootError, layerOnByKey]);
 
   useEffect(() => {
     if (isBootstrapping || bootError) return;

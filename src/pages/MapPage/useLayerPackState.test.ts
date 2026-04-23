@@ -35,6 +35,7 @@ const mockRegistry: LayerRegistry = {
       styles: {},
     },
   ],
+  getLayer: () => undefined,
 };
 
 describe("useLayerPackState helpers", () => {
@@ -96,6 +97,7 @@ describe("useLayerPackState helpers", () => {
           styles: {},
         },
       ],
+      getLayer: () => undefined,
     };
     const kArea = packLayerKey("october_7th", "חדירה_לישוב-אזור");
     const kPoint = packLayerKey("october_7th", "חדירה_לישוב-נקודה");
@@ -109,6 +111,54 @@ describe("useLayerPackState helpers", () => {
     expect(m[kArea]).toBe(false);
     expect(m[kPoint]).toBe(false);
     expect(m[kOther]).toBe(false);
+  });
+
+  it("defaults future_development::חניה on when the key first appears in the registry", () => {
+    const parkingKey = packLayerKey("future_development", "חניה");
+    const registryWithParking: LayerRegistry = {
+      packs: [
+        {
+          id: "future_development",
+          name: "Future",
+          manifest: {
+            id: "future_development",
+            name: "Future",
+            layers: [
+              { id: "חניה", name: "Parking", file: "p.geojson", format: "geojson", geometryType: "point" },
+            ],
+          },
+          styles: {},
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const prev: Record<string, boolean> = {};
+    const next = reconcileLayerOnByKeyWithRegistry(prev, registryWithParking);
+    expect(next[parkingKey]).toBe(true);
+  });
+
+  it("reconcileLayerOnByKeyWithRegistry keeps parking off when the user explicitly turned it off", () => {
+    const parkingKey = packLayerKey("future_development", "חניה");
+    const registryWithParking: LayerRegistry = {
+      packs: [
+        {
+          id: "future_development",
+          name: "Future",
+          manifest: {
+            id: "future_development",
+            name: "Future",
+            layers: [
+              { id: "חניה", name: "Parking", file: "p.geojson", format: "geojson", geometryType: "point" },
+            ],
+          },
+          styles: {},
+        },
+      ],
+      getLayer: () => undefined,
+    };
+    const prev: Record<string, boolean> = { [parkingKey]: false };
+    const next = reconcileLayerOnByKeyWithRegistry(prev, registryWithParking);
+    expect(next[parkingKey]).toBe(false);
   });
 
   it("reconcileLayerOnByKeyWithRegistry removes stale keys so true count matches current registry", () => {

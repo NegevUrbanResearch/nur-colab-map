@@ -238,6 +238,29 @@
       }
     },
     {
+      "id": "חניה",
+      "name": "חניה",
+      "file": "parking-lots.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "שם",
+              "key": "name"
+            },
+            {
+              "label": "הערות",
+              "key": "notes"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "name"
+        }
+      }
+    },
+    {
       "id": "ציר_232",
       "name": "ציר_232",
       "file": "ציר_232.geojson",

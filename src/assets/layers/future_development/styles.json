@@ -1182,5 +1182,52 @@
         }
       ]
     }
+  },
+  "חניה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#0d47a1",
+            "strokeColor": "#000000",
+            "strokeWidth": 0.9333333333333332
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#000000",
+          "width": 0.9333333333333332,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#0d47a1",
+          "opacity": 1.0
+        }
+      ]
+    }
   }
 }

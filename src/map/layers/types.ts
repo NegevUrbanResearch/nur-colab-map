@@ -55,4 +55,5 @@ export type LayerRegistryPack = {
 
 export type LayerRegistry = {
   packs: LayerRegistryPack[];
+  getLayer: (packId: string, layerId: string) => LayerManifestEntry | undefined;
 };

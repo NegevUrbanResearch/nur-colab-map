@@ -9,4 +9,9 @@ describe("buildLayerRegistry", () => {
     expect(futureDev).toBeTruthy();
     expect(Object.keys(futureDev!.styles).length).toBeGreaterThan(0);
   });
+
+  it("contains parking as a controllable future_development layer", async () => {
+    const registry = await buildLayerRegistry();
+    expect(registry.getLayer("future_development", "חניה")).toBeTruthy();
+  });
 });

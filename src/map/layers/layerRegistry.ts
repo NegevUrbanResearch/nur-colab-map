@@ -1,5 +1,5 @@
 import { getManifestLoadersByPackId, getStylesLoadersByPackId } from "./assetIndex";
-import type { LayerRegistry, LayerRegistryPack } from "./types";
+import type { LayerManifestEntry, LayerRegistry, LayerRegistryPack } from "./types";
 
 export async function buildLayerRegistry(): Promise<LayerRegistry> {
   const manifestLoaders = getManifestLoadersByPackId();
@@ -23,5 +23,10 @@ export async function buildLayerRegistry(): Promise<LayerRegistry> {
     });
   }
 
-  return { packs };
+  const getLayer = (packId: string, layerId: string): LayerManifestEntry | undefined => {
+    const pack = packs.find((p) => p.id === packId);
+    return pack?.manifest.layers.find((l) => l.id === layerId);
+  };
+
+  return { packs, getLayer };
 }

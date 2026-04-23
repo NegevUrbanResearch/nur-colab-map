@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { packLayerKey } from "../../map/layers/layerNameUtils";
 import type { LayerRegistry } from "../../map/layers/types";
 
+const FUTURE_DEV_PARKING_LAYER_KEY = packLayerKey("future_development", "חניה");
+
 export type PackAggregateState = "off" | "partial" | "on";
 
 export type BasemapId = "satellite" | "osm";
@@ -66,7 +68,11 @@ export function reconcileLayerOnByKeyWithRegistry(
 ): Record<string, boolean> {
   const next: Record<string, boolean> = {};
   for (const k of collectLayerKeys(registry)) {
-    next[k] = prev[k] === true;
+    if (k === FUTURE_DEV_PARKING_LAYER_KEY) {
+      next[k] = prev[k] !== false;
+    } else {
+      next[k] = prev[k] === true;
+    }
   }
   return next;
 }
