@@ -1,0 +1,855 @@
+{
+  "במה": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#5c8944",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "דרכים_אזוריות": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "NAME",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#873e23",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "דרכים_מקומיות": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "RefName",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#873e23",
+          "width": 0.6666666666666666,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "דרכים_ארציות": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "NAME",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#873e23",
+          "width": 2.6666666666666665,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "מסלולי_רכבת": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "RefName",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerLine",
+          "marker": {
+            "shape": "square",
+            "size": 5.333333333333333,
+            "strokeColor": "#895a44",
+            "strokeWidth": 5.333333333333333
+          },
+          "placement": {
+            "mode": "CIMMarkerPlacementAlongLineSameSize",
+            "interval": 15.0,
+            "offsetAlong": 7.5
+          },
+          "orientation": {
+            "alignToLine": true
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#895a44",
+          "width": 5.333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "stroke",
+          "color": "#895a44",
+          "width": 1.0666666666666667,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "מרכז_תחבורה_מתוכנן": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Id",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#6e6e6e",
+          "width": 0.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#e07473",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "מרכז_תחבורה_קיים": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Id",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#6e6e6e",
+          "width": 0.9333333333333332,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#e69973",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "סינגלים": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#abdbe3",
+          "width": 1.0196078431372548,
+          "opacity": 1.0,
+          "dash": {
+            "array": [
+              1.4705882352941178,
+              1.4705882352941178
+            ]
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#704589",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "סעד": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#0c6ffd",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "שביל_הנגב_המערבי": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#036466",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "דרכי_עפר": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "OBJECTID",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": {
+      "minScale": 10000,
+      "maxScale": null
+    },
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#000000",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#895a44",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "שבילי_אופניים_שקמה": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "SHVIL_NAME",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#d76e89",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "שבילים": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#704588",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "תחנות_רכבת": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "NAME",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 10.666666666666666,
+            "fillColor": "#e07473",
+            "strokeColor": "#d95f18",
+            "strokeWidth": 0.7999999999999999
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#d95f18",
+          "width": 0.7999999999999999,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#e07473",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "שבילי_אופניים": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "SHVIL_NAME",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#898944",
+          "width": 1.3333333333333333,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  },
+  "מועצות_אזוריות": {
+    "type": "polygon",
+    "renderer": "uniqueValue",
+    "labels": {
+      "field": "Muni_Heb",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#6e6e6e",
+          "width": 0.9333333333333332,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#828282",
+          "opacity": 1.0
+        }
+      ]
+    },
+    "uniqueValues": {
+      "field": "Muni_Heb",
+      "classes": [
+        {
+          "value": "אשכול",
+          "label": "אשכול",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#d7ba76",
+                "opacity": 0.35
+              }
+            ]
+          }
+        },
+        {
+          "value": "אשקלון",
+          "label": "אשקלון",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#bf9b7a",
+                "opacity": 0.3
+              }
+            ]
+          }
+        },
+        {
+          "value": "חוף אשקלון",
+          "label": "חוף אשקלון",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#96641f",
+                "opacity": 0.3
+              }
+            ]
+          }
+        },
+        {
+          "value": "שדות נגב",
+          "label": "שדות נגב",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#f2b84b",
+                "opacity": 0.3
+              }
+            ]
+          }
+        },
+        {
+          "value": "שדרות",
+          "label": "שדרות",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#baa097",
+                "opacity": 0.3
+              }
+            ]
+          }
+        },
+        {
+          "value": "שער הנגב",
+          "label": "שער הנגב",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#6e6e6e",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#ffebaf",
+                "opacity": 0.35
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "מועצות_אזוריות_מתאר": {
+    "type": "polygon",
+    "renderer": "uniqueValue",
+    "labels": {
+      "field": "Muni_Heb",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#828282",
+          "width": 0.9333333333333332,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#828282",
+          "opacity": 1.0
+        }
+      ]
+    },
+    "uniqueValues": {
+      "field": "Muni_Heb",
+      "classes": [
+        {
+          "value": "אשכול",
+          "label": "אשכול",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#feedde",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "value": "אשקלון",
+          "label": "אשקלון",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#fdd0a2",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "value": "חוף אשקלון",
+          "label": "חוף אשקלון",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#fdae6b",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "value": "שדות נגב",
+          "label": "שדות נגב",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#fd8d3c",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        },
+        {
+          "value": "שער הנגב",
+          "label": "שער הנגב",
+          "symbol": {
+            "symbolLayers": [
+              {
+                "type": "stroke",
+                "color": "#f16913",
+                "width": 0.9333333333333332,
+                "opacity": 1.0,
+                "dash": null
+              },
+              {
+                "type": "fill",
+                "fillType": "solid",
+                "color": "#000000",
+                "opacity": 0.0
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

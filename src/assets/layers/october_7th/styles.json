@@ -1,0 +1,805 @@
+{
+  "אזור_הרס-אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#000000",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#8d7300",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "אזור_הרס-נקודה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#8d7300",
+            "strokeColor": "#e1e1e1",
+            "strokeWidth": 1.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#e1e1e1",
+          "width": 1.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#8d7300",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "אירוע_נקודתי-רציחה_חטיפה-אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#cccccc",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a80000",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "ביזה-אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#333333",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#063970",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "אירוע_נקודתי-רציחה_חטיפה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 16.0,
+            "fillColor": "#a80000",
+            "strokeColor": "#cccccc",
+            "strokeWidth": 0.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#cccccc",
+          "width": 0.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a80000",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "בין_16_ל40_עדויות": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 19.999999999999996,
+            "fillColor": "#a8a800"
+          }
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a8a800",
+          "opacity": 1.0
+        },
+        {
+          "type": "stroke",
+          "color": "#ffffff",
+          "width": 2.4999999999999996,
+          "opacity": 0.25,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#377eb8",
+          "opacity": 0.0
+        }
+      ]
+    }
+  },
+  "ביזה-נקודה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#063970",
+            "strokeColor": "#1a1a1a",
+            "strokeWidth": 1.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#1a1a1a",
+          "width": 1.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#063970",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "חדירה_לישוב-אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#333333",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#f68c28",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "בין_1_ל15_עדויות": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 13.333333333333332,
+            "fillColor": "#a8a800",
+            "strokeColor": "#1a1a1a",
+            "strokeWidth": 0.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#1a1a1a",
+          "width": 0.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a8a800",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "חדירה_לישוב-נקודה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#f68c28",
+            "strokeColor": "#1a1a1a",
+            "strokeWidth": 1.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#1a1a1a",
+          "width": 1.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#f68c28",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "חדירה_לישוב-ציר": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#f68c28",
+          "width": 2.0,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    },
+    "animation": {
+      "type": "flow",
+      "enabledByDefault": false,
+      "speed": 40,
+      "dashArray": [
+        10,
+        14
+      ],
+      "directionPolicy": "feature_order"
+    }
+  },
+  "מאבק_וגבורה_אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#333333",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#c31f4f",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "מאבק_וגבורה_ציר": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#c31f4f",
+          "width": 2.0,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    },
+    "animation": {
+      "type": "flow",
+      "enabledByDefault": false,
+      "speed": 40,
+      "dashArray": [
+        10,
+        14
+      ],
+      "directionPolicy": "feature_order"
+    }
+  },
+  "מעל_41_עדויות": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 26.666666666666664,
+            "fillColor": "#a8a800"
+          }
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a8a800",
+          "opacity": 1.0
+        },
+        {
+          "type": "stroke",
+          "color": "#ffffff",
+          "width": 3.333333333333333,
+          "opacity": 0.25,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#377eb8",
+          "opacity": 0.0
+        }
+      ]
+    }
+  },
+  "מאבק_וגבורה_נקודה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#c31f4f",
+            "strokeColor": "#1a1a1a",
+            "strokeWidth": 1.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#1a1a1a",
+          "width": 1.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#c31f4f",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "מרחב_לחימה": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#333333",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#e60000",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "פגיעה_נקודתית-אזור": {
+    "type": "polygon",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#333333",
+          "width": 1.0,
+          "opacity": 1.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#a8a800",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "פגיעה_נקודתית-נקודה": {
+    "type": "point",
+    "renderer": "simple",
+    "labels": {
+      "field": "Site_name",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "markerPoint",
+          "marker": {
+            "shape": "circle",
+            "size": 8.0,
+            "fillColor": "#e6e600",
+            "strokeColor": "#cccccc",
+            "strokeWidth": 1.0
+          }
+        },
+        {
+          "type": "stroke",
+          "color": "#cccccc",
+          "width": 1.0,
+          "opacity": 0.0,
+          "dash": null
+        },
+        {
+          "type": "fill",
+          "fillType": "solid",
+          "color": "#e6e600",
+          "opacity": 1.0
+        }
+      ]
+    }
+  },
+  "שטחים_פתוחים_פגועים": {
+    "type": "line",
+    "renderer": "simple",
+    "labels": {
+      "field": "RefName",
+      "font": "Tahoma",
+      "size": 10,
+      "color": "#000000",
+      "colorOpacity": 1.0,
+      "haloSize": 1,
+      "haloColor": null,
+      "horizontalAlignment": "Left",
+      "verticalAlignment": "Bottom",
+      "textDirection": "LTR",
+      "fontStyleName": "Regular",
+      "fontWeight": "normal",
+      "fontStyle": "normal"
+    },
+    "scaleRange": null,
+    "defaultSymbol": {
+      "symbolLayers": [
+        {
+          "type": "stroke",
+          "color": "#a87000",
+          "width": 0.6666666666666666,
+          "opacity": 1.0,
+          "dash": null
+        }
+      ]
+    }
+  }
+}

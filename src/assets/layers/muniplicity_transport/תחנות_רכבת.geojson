@@ -1,0 +1,11 @@
+{
+"type": "FeatureCollection",
+"name": "תחנות_רכבת",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "FID": 0, "ASSET_NO": 79, "NAME": "אילת", "MAAGAN_ID": 80, "MGN_TYPE": 5, "SOURCE": "תמא 23", "STATUS": "בתכנון", "KAV_CODE": 0, "MGN_UPD": 1546214400000, "YEARMONTH": 202509, "TYPE": "נוסעים" }, "geometry": { "type": "Point", "coordinates": [ 34.940114746070954, 29.533858353626044 ] } },
+{ "type": "Feature", "properties": { "FID": 1, "ASSET_NO": 9600, "NAME": "שדרות", "MAAGAN_ID": 17, "MGN_TYPE": 1, "SOURCE": " ", "STATUS": "קיימת", "KAV_CODE": 0, "MGN_UPD": 1546214400000, "YEARMONTH": 202509, "TYPE": "נוסעים" }, "geometry": { "type": "Point", "coordinates": [ 34.586916522029505, 31.515661374984308 ] } },
+{ "type": "Feature", "properties": { "FID": 2, "ASSET_NO": 9650, "NAME": "נתיבות", "MAAGAN_ID": 18, "MGN_TYPE": 1, "SOURCE": " ", "STATUS": "קיימת", "KAV_CODE": 0, "MGN_UPD": 1546214400000, "YEARMONTH": 202509, "TYPE": "נוסעים" }, "geometry": { "type": "Point", "coordinates": [ 34.571622703652224, 31.411329061018936 ] } },
+{ "type": "Feature", "properties": { "FID": 3, "ASSET_NO": 5900, "NAME": "אשקלון", "MAAGAN_ID": 145, "MGN_TYPE": 1, "SOURCE": " ", "STATUS": "קיימת", "KAV_CODE": 6, "MGN_UPD": 1546214400000, "YEARMONTH": 202509, "TYPE": "נוסעים" }, "geometry": { "type": "Point", "coordinates": [ 34.604783782781197, 31.676673868375136 ] } }
+]
+}

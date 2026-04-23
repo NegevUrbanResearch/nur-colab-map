@@ -1,0 +1,578 @@
+{
+  "id": "october_7th",
+  "name": "October 7Th",
+  "layers": [
+    {
+      "id": "אזור_הרס-אזור",
+      "name": "אזור_הרס-אזור",
+      "file": "אזור_הרס-אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "אזור_הרס-אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "אזור_הרס-נקודה",
+      "name": "אזור_הרס-נקודה",
+      "file": "אזור_הרס-נקודה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "אירוע_נקודתי-רציחה_חטיפה",
+      "name": "אירוע_נקודתי-רציחה_חטיפה",
+      "file": "אירוע_נקודתי-רציחה_חטיפה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "אירוע_נקודתי-רציחה_חטיפה-אזור",
+      "name": "אירוע_נקודתי-רציחה_חטיפה-אזור",
+      "file": "אירוע_נקודתי-רציחה_חטיפה-אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "אירוע_נקודתי-רציחה_חטיפה-אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "ביזה-אזור",
+      "name": "ביזה-אזור",
+      "file": "ביזה-אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "ביזה-אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "ביזה-נקודה",
+      "name": "ביזה-נקודה",
+      "file": "ביזה-נקודה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "בין_16_ל40_עדויות",
+      "name": "בין_16_ל40_עדויות",
+      "file": "בין_16_ל40_עדויות.geojson",
+      "format": "geojson",
+      "geometryType": "point"
+    },
+    {
+      "id": "בין_1_ל15_עדויות",
+      "name": "בין_1_ל15_עדויות",
+      "file": "בין_1_ל15_עדויות.geojson",
+      "format": "geojson",
+      "geometryType": "point"
+    },
+    {
+      "id": "חדירה_לישוב-אזור",
+      "name": "חדירה_לישוב-אזור",
+      "file": "חדירה_לישוב-אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "חדירה_לישוב-אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "חדירה_לישוב-נקודה",
+      "name": "חדירה_לישוב-נקודה",
+      "file": "חדירה_לישוב-נקודה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "חדירה_לישוב-ציר",
+      "name": "חדירה_לישוב-ציר",
+      "file": "חדירה_לישוב-ציר.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "מאבק_וגבורה_אזור",
+      "name": "מאבק_וגבורה_אזור",
+      "file": "מאבק_וגבורה_אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מאבק_וגבורה_אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "מאבק_וגבורה_נקודה",
+      "name": "מאבק_וגבורה_נקודה",
+      "file": "מאבק_וגבורה_נקודה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "מאבק_וגבורה_ציר",
+      "name": "מאבק_וגבורה_ציר",
+      "file": "מאבק_וגבורה_ציר.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "מעל_41_עדויות",
+      "name": "מעל_41_עדויות",
+      "file": "מעל_41_עדויות.geojson",
+      "format": "geojson",
+      "geometryType": "point"
+    },
+    {
+      "id": "מרחב_לחימה",
+      "name": "מרחב_לחימה",
+      "file": "מרחב_לחימה.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מרחב_לחימה.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "פגיעה_נקודתית-אזור",
+      "name": "פגיעה_נקודתית-אזור",
+      "file": "פגיעה_נקודתית-אזור.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "פגיעה_נקודתית-אזור.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "פגיעה_נקודתית-נקודה",
+      "name": "פגיעה_נקודתית-נקודה",
+      "file": "פגיעה_נקודתית-נקודה.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Site_name",
+              "key": "Site_name"
+            },
+            {
+              "label": "Setl_Name",
+              "key": "Setl_Name"
+            },
+            {
+              "label": "General_De",
+              "key": "General_De"
+            },
+            {
+              "label": "Site_Type",
+              "key": "Site_Type"
+            },
+            {
+              "label": "Oct7_desc",
+              "key": "Oct7_desc"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Site_name"
+        }
+      }
+    },
+    {
+      "id": "שטחים_פתוחים_פגועים",
+      "name": "שטחים_פתוחים_פגועים",
+      "file": "שטחים_פתוחים_פגועים.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Layer",
+              "key": "Layer"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Layer"
+        }
+      }
+    }
+  ]
+}

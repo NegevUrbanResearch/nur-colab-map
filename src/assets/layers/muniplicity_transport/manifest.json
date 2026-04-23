@@ -1,0 +1,301 @@
+{
+  "id": "muniplicity_transport",
+  "name": "Muniplicity Transport",
+  "layers": [
+    {
+      "id": "במה",
+      "name": "במה",
+      "file": "במה.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "דרכי_עפר",
+      "name": "דרכי_עפר",
+      "file": "דרכי_עפר.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "דרכי_עפר.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "דרכים_אזוריות",
+      "name": "דרכים_אזוריות",
+      "file": "דרכים_אזוריות.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "דרכים_ארציות",
+      "name": "דרכים_ארציות",
+      "file": "דרכים_ארציות.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "דרכים_מקומיות",
+      "name": "דרכים_מקומיות",
+      "file": "דרכים_מקומיות.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "מועצות_אזוריות",
+      "name": "מועצות_אזוריות",
+      "file": "מועצות_אזוריות.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מועצות_אזוריות.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Muni_Heb",
+              "key": "Muni_Heb"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Muni_Heb"
+        }
+      }
+    },
+    {
+      "id": "מועצות_אזוריות_מתאר",
+      "name": "מועצות_אזוריות_מתאר",
+      "file": "מועצות_אזוריות_מתאר.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מועצות_אזוריות_מתאר.pmtiles"
+    },
+    {
+      "id": "מסלולי_רכבת",
+      "name": "מסלולי_רכבת",
+      "file": "מסלולי_רכבת.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "pmtilesFile": "מסלולי_רכבת.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Layer",
+              "key": "Layer"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Layer"
+        }
+      }
+    },
+    {
+      "id": "מרכז_תחבורה_מתוכנן",
+      "name": "מרכז_תחבורה_מתוכנן",
+      "file": "מרכז_תחבורה_מתוכנן.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מרכז_תחבורה_מתוכנן.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "מרכז_תחבורה_קיים",
+      "name": "מרכז_תחבורה_קיים",
+      "file": "מרכז_תחבורה_קיים.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מרכז_תחבורה_קיים.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "סינגלים",
+      "name": "סינגלים",
+      "file": "סינגלים.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "pmtilesFile": "סינגלים.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "סעד",
+      "name": "סעד",
+      "file": "סעד.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "שביל_הנגב_המערבי",
+      "name": "שביל_הנגב_המערבי",
+      "file": "שביל_הנגב_המערבי.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "Name"
+        }
+      }
+    },
+    {
+      "id": "שבילי_אופניים",
+      "name": "שבילי_אופניים",
+      "file": "שבילי_אופניים.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "pmtilesFile": "שבילי_אופניים.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "SHVIL_NAME",
+              "key": "SHVIL_NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "שבילי_אופניים_שקמה",
+      "name": "שבילי_אופניים_שקמה",
+      "file": "שבילי_אופניים_שקמה.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "SHVIL_NAME",
+              "key": "SHVIL_NAME"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "SHVIL_NAME"
+        }
+      }
+    },
+    {
+      "id": "שבילים",
+      "name": "שבילים",
+      "file": "שבילים.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "תחנות_רכבת",
+      "name": "תחנות_רכבת",
+      "file": "תחנות_רכבת.geojson",
+      "format": "geojson",
+      "geometryType": "point",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "Name",
+              "key": "Name"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    }
+  ]
+}

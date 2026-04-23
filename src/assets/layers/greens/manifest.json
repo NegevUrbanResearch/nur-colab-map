@@ -1,0 +1,255 @@
+{
+  "id": "greens",
+  "name": "Greens",
+  "layers": [
+    {
+      "id": "גן_לאומי",
+      "name": "גן_לאומי",
+      "file": "גן_לאומי.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "גן_לאומי.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "MAVAT_NAME",
+              "key": "MAVAT_NAME"
+            },
+            {
+              "label": "NAME",
+              "key": "NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "חקלאות",
+      "name": "חקלאות",
+      "file": "חקלאות.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "חקלאות.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "שם ישוב",
+              "key": "שם ישוב"
+            },
+            {
+              "label": "שם גידול",
+              "key": "שם גידול"
+            },
+            {
+              "label": "דונם",
+              "key": "דונם"
+            },
+            {
+              "label": "סוג כיסוי",
+              "key": "סוג כיסוי"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "יער_טבעי",
+      "name": "יער_טבעי",
+      "file": "יער_טבעי.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "יער_טבעי.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "MAVAT_NAME",
+              "key": "MAVAT_NAME"
+            },
+            {
+              "label": "NAME",
+              "key": "NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "יער_פארק",
+      "name": "יער_פארק",
+      "file": "יער_פארק.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "יער_פארק.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "MAVAT_NAME",
+              "key": "MAVAT_NAME"
+            },
+            {
+              "label": "NAME",
+              "key": "NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "יערות_קקל",
+      "name": "יערות_קקל",
+      "file": "יערות_קקל.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "יערות_קקל.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "MAVAT_NAME",
+              "key": "MAVAT_NAME"
+            },
+            {
+              "label": "NAME",
+              "key": "NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    },
+    {
+      "id": "מישורי_הצפה",
+      "name": "מישורי_הצפה",
+      "file": "מישורי_הצפה.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מישורי_הצפה.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "סוג_פ",
+              "key": "סוג_פ"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "סוג_פ"
+        }
+      }
+    },
+    {
+      "id": "מסדרונות_אקולוגיים",
+      "name": "מסדרונות_אקולוגיים",
+      "file": "מסדרונות_אקולוגיים.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "מסדרונות_אקולוגיים.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "SymRTG",
+              "key": "SymRTG"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "SymRTG"
+        }
+      }
+    },
+    {
+      "id": "נחלים",
+      "name": "נחלים",
+      "file": "נחלים.geojson",
+      "format": "geojson",
+      "geometryType": "line",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "NAME",
+              "key": "NAME"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "NAME"
+        }
+      }
+    },
+    {
+      "id": "צוואר_בקבוק",
+      "name": "צוואר_בקבוק",
+      "file": "צוואר_בקבוק.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "צוואר_בקבוק.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "SymRTG",
+              "key": "SymRTG"
+            }
+          ],
+          "hideEmpty": true,
+          "titleField": "SymRTG"
+        }
+      }
+    },
+    {
+      "id": "שמורות_טבע",
+      "name": "שמורות_טבע",
+      "file": "שמורות_טבע.geojson",
+      "format": "geojson",
+      "geometryType": "polygon",
+      "pmtilesFile": "שמורות_טבע.pmtiles",
+      "ui": {
+        "popup": {
+          "fields": [
+            {
+              "label": "MAVAT_NAME",
+              "key": "MAVAT_NAME"
+            },
+            {
+              "label": "NAME",
+              "key": "NAME"
+            },
+            {
+              "label": "STATUS",
+              "key": "STATUS"
+            },
+            {
+              "label": "STATION_DESC",
+              "key": "STATION_DESC"
+            }
+          ],
+          "hideEmpty": true
+        }
+      }
+    }
+  ]
+}
