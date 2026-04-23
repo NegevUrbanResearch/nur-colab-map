@@ -14,6 +14,7 @@ const mockRegistry: LayerRegistry = {
     {
       id: "pack_a",
       name: "חבילה א",
+      displayName: "חבילה א",
       manifest: {
         id: "pack_a",
         name: "חבילה א",
@@ -27,6 +28,7 @@ const mockRegistry: LayerRegistry = {
     {
       id: "pack_b",
       name: "חבילה ב",
+      displayName: "חבילה ב",
       manifest: {
         id: "pack_b",
         name: "חבילה ב",
@@ -85,6 +87,7 @@ describe("useLayerPackState helpers", () => {
         {
           id: "october_7th",
           name: "Oct",
+          displayName: "Oct",
           manifest: {
             id: "october_7th",
             name: "Oct",
@@ -120,6 +123,7 @@ describe("useLayerPackState helpers", () => {
         {
           id: "future_development",
           name: "Future",
+          displayName: "Future",
           manifest: {
             id: "future_development",
             name: "Future",
@@ -144,6 +148,7 @@ describe("useLayerPackState helpers", () => {
         {
           id: "future_development",
           name: "Future",
+          displayName: "Future",
           manifest: {
             id: "future_development",
             name: "Future",

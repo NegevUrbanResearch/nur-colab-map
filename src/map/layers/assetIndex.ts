@@ -45,3 +45,38 @@ export function getStylesLoadersByPackId(): Map<
   }
   return map;
 }
+
+const META_BASENAMES = new Set(["manifest.json", "styles.json"]);
+
+/** Any depth under each top-level pack folder: GeoJSON, PMTiles, images, etc. */
+const packDataFilesGlob = import.meta.glob("../../assets/layers/*/**/*");
+
+/**
+ * Fills a map of pack id → set of on-disk data file basenames from Vite glob keys (e.g. `.../layers/<packId>/.../<file>`).
+ * Used for tests; `getLayerAssetBasenamesByPackId` uses the real glob.
+ */
+export function addLayerAssetBasenamesFromGlobKeys(
+  keys: string[],
+  into: Map<string, Set<string>> = new Map(),
+): Map<string, Set<string>> {
+  for (const path of keys) {
+    const normalized = path.replace(/\\/g, "/");
+    const m = normalized.match(/layers\/([^/]+)\/(.+)$/);
+    if (!m) continue;
+    const packId = m[1]!;
+    const relPath = m[2]!;
+    const fileKey = (relPath.split("/").pop() ?? "").normalize("NFC");
+    if (fileKey === "" || META_BASENAMES.has(fileKey)) continue;
+    if (!into.has(packId)) into.set(packId, new Set());
+    into.get(packId)!.add(fileKey);
+  }
+  return into;
+}
+
+/**
+ * Per pack folder, basenames of on-disk files (GeoJSON, PMTiles, images, etc.) that can back a layer entry.
+ * Includes files in nested subfolders. Excludes `manifest.json` and `styles.json` (by basename, anywhere in the tree).
+ */
+export function getLayerAssetBasenamesByPackId(): Map<string, Set<string>> {
+  return addLayerAssetBasenamesFromGlobKeys(Object.keys(packDataFilesGlob));
+}
