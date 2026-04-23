@@ -695,7 +695,7 @@ const MapPage = () => {
       void loadLayerIntoMap({
         map,
         urls,
-        pmtilesSourceLayer: "layer",
+        pmtilesSourceLayer: layer.pmtilesSourceLayer ?? "layer",
         style: pack.styles[layer.id],
         ui: layer.ui,
         layerGeometryType: layer.geometryType,

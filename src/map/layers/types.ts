@@ -76,6 +76,8 @@ export type LayerManifestEntry = {
   format: string;
   geometryType: string;
   pmtilesFile?: string;
+  /** Vector source layer name inside the PMTiles archive (paint rule `dataLayer`). Defaults to `"layer"` when omitted. */
+  pmtilesSourceLayer?: string;
   ui?: unknown;
 };
 

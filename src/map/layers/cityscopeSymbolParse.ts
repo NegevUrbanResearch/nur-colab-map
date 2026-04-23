@@ -1,4 +1,7 @@
-/** Shared extraction of Cityscope / ArcGIS-export style JSON used by map + legend. */
+/**
+ * Shared extraction of Cityscope / ArcGIS-export style JSON used by map + legend.
+ * Keep this module free of `cityscopeStyleResolver` imports/re-exports so resolvers can depend on it one-way.
+ */
 
 export type ParsedMarker = {
   shape: string;
@@ -50,6 +53,31 @@ function numPair(x: unknown): [number, number] | undefined {
   return [a, b];
 }
 
+/** Keeps only finite numbers (drops null, strings, NaN, Infinity). */
+function finiteNumberArray(arr: unknown[]): number[] {
+  const out: number[] = [];
+  for (const x of arr) {
+    if (typeof x === "number" && Number.isFinite(x)) out.push(x);
+  }
+  return out;
+}
+
+/**
+ * Resolves CIM / Cityscope dash on a stroke symbol layer to a safe pattern or `null` (solid).
+ * Accepts `dash` as number[], `{ array: number[] }`, or `dashArray`; invalid / empty → `null`.
+ */
+export function normalizedStrokeDashFromEntry(entry: Record<string, unknown>): number[] | null {
+  const dashRaw = entry.dash;
+  const dashArrayRaw = entry.dashArray;
+  let raw: unknown[] | null = null;
+  if (Array.isArray(dashRaw)) raw = dashRaw;
+  else if (isRecord(dashRaw) && Array.isArray(dashRaw.array)) raw = dashRaw.array as unknown[];
+  else if (Array.isArray(dashArrayRaw)) raw = dashArrayRaw;
+  if (raw == null || raw.length === 0) return null;
+  const cleaned = finiteNumberArray(raw);
+  return cleaned.length > 0 ? cleaned : null;
+}
+
 /**
  * Reads `defaultSymbol.symbolLayers` from a pack style object (simple / uniqueValue default).
  */
@@ -85,15 +113,11 @@ export function parseDefaultSymbolFromStyle(style: unknown): ParsedDefaultSymbol
         if (iconAnchor) out.marker.iconAnchor = iconAnchor;
       }
     } else if (t === "stroke") {
-      const dashRaw = entry.dash;
-      const dashArrayRaw = entry.dashArray;
-      const dashFromSymbol =
-        Array.isArray(dashRaw) ? (dashRaw as number[]) : Array.isArray(dashArrayRaw) ? (dashArrayRaw as number[]) : null;
       out.stroke = {
         color: str(entry.color, "#3388ff"),
         width: num(entry.width, 1),
         opacity: num(entry.opacity, 1),
-        dash: dashFromSymbol,
+        dash: normalizedStrokeDashFromEntry(entry),
       };
     } else if (t === "fill" && entry.fillType === "solid") {
       out.fill = {
