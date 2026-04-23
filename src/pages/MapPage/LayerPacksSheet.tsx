@@ -1,15 +1,22 @@
 import { useEffect, useId, useRef } from "react";
 
+import { useDialogFocusTrap } from "./useDialogFocusTrap";
+
 type Props = {
   open: boolean;
   onClose: () => void;
   title?: string;
+  /** Horizontal pack scroller (inside sheet, under header). */
+  packStrip?: React.ReactNode;
   children: React.ReactNode;
 };
 
-export default function LayerPacksSheet({ open, onClose, title = "שכבות", children }: Props) {
+export default function LayerPacksSheet({ open, onClose, title = "שכבות", packStrip, children }: Props) {
   const labelId = useId();
   const closeBtnRef = useRef<HTMLButtonElement | null>(null);
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+
+  useDialogFocusTrap(open, dialogRef);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +44,7 @@ export default function LayerPacksSheet({ open, onClose, title = "שכבות", c
       }}
     >
       <div
+        ref={dialogRef}
         className="layer-packs-sheet"
         role="dialog"
         aria-modal="true"
@@ -58,6 +66,7 @@ export default function LayerPacksSheet({ open, onClose, title = "שכבות", c
             ✕
           </button>
         </div>
+        {packStrip ? <div className="layer-packs-sheet__pack-strip-wrap">{packStrip}</div> : null}
         <div className="layer-packs-sheet__body">{children}</div>
       </div>
     </div>

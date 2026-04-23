@@ -1,7 +1,7 @@
 import type { BasemapId } from "./useLayerPackState";
 
 const LABEL: Record<BasemapId, string> = {
-  satellite: "בסיס: לווין",
+  satellite: "בסיס: לוויין",
   osm: "בסיס: OSM",
 };
 
