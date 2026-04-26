@@ -58,12 +58,12 @@ const MarkerActionPopover = ({
   useEffect(() => {
     if (!map) return;
     const onMapChange = () => syncPosition();
-    map.on("move", onMapChange);
-    map.on("zoom", onMapChange);
+    map.on("moveend", onMapChange);
+    map.on("zoomend", onMapChange);
     map.on("resize", onMapChange);
     return () => {
-      map.off("move", onMapChange);
-      map.off("zoom", onMapChange);
+      map.off("moveend", onMapChange);
+      map.off("zoomend", onMapChange);
       map.off("resize", onMapChange);
     };
   }, [map, syncPosition]);

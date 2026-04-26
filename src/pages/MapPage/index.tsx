@@ -566,7 +566,14 @@ const MapPage = () => {
     if (mapEl._leaflet_id != null) delete mapEl._leaflet_id;
     mapContainer.innerHTML = "";
 
-    mapRef.current = L.map("map", { zoomControl: false }).setView([31.42, 34.49], 13);
+    mapRef.current = L.map("map", {
+      zoomControl: false,
+      // Do not set preferCanvas: true — it forces route polylines onto Canvas, where
+      // dashOffset / stacked dashed strokes (dual-color proposed segments) render incorrectly.
+      zoomAnimation: false,
+      markerZoomAnimation: false,
+      fadeAnimation: false,
+    }).setView([31.42, 34.49], 13);
     ensurePriorityPinkOverlayPane(mapRef.current);
     const baseTile = createBasemapTileLayer("satellite").addTo(mapRef.current);
     baseMapLayerRef.current = baseTile;
