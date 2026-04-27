@@ -7,6 +7,7 @@ import MapPage from "../pages/MapPage/index.tsx";
 import NotFoundPage from "../pages/404Page.tsx";
 import AuthProtectedRoute from "./AuthProtectedRoute.tsx";
 import Providers from "../Providers.tsx";
+import WorkshopEntryPage from "../pages/WorkshopEntryPage.tsx";
 
 const router = createBrowserRouter(
   [
@@ -27,6 +28,10 @@ const router = createBrowserRouter(
         {
           path: "/auth/sign-up",
           element: <SignUpPage />,
+        },
+        {
+          path: "workshop",
+          element: <WorkshopEntryPage />,
         },
         // Auth Protected routes
         {

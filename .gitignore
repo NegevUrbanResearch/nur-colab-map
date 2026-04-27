@@ -26,3 +26,6 @@ dist-ssr
 .cursor
 .tmp-*.sql
 docs/superpowers/plans/
+
+# Local-only printable workshop QR (do not commit)
+workshop-qr-print.html

@@ -35,6 +35,34 @@ export async function ensureMemorialSitesProjectForUser(userId: string) {
   }
 }
 
+export async function ensureWorkshopPinkProjectForUser(userId: string) {
+  const pinkLineProjectId = "22222222-2222-2222-2222-222222222222";
+
+  const { data: existing, error: selectError } = await supabase
+    .from("project_members")
+    .select("project_id")
+    .eq("project_id", pinkLineProjectId)
+    .eq("user_id", userId);
+
+  if (selectError) {
+    throw selectError;
+  }
+
+  if (existing && existing.length > 0) {
+    return;
+  }
+
+  const { error: insertError } = await supabase.from("project_members").insert({
+    project_id: pinkLineProjectId,
+    user_id: userId,
+    role: "editor",
+  });
+
+  if (insertError) {
+    throw insertError;
+  }
+}
+
 export async function loadProjects() {
   const {
     data: { user },
